@@ -1,92 +1,150 @@
+import utils.kotlinFabricRuntimeLibrary
+
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+	alias(libs.plugins.shadow)
+	id("utils.kotlin-runtime-library")
+	id("utils.mod-resources")
 }
 
 architectury {
-    platformSetupLoomIde()
-    fabric()
+	platformSetupLoomIde()
+	fabric()
 }
 
-val minecraftVersion = project.properties["minecraft_version"] as String
-
 configurations {
-    create("common")
-    create("shadowCommon")
-    compileClasspath.get().extendsFrom(configurations["common"])
-    runtimeClasspath.get().extendsFrom(configurations["common"])
-    getByName("developmentFabric").extendsFrom(configurations["common"])
+	create("common")
+	create("shadowCommon")
+	compileClasspath.get().extendsFrom(configurations["common"])
+	runtimeClasspath.get().extendsFrom(configurations["common"])
+	getByName("developmentFabric").extendsFrom(configurations["common"])
 }
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+	runs {
+		// This adds a new gradle task that runs the datagen API: "gradlew runDatagen"
+		create("datagen") {
+			client()
+			name = "Minecraft Datagen"
+			property("archie.datagen", "true")
+			property("archie.datagen.client", project.properties["client_datagen"] as String)
+			property("archie.datagen.server", project.properties["server_datagen"] as String)
+			property("fabric-api.datagen")
+			property("fabric-api.datagen.modid", properties["mod_id"] as String)
+			property("fabric-api.datagen.output-dir", file("src/main/generated").absolutePath)
+
+			runDir = "build/datagen"
+		}
+		create("gametest") {
+			server()
+			name = "Minecraft GameTest"
+			property("fabric-api.gametest")
+		}
+	}
 }
 
-// Fabric Datagen Gradle config.  Remove if not using Fabric datagen
-fabricApi.configureDataGeneration()
+fabricApi.configureDataGeneration {
+	createRunConfiguration = false
+	outputDirectory.set(file("src/main/generated"))
+}
+
+sourceSets {
+	main {
+		resources {
+		}
+		kotlin {
+			srcDir("src/main/gametest")
+		}
+		java {
+			srcDir("src/main/mixin")
+		}
+	}
+}
 
 dependencies {
-    modImplementation("net.fabricmc:fabric-loader:${project.properties["fabric_loader_version"]}")
-    modApi("net.fabricmc.fabric-api:fabric-api:${project.properties["fabric_api_version"]}+$minecraftVersion")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${project.properties["fabric_language_kotlin_version"]}")
+	modImplementation(libs.fabric.loader)
+	modApi(libs.fabric.api)
+	modApi(libs.architectury.fabric)
+	modImplementation(libs.kotlin.fabric)
+	kotlinFabricRuntimeLibrary(libs.kotlinx.serialization.nbt)
+	kotlinFabricRuntimeLibrary(libs.kotlinx.serialization.toml)
+	kotlinFabricRuntimeLibrary(libs.kotlinx.serialization.json5)
+	modLocalRuntime(libs.rei.fabric)
+	modCompileOnlyApi(libs.modmenu)
+	modImplementation(libs.catalogue.fabric)
+	modLocalRuntime(libs.menulogue.fabric)
+	modApi(libs.clothConfig.fabric)
+	modApi(libs.botarium.fabric)
 
-    "common"(project(":common", "namedElements")) { isTransitive = false }
-    "shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
+	"common"(project(":common", "namedElements")) { isTransitive = false }
+	"shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
+}
+
+modResources {
+	filesMatching.add("fabric.mod.json")
+	versions = versions.get().mapValues { (_, version) ->
+		version
+			.replace(",", " ")
+			.replace(Regex("""\s+"""), " ")
+			.replace(Regex("""\[(\S+)"""), ">=$1")
+			.replace(Regex("""(\S+)\]"""), "<=$1")
+			.replace(Regex("""\](\S+)"""), ">$1")
+			.replace(Regex("""(\S+)\["""), "<$1")
+	}
 }
 
 tasks {
-    base.archivesName.set(base.archivesName.get() + "-Fabric")
-    processResources {
-        inputs.property("version", project.version)
+	base.archivesName.set(base.archivesName.get() + "-fabric")
 
-        filesMatching("fabric.mod.json") {
-            expand(mapOf("version" to project.version))
-        }
-    }
+	processResources {
+		from(project(":common").sourceSets.main.get().resources) {
+			include("assets/${project.properties["mod_id"]}/*.png")
+		}
+	}
 
-    shadowJar {
-        configurations = listOf(project.configurations.getByName("shadowCommon"))
-        archiveClassifier.set("dev-shadow")
-    }
+	shadowJar {
+		configurations =
+			listOf(project.configurations.getByName("shadowCommon"), project.configurations.getByName("shadow"))
+		archiveClassifier.set("dev-shadow")
+	}
 
-    remapJar {
-        injectAccessWidener.set(true)
-        inputFile.set(shadowJar.get().archiveFile)
-        dependsOn(shadowJar)
-    }
+	remapJar {
+		injectAccessWidener.set(true)
+		inputFile.set(shadowJar.get().archiveFile)
+		dependsOn(shadowJar)
+	}
 
-    jar.get().archiveClassifier.set("dev")
+	jar.get().archiveClassifier.set("dev")
 
-    sourcesJar {
-        val commonSources = project(":common").tasks.sourcesJar
-        dependsOn(commonSources)
-        from(commonSources.get().archiveFile.map { zipTree(it) })
-    }
+	sourcesJar {
+		val commonSources = project(":common").tasks.sourcesJar
+		dependsOn(commonSources)
+		from(commonSources.get().archiveFile.map { zipTree(it) })
+	}
 }
 
-components {
-    java.run {
-        if (this is AdhocComponentWithVariants)
-            withVariantsFromConfiguration(project.configurations.shadowRuntimeElements.get()) { skip() }
-    }
-}
 
 publishing {
-    publications.create<MavenPublication>("mavenFabric") {
-        artifactId = "${project.properties["archives_base_name"]}" + "-Fabric"
-        from(components["java"])
-    }
+	publications.create<MavenPublication>("mavenFabric") {
+		artifactId = base.archivesName.get()
+		from(components["java"])
+	}
 
-    repositories {
-        mavenLocal()
-        maven {
-            val releasesRepoUrl = "https://example.com/releases"
-            val snapshotsRepoUrl = "https://example.com/snapshots"
-            url = uri(if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString().startsWith("0")) snapshotsRepoUrl else releasesRepoUrl)
-            name = "ExampleRepo"
-            credentials {
-                username = project.properties["repoLogin"]?.toString()
-                password = project.properties["repoPassword"]?.toString()
-            }
-        }
-    }
+	repositories {
+		mavenLocal()
+		maven {
+			val releasesRepoUrl = "https://example.com/releases"
+			val snapshotsRepoUrl = "https://example.com/snapshots"
+			url = uri(
+				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+						.startsWith("0")
+				) snapshotsRepoUrl else releasesRepoUrl
+			)
+			name = "ExampleRepo"
+			credentials {
+				username = project.properties["repoLogin"]?.toString()
+				password = project.properties["repoPassword"]?.toString()
+			}
+		}
+	}
 }

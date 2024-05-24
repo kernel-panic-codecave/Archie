@@ -1,37 +1,67 @@
 architectury {
-    common("forge", "fabric", "neoforge")
-    platformSetupLoomIde()
+	common("fabric", "neoforge")
+	platformSetupLoomIde()
 }
 
-val minecraftVersion = project.properties["minecraft_version"] as String
+loom.accessWidenerPath.set(file("src/main/resources/${project.properties["mod_id"]}.accesswidener"))
 
-loom.accessWidenerPath.set(file("src/main/resources/examplemod.accesswidener"))
-
-sourceSets.main.get().resources.srcDir("src/main/generated/resources")
+sourceSets {
+	main {
+		kotlin {
+			srcDir("src/main/gametest")
+			srcDir("src/main/datagen")
+		}
+		java {
+			srcDir("src/main/mixin")
+		}
+	}
+}
 
 dependencies {
-    // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
-    // Do NOT use other classes from fabric loader
-    modImplementation("net.fabricmc:fabric-loader:${project.properties["fabric_loader_version"]}")
+	compileOnly(libs.kotlinx.serialization)
+	compileOnly(libs.kotlinx.serialization.json)
+	compileOnly(kotlin("reflect"))
+	api(libs.kotlinx.serialization.nbt) { isTransitive = false }
+	api(libs.kotlinx.serialization.toml) { isTransitive = false }
+	api(libs.kotlinx.serialization.json5) { isTransitive = false }
+	// We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
+	// Do NOT use other classes from fabric loader
+	modImplementation(libs.fabric.loader)
+
+    modApi(libs.rei.common)
+	modApi(libs.catalogue.common)
+	modApi(libs.clothConfig.common)
+	modApi(libs.architectury.common)
+	modApi(libs.botarium.common)
+	modApi(libs.botarium.resources.common)
 }
 
-publishing {
-    publications.create<MavenPublication>("mavenCommon") {
-        artifactId = "${project.properties["archives_base_name"]}" + "-Common"
-        from(components["java"])
-    }
+tasks {
+	base.archivesName.set(base.archivesName.get() + "-common")
+}
 
-    repositories {
-        mavenLocal()
-        maven {
-            val releasesRepoUrl = "https://example.com/releases"
-            val snapshotsRepoUrl = "https://example.com/snapshots"
-            url = uri(if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString().startsWith("0")) snapshotsRepoUrl else releasesRepoUrl)
-            name = "ExampleRepo"
-            credentials {
-                username = project.properties["repoLogin"]?.toString()
-                password = project.properties["repoPassword"]?.toString()
-            }
-        }
-    }
+
+publishing {
+	publications.create<MavenPublication>("mavenCommon") {
+		artifactId = base.archivesName.get()
+		from(components["java"])
+	}
+
+	repositories {
+		mavenLocal()
+		maven {
+			val releasesRepoUrl = "https://example.com/releases"
+			val snapshotsRepoUrl = "https://example.com/snapshots"
+			url = uri(
+				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+						.startsWith("0")
+				) snapshotsRepoUrl else releasesRepoUrl
+			)
+			name = "ExampleRepo"
+			credentials {
+				username = project.properties["repoLogin"]?.toString()
+				password = project.properties["repoPassword"]?.toString()
+			}
+		}
+	}
 }

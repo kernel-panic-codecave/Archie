@@ -1,0 +1,53 @@
+modLoader = "kotlinforforge"
+loaderVersion = "[${versions.kotlin_neoforge_range},)"
+issueTrackerURL = ""
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_display_name}"
+authors = "${mod_authors}"
+credits = "${mod_credits}"
+description = '''
+${mod_description}
+'''
+logoFile = "assets/${mod_id}/banner.png"
+displayURL = "${mod_url}"
+
+[[mixins]]
+config = "archie.mixins.json"
+
+[[mixins]]
+config = "archie-common.mixins.json"
+
+[[dependencies."${mod_id}"]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${versions.neoforge_range},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${versions.minecraft}]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "kotlinforforge"
+type = "required"
+versionRange = "[${versions.kotlin_neoforge_range},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "cloth_config"
+type = "required"
+versionRange = "[${versions.cloth_config_range},)"
+ordering = "NONE"
+side = "BOTH"
+
+[modproperties."${mod_id}"]
+catalogueImageIcon = "assets/${mod_id}/icon.png"

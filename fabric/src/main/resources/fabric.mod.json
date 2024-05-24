@@ -1,30 +1,52 @@
 {
   "schemaVersion": 1,
-  "id": "examplemod",
+  "id": "${mod_id}",
   "version": "${version}",
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "${mod_display_name}",
+  "description": "${mod_description}",
   "authors": [
-    "Your Name Here"
+    "${mod_authors}"
+  ],
+  "contributors": [
+    "${mod_credits}"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": ""
+    "homepage": "${mod_url}",
+    "sources": "${mod_source}"
   },
-  "license": "Insert License Here",
-  "icon": "assets/examplemod/icon.png",
+  "custom": {
+    "catalogue": {
+      "configFactory": "com.withertech.archie.config.fabric.ArchieCatalogue",
+      "banner": "assets/${mod_id}/banner.png"
+    }
+  },
+  "license": "${mod_license}",
+  "icon": "assets/${mod_id}/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.example.examplemod.fabric.ExampleModFabric"
+      {
+        "adapter": "kotlin",
+        "value": "com.withertech.archie.fabric.ArchieFabric"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "com.withertech.archie.fabric.ArchieFabric"
+      }
     ]
   },
   "mixins": [
-    "examplemod.mixins.json",
-    "examplemod-common.mixins.json"
+    "archie.mixins.json",
+    "archie-common.mixins.json"
   ],
   "depends": {
-    "fabric": "*",
-    "minecraft": ">=1.20.4"
+    "minecraft": "${versions.minecraft}",
+    "fabricloader": ">=${versions.fabric_loader}",
+    "fabric-api": ">=${versions.fabric_api}",
+    "fabric-language-kotlin": ">=${versions.kotlin_fabric}",
+    "architectury": ">=${versions.architectury}",
+    "cloth-config": ">=${versions.cloth_config_range}"
   }
 }

@@ -1,97 +1,139 @@
+import utils.kotlinForgeRuntimeLibrary
+import utils.patchedFMLModType
+import java.nio.file.FileSystems
+
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+	alias(libs.plugins.shadow)
+	id("utils.kotlin-runtime-library")
+	id("utils.mod-resources")
 }
 
 architectury {
-    platformSetupLoomIde()
-    neoForge()
+	platformSetupLoomIde()
+	neoForge()
 }
-
-val minecraftVersion = project.properties["minecraft_version"] as String
 
 configurations {
-    create("common")
-    create("shadowCommon")
-    compileClasspath.get().extendsFrom(configurations["common"])
-    runtimeClasspath.get().extendsFrom(configurations["common"])
-    getByName("developmentNeoForge").extendsFrom(configurations["common"])
+	create("common")
+	create("shadowCommon")
+	compileClasspath.get().extendsFrom(configurations["common"])
+	runtimeClasspath.get().extendsFrom(configurations["common"])
+	getByName("developmentNeoForge").extendsFrom(configurations["common"])
 }
+
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
 
+	// NroForge Datagen Gradle config.  Remove if not using NeoForge datagen
+	runs {
+		create("datagen") {
+			data()
+			property("archie.datagen", "true")
+			property("archie.datagen.client", project.properties["client_datagen"] as String)
+			property("archie.datagen.server", project.properties["server_datagen"] as String)
+			programArgs("--all", "--mod", project.properties["mod_id"] as String)
+			programArgs("--output", file("src/main/generated").absolutePath)
+		}
 
-    // NroForge Datagen Gradle config.  Remove if not using NeoForge datagen
-    runs.create("datagen") {
-        data()
-        programArgs("--all", "--mod", "examplemod")
-        programArgs("--output", project(":common").file("src/main/generated/resources").absolutePath)
-        programArgs("--existing", project(":common").file("src/main/resources").absolutePath)
-    }
+		create("gametest") {
+			server()
+			name = "Minecraft GameTest"
+			property("neoforge.enableGameTest", "true")
+			property("neoforge.gameTestServer", "true")
+		}
+	}
+
 }
 
-dependencies {
-    neoForge("net.neoforged:neoforge:${project.properties["neoforge_version"]}")
-    implementation("thedarkcolour:kotlinforforge-neoforge:${project.properties["kotlin_forge_version"]}")
+sourceSets {
+	main {
+		resources {
+			srcDir("src/main/generated")
+		}
+		kotlin {
+			srcDir("src/main/gametest")
+		}
+		java {
+			srcDir("src/main/mixin")
+		}
+	}
+}
 
-    "common"(project(":common", "namedElements")) { isTransitive = false }
-    "shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
+
+dependencies {
+	compileOnly(libs.kotlin.stdlib)
+	neoForge(libs.neoforge)
+	modApi(libs.architectury.neoforge)
+	implementation(libs.kotlin.neoforge)
+	kotlinForgeRuntimeLibrary(libs.kotlinx.serialization.nbt)
+	kotlinForgeRuntimeLibrary(libs.kotlinx.serialization.toml)
+	kotlinForgeRuntimeLibrary(libs.kotlinx.serialization.json5)
+	modRuntimeOnly(libs.rei.neoforge)
+	modImplementation(libs.catalogue.neoforge)
+	modApi(libs.clothConfig.neoforge)
+	modApi(libs.botarium.neoforge)
+
+	"common"(project(":common", "namedElements")) { isTransitive = false }
+	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
+}
+
+modResources {
+	filesMatching.add("META-INF/neoforge.mods.toml")
 }
 
 tasks {
-    base.archivesName.set(base.archivesName.get() + "-NeoForge")
-    processResources {
-        inputs.property("version", project.version)
+	base.archivesName.set(base.archivesName.get() + "-neoforge")
 
-        filesMatching("META-INF/mods.toml") {
-            expand(mapOf("version" to project.version))
-        }
-    }
+	processResources {
+		from(project(":common").sourceSets.main.get().resources) {
+			include("assets/${project.properties["mod_id"]}/*.png")
+		}
+	}
 
-    shadowJar {
-        exclude("fabric.mod.json")
-        configurations = listOf(project.configurations.getByName("shadowCommon"))
-        archiveClassifier.set("dev-shadow")
-    }
+	shadowJar {
+		exclude("fabric.mod.json")
+		configurations =
+			listOf(project.configurations.getByName("shadowCommon"), project.configurations.getByName("shadow"))
+		archiveClassifier.set("dev-shadow")
+	}
 
-    remapJar {
-        inputFile.set(shadowJar.get().archiveFile)
-        dependsOn(shadowJar)
-    }
+	remapJar {
+		inputFile.set(shadowJar.get().archiveFile)
+		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.name))
+		dependsOn(shadowJar)
+	}
 
-    jar.get().archiveClassifier.set("dev")
+	jar.get().archiveClassifier.set("dev")
 
-    sourcesJar {
-        val commonSources = project(":common").tasks.sourcesJar
-        dependsOn(commonSources)
-        from(commonSources.get().archiveFile.map { zipTree(it) })
-    }
-}
-
-components {
-    java.run {
-        if (this is AdhocComponentWithVariants)
-            withVariantsFromConfiguration(project.configurations.shadowRuntimeElements.get()) { skip() }
-    }
+	sourcesJar {
+		val commonSources = project(":common").tasks.sourcesJar
+		dependsOn(commonSources)
+		from(commonSources.get().archiveFile.map { zipTree(it) })
+	}
 }
 
 publishing {
-    publications.create<MavenPublication>("mavenNeoForge") {
-        artifactId = "${project.properties["archives_base_name"]}" + "-NeoForge"
-        from(components["java"])
-    }
+	publications.create<MavenPublication>("mavenNeoForge") {
+		artifactId = base.archivesName.get()
+		from(components["java"])
+	}
 
-    repositories {
-        mavenLocal()
-        maven {
-            val releasesRepoUrl = "https://example.com/releases"
-            val snapshotsRepoUrl = "https://example.com/snapshots"
-            url = uri(if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString().startsWith("0")) snapshotsRepoUrl else releasesRepoUrl)
-            name = "ExampleRepo"
-            credentials {
-                username = project.properties["repoLogin"]?.toString()
-                password = project.properties["repoPassword"]?.toString()
-            }
-        }
-    }
+	repositories {
+		mavenLocal()
+		maven {
+			val releasesRepoUrl = "https://example.com/releases"
+			val snapshotsRepoUrl = "https://example.com/snapshots"
+			url = uri(
+				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+						.startsWith("0")
+				) snapshotsRepoUrl else releasesRepoUrl
+			)
+			name = "ExampleRepo"
+			credentials {
+				username = project.properties["repoLogin"]?.toString()
+				password = project.properties["repoPassword"]?.toString()
+			}
+		}
+	}
 }
