@@ -1,29 +1,38 @@
+import com.hypherionmc.modfusioner.plugin.FusionerExtension
+import com.hypherionmc.modpublisher.properties.ModLoader
 import groovy.lang.Closure
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
 	alias(libs.plugins.architectury)
+	alias(libs.plugins.architectury.kotlin) apply false
 	alias(libs.plugins.architectury.loom) apply false
 	java
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
-	id("com.hypherionmc.modutils.modfusioner") version "1.0.+"
+	alias(libs.plugins.modfusioner)
+	alias(libs.plugins.modpublisher)
 }
 
 architectury.minecraft = libs.versions.minecraft.get()
 
-val localProperties = loadProperties("$rootDir/local.properties")
+val localProperties = kotlin.runCatching { loadProperties("$rootDir/local.properties") }.getOrNull()
+
+fun localOrEnv(prop: String): String = localProperties?.get(prop)?.toString() ?: System.getenv(prop)?.toString()!!
 
 subprojects {
 	apply(plugin = "dev.architectury.loom")
 
 	val loom = project.extensions.getByName<LoomGradleExtensionAPI>("loom")
-	loom.silentMojangMappingsLicense()
+
+	configure<LoomGradleExtensionAPI> {
+		silentMojangMappingsLicense()
+	}
 
 	repositories {
-		val github_username: String by localProperties
-		val github_token: String by localProperties
+		val githubUsername: String = localOrEnv("GITHUB_USERNAME")
+		val githubToken: String = localOrEnv("GITHUB_TOKEN")
 		mavenCentral()
 		mavenLocal()
 		maven("https://maven.parchmentmc.org")
@@ -35,8 +44,8 @@ subprojects {
 		maven {
 			url = uri("https://maven.pkg.github.com/MrCrayfish/Maven")
 			credentials {
-				username = github_username
-				password = github_token
+				username = githubUsername
+				password = githubToken
 			}
 		}
 		maven {
@@ -59,6 +68,19 @@ subprojects {
 		compileOnly("org.jetbrains:annotations:24.1.0")
 	}
 
+	if (project.path != ":common")
+	{
+		configure<LoomGradleExtensionAPI> {
+			mods {
+				val main = maybeCreate("main")
+				main.apply {
+					sourceSet(project.sourceSets.main.get())
+					sourceSet(project(":common").sourceSets.main.get())
+				}
+			}
+		}
+	}
+
 }
 
 allprojects {
@@ -66,6 +88,7 @@ allprojects {
 	apply(plugin = "org.jetbrains.kotlin.jvm")
 	apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
 	apply(plugin = "architectury-plugin")
+	apply(plugin = "com.withertech.architectury.kotlin.plugin")
 	apply(plugin = "maven-publish")
 
 	version = project.properties["mod_version"] as String
@@ -77,29 +100,82 @@ allprojects {
 		options.release.set(21)
 	}
 
+	architectury {
+		compileOnly()
+	}
+
 	java.withSourcesJar()
 }
 
-fun <T : Any> closureOf1(action: T.() -> Unit): Closure<T?> = KotlinClosure1<T, T>({
-	action(this)
-	this
-}, this, this)
-
 fusioner {
-
 	packageGroup = project.group.toString()
 	mergedJarName = "${project.base.archivesName.get()}-merged-${libs.versions.minecraft.get()}"
+	jarVersion = project.version.toString()
 	outputDirectory = "build/artifacts"
 
-	fabric(closureOf1 {
-		projectName = "fabric"
+	fabric {
 		inputTaskName = "remapJar"
-	})
+	}
 
-	custom(closureOf1 {
-		projectName = "neoforge"
+	neoforge {
 		inputTaskName = "remapJar"
-	})
+	}
+}
+
+publisher {
+	apiKeys {
+		curseforge(localOrEnv("CURSEFORGE_API_KEY"))
+		modrinth(localOrEnv("MODRINTH_API_KEY"))
+	}
+
+	debug = true
+
+	curseID = "1029738"
+	modrinthID = "archie"
+
+	projectVersion = "${libs.versions.minecraft.get()}-${project.version}"
+	displayName = "Archie-Merged-${projectVersion.get()}"
+	gameVersions = buildList {
+		add("1.20.6")
+	}
+	loaders = buildList {
+		add("neoforge")
+		add("fabric")
+	}
+	curseEnvironment = "both"
+	versionType = "alpha"
+	artifact = tasks.fusejars.get()
+	javaVersions = buildList {
+		add(JavaVersion.VERSION_21)
+	}
+
+	changelog = file("CHANGELOG.md")
+
+	curseDepends {
+		required = buildList {
+			// fabric
+			add("fabric-api")
+			add("fabric-language-kotlin")
+			// neoforge
+			add("kotlin-for-forge")
+			// common
+			add("architectury-api")
+			add("cloth-config")
+		}
+	}
+
+	modrinthDepends {
+		required = buildList {
+			// fabric
+			add("fabric-api")
+			add("fabric-language-kotlin")
+			// neoforge
+			add("kotlin-for-forge")
+			// common
+			add("architectury-api")
+			add("cloth-config")
+		}
+	}
 }
 
 
@@ -109,6 +185,18 @@ tasks {
 	}
 	assemble {
 		finalizedBy(fusejars)
+	}
+	create("release") {
+		doFirst {
+			exec {
+				workingDir = projectDir
+				executable = "npx"
+				args = buildList {
+					add("commit-and-tag-version")
+					add("--no-verify")
+				}
+			}
+		}
 	}
 }
 

@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.withertech.archie.Archie;
 import com.withertech.archie.gametest.ArchieGameTestPlatform;
-import com.withertech.archie.gametest.fabric.ArchieGameTestPlatformImpl;
 import net.fabricmc.fabric.impl.gametest.FabricGameTestModInitializer;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,10 +21,10 @@ class FabricGameTestModInitializerMixin
 	@Inject(method = "onInitialize()V", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/fabricmc/loader/api/FabricLoader;getEntrypointContainers(Ljava/lang/String;Ljava/lang/Class;)Ljava/util/List;"), remap = false)
 	public void onInitialize(CallbackInfo ci, @Local LocalRef<List<EntrypointContainer<Object>>> entrypointContainers)
 	{
-		if (ArchieGameTestPlatform.isGameTest())
+		if (ArchieGameTestPlatform.INSTANCE.isGameTest())
 		{
 			Archie.LOGGER.info("Registering GameTests");
-			ArchieGameTestPlatformImpl.addEntrypoints(entrypointContainers);
+			ArchieGameTestPlatform.addEntrypoints(entrypointContainers);
 		}
 	}
 }

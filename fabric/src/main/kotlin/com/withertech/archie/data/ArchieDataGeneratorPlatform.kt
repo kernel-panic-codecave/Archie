@@ -1,8 +1,6 @@
-package com.withertech.archie.data.fabric
+package com.withertech.archie.data
 
 import com.llamalad7.mixinextras.sugar.ref.LocalRef
-import com.withertech.archie.data.ArchieDataGenerator
-import com.withertech.archie.data.ArchieDataGeneratorPlatform
 import com.withertech.archie.events.ArchieEvents
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator
@@ -12,10 +10,9 @@ import net.fabricmc.loader.api.entrypoint.EntrypointContainer
 import net.minecraft.core.RegistrySetBuilder
 
 @Suppress("unused")
-object ArchieDataGeneratorPlatformImpl
+actual object ArchieDataGeneratorPlatform
 {
-	@JvmStatic
-	val isDataGen: Boolean
+	actual val isDataGen: Boolean
 		get() = System.getProperty("archie.datagen").toBoolean()
 
 	@JvmStatic

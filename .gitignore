@@ -8,7 +8,9 @@ out/
 output/
 bin/
 libs/
+node_modules/
 
+**/.cache/*
 .classpath
 .project
 .idea/

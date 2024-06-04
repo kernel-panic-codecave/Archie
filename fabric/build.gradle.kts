@@ -16,7 +16,7 @@ configurations {
 	create("shadowCommon")
 	compileClasspath.get().extendsFrom(configurations["common"])
 	runtimeClasspath.get().extendsFrom(configurations["common"])
-	getByName("developmentFabric").extendsFrom(configurations["common"])
+//	getByName("developmentFabric").extendsFrom(configurations["common"])
 }
 
 loom {
@@ -119,6 +119,7 @@ tasks {
 	sourcesJar {
 		val commonSources = project(":common").tasks.sourcesJar
 		dependsOn(commonSources)
+		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })
 	}
 }

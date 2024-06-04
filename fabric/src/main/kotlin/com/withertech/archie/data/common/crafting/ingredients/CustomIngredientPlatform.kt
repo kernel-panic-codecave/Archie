@@ -1,17 +1,14 @@
-package com.withertech.archie.data.common.crafting.ingredients.fabric
+package com.withertech.archie.data.common.crafting.ingredients
 
-import com.withertech.archie.data.common.crafting.ingredients.ICustomIngredient
-import com.withertech.archie.data.common.crafting.ingredients.ICustomIngredientHolder
-import com.withertech.archie.data.common.crafting.ingredients.fabric.CustomIngredientSerializerPlatformImpl.fabric
+import com.withertech.archie.data.common.crafting.ingredients.CustomIngredientSerializerPlatform.fabric
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 
-object CustomIngredientPlatformImpl
+actual object CustomIngredientPlatform
 {
-	@JvmStatic
-	fun vanillaOf(custom: ICustomIngredient): Ingredient
+	actual fun vanillaOf(custom: ICustomIngredient): Ingredient
 	{
 		return custom.fabric.toVanilla()
 	}

@@ -9,13 +9,10 @@ import dev.architectury.platform.Mod
 
 object ArchieEvents
 {
-	@JvmField
 	val GATHER_DATA: Event<GatherDataHandler> = EventFactory.createEventResult()
 
-	@JvmField
 	val REGISTER_GAME_TEST: Event<RegisterGameTestHandler> = EventFactory.createEventResult()
 
-	@JvmField
 	val MODS: List<Mod> = mutableListOf()
 
 	fun register(mod: Mod) = (MODS as MutableList<Mod>).add(mod).let {  }

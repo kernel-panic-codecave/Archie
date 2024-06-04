@@ -1,6 +1,5 @@
-package com.withertech.archie.data.fabric
+package com.withertech.archie.data
 
-import com.withertech.archie.data.ArchieDataGenerator
 import dev.architectury.platform.Mod
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator
 import net.minecraft.data.DataGenerator

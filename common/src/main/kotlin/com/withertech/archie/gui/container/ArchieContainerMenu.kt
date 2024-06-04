@@ -1,6 +1,5 @@
-package com.withertech.archie.test
+package com.withertech.archie.gui.container
 
-import com.withertech.archie.Archie
 import com.withertech.archie.transfer.ArchieItemMenuSlot
 import com.withertech.archie.transfer.ArchieItemStorage
 import net.minecraft.world.Container
@@ -14,8 +13,8 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
 
-abstract class BaseContainerMenu<T : BlockEntity>(
-	type: MenuType<*>,
+abstract class ArchieContainerMenu<T : BlockEntity, SELF : ArchieContainerMenu<T, SELF>>(
+	type: MenuType<SELF>,
 	id: Int,
 	protected val inventory: Inventory,
 	protected val tile: T
@@ -24,7 +23,7 @@ abstract class BaseContainerMenu<T : BlockEntity>(
 	protected abstract val playerXOffset: Int
 	protected abstract val playerYOffset: Int
 
-	val _slotPositions: MutableList<Pair<Int, Int>> = mutableListOf()
+	private val _slotPositions: MutableList<Pair<Int, Int>> = mutableListOf()
 	val slotPositions: List<Pair<Int, Int>>
 		get() = _slotPositions
 
@@ -32,8 +31,8 @@ abstract class BaseContainerMenu<T : BlockEntity>(
 	protected val level: Level = player.level()
 
 	private var menuSize: Int = 0
-	protected val menuSlots: IntRange get() = 0 until menuSize
-	protected val playerSlots: IntRange get() = menuSize until slots.size
+	protected open val menuSlots: IntRange get() = 0 until menuSize
+	protected open val playerSlots: IntRange get() = menuSize until slots.size
 
 
 	protected fun addSlots()

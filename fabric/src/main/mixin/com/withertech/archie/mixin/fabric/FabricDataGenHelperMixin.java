@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.withertech.archie.Archie;
 import com.withertech.archie.data.ArchieDataGeneratorPlatform;
-import com.withertech.archie.data.fabric.ArchieDataGeneratorPlatformImpl;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.impl.datagen.FabricDataGenHelper;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
@@ -23,10 +22,10 @@ class FabricDataGenHelperMixin
 	@Inject(remap = false, method = "runInternal()V", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/fabricmc/loader/api/FabricLoader;getEntrypointContainers(Ljava/lang/String;Ljava/lang/Class;)Ljava/util/List;"))
 	private static void addEntrypoints(CallbackInfo ci, @Local LocalRef<List<EntrypointContainer<DataGeneratorEntrypoint>>> dataGeneratorInitializers)
 	{
-		if (ArchieDataGeneratorPlatform.isDataGen())
+		if (ArchieDataGeneratorPlatform.INSTANCE.isDataGen())
 		{
 			Archie.LOGGER.info("Registering DataGen Handlers");
-			ArchieDataGeneratorPlatformImpl.addEntrypoints(dataGeneratorInitializers);
+			ArchieDataGeneratorPlatform.addEntrypoints(dataGeneratorInitializers);
 		}
 	}
 }

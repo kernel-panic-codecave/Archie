@@ -6,13 +6,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.serializer
-import me.shedaniel.clothconfig2.api.ModifierKeyCode
-import me.shedaniel.math.Color
 import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KClass
 
@@ -65,9 +59,9 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<ResourceLocation> = ResourceLocationSerializer
 	}
 
-	data object KeyCode : FieldType<ModifierKeyCode>()
+	data object KeyCode : FieldType<CommonKeyCode>()
 	{
-		override val serializer: KSerializer<ModifierKeyCode> = ModifierKeyCodeSerializer
+		override val serializer: KSerializer<CommonKeyCode> = CommonKeyCode.serializer()
 	}
 
 	data object Color : FieldType<me.shedaniel.math.Color>()
@@ -122,9 +116,9 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<List<ResourceLocation>> = ListSerializer(ResourceLocationSerializer)
 	}
 
-	data object KeyCodeList : FieldType<List<ModifierKeyCode>>()
+	data object KeyCodeList : FieldType<List<CommonKeyCode>>()
 	{
-		override val serializer: KSerializer<List<ModifierKeyCode>> = ListSerializer(ModifierKeyCodeSerializer)
+		override val serializer: KSerializer<List<CommonKeyCode>> = ListSerializer(CommonKeyCode.serializer())
 	}
 
 	data object ColorList : FieldType<List<me.shedaniel.math.Color>>()
@@ -167,9 +161,9 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<Map<kotlin.String, ResourceLocation>> = MapSerializer(kotlin.String.serializer(), ResourceLocationSerializer)
 	}
 
-	data object KeyCodeMap : FieldType<Map<kotlin.String, ModifierKeyCode>>()
+	data object KeyCodeMap : FieldType<Map<kotlin.String, CommonKeyCode>>()
 	{
-		override val serializer: KSerializer<Map<kotlin.String, ModifierKeyCode>> = MapSerializer(kotlin.String.serializer(), ModifierKeyCodeSerializer)
+		override val serializer: KSerializer<Map<kotlin.String, CommonKeyCode>> = MapSerializer(kotlin.String.serializer(), CommonKeyCode.serializer())
 	}
 
 	data object ColorMap : FieldType<Map<kotlin.String, me.shedaniel.math.Color>>()

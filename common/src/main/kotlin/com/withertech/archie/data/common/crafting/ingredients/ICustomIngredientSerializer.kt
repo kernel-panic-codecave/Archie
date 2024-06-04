@@ -2,7 +2,6 @@ package com.withertech.archie.data.common.crafting.ingredients
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
-import dev.architectury.injectables.annotations.ExpectPlatform
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
@@ -11,7 +10,7 @@ import net.minecraft.world.item.crafting.Ingredient
 
 
 /**
- * Serializer for a [CustomIngredient].
+ * Serializer for a [ICustomIngredient].
  *
  *
  * All instances must be registered using [.register] for deserialization to work.

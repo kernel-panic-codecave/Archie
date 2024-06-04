@@ -1,8 +1,5 @@
-package com.withertech.archie.data.common.tags.neoforge
+package com.withertech.archie.data.common.tags
 
-import com.withertech.archie.data.common.tags.ArchieTagsProvider
-import com.withertech.archie.data.common.tags.IArchieTagBuilder
-import com.withertech.archie.data.common.tags.TagBuilderPlatform
 import net.minecraft.data.tags.TagsProvider
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -11,18 +8,15 @@ import net.minecraft.tags.TagEntry
 import net.minecraft.tags.TagKey
 import java.util.function.Consumer
 import java.util.function.Predicate
-import java.util.stream.Stream
 
-object TagBuilderPlatformImpl
+actual object TagBuilderPlatform
 {
-	@JvmStatic
-	fun setTagReplace(builder: TagBuilder, replace: Boolean)
+	actual fun setTagReplace(builder: TagBuilder, replace: Boolean)
 	{
 		builder.replace(replace)
 	}
 
-	@JvmStatic
-	fun <T : Any> createTagBuilder(parent: TagsProvider.TagAppender<T>, provider: ArchieTagsProvider<T>): IArchieTagBuilder<T>
+	actual fun <T : Any> createTagBuilder(parent: TagsProvider.TagAppender<T>, provider: ArchieTagsProvider<T>): IArchieTagBuilder<T>
 	{
 		return ArchieTagBuilder(parent, provider)
 	}
@@ -32,14 +26,13 @@ object TagBuilderPlatformImpl
 	{
 		override fun setReplace(replace: Boolean): ArchieTagBuilder<T>
 		{
-			TagBuilderPlatform.setTagReplace(builder, replace)
+			setTagReplace(builder, replace)
 			return this
 		}
 
 		override fun replace(): ArchieTagBuilder<T>
 		{
-			TagBuilderPlatform.setTagReplace(builder, true)
-			return this
+			return setReplace(true)
 		}
 
 		override fun add(element: T): ArchieTagBuilder<T>

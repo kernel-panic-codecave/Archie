@@ -1,6 +1,5 @@
-package com.withertech.archie.data.neoforge
+package com.withertech.archie.data
 
-import com.withertech.archie.data.ArchieDataGenerator
 import dev.architectury.platform.Mod
 import net.minecraft.data.DataProvider
 import net.minecraft.data.PackOutput

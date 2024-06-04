@@ -1,0 +1,13 @@
+{
+  "name": "archie",
+  "devDependencies": {
+    "commit-and-tag-version": "^12.4.1",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}

@@ -2,7 +2,7 @@ package com.withertech.archie.mixin.fabric;
 
 import com.terraformersmc.modmenu.ModMenu;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
-import com.withertech.archie.config.fabric.ArchieConfigPlatformImpl;
+import com.withertech.archie.config.ArchieConfigPlatform;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,14 +15,14 @@ import java.util.Map;
 @Mixin(ModMenu.class)
 public class ModMenuMixin
 {
-	@Shadow
+	@Shadow(remap = false)
 	@Final
 	private static Map<String, ConfigScreenFactory<?>> configScreenFactories;
 
 	@Inject(remap = false, method = "onInitializeClient()V", at = @At(value = "INVOKE", target = "Lnet/fabricmc/loader/api/FabricLoader;getEntrypointContainers(Ljava/lang/String;Ljava/lang/Class;)Ljava/util/List;"))
 	public void onInitializeClient(CallbackInfo ci)
 	{
-		ArchieConfigPlatformImpl.screenHandlers.forEach((key, value) ->
+		ArchieConfigPlatform.screenHandlers.forEach((key, value) ->
 				configScreenFactories.put(key.getModId(), (screen) -> value.invoke().setParentScreen(screen).build()));
 	}
 }

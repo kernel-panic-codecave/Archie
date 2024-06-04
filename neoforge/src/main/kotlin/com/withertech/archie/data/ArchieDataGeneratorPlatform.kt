@@ -1,22 +1,19 @@
-package com.withertech.archie.data.neoforge
+package com.withertech.archie.data
 
-import com.withertech.archie.data.ArchieDataGenerator
-import com.withertech.archie.data.ArchieDataGeneratorPlatform
 import com.withertech.archie.events.ArchieEvents
 import net.neoforged.fml.ModList
 import net.neoforged.neoforge.data.event.GatherDataEvent
 
-object ArchieDataGeneratorPlatformImpl
+actual object ArchieDataGeneratorPlatform
 {
-	@JvmStatic
-	val isDataGen: Boolean
+	actual val isDataGen: Boolean
 		get() = System.getProperty("archie.datagen").toBoolean()
 
 	@JvmStatic
 	@JvmName("addEventHandlers")
 	internal fun addEventHandlers()
 	{
-		if (ArchieDataGeneratorPlatform.isDataGen)
+		if (isDataGen)
 		{
 			for (mod in ArchieEvents.MODS)
 			{

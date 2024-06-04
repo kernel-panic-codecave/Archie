@@ -4,8 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import com.withertech.archie.Archie
-import dev.architectury.injectables.targets.ArchitecturyTarget
-import kotlinx.serialization.Serializable
+import com.withertech.archie.ArchiePlatform
 import kotlinx.serialization.Transient
 import net.minecraft.resources.ResourceLocation
 
@@ -13,7 +12,7 @@ data class PlatformCondition(val platform: String) : ICondition
 {
 	override fun test(context: ICondition.IContext): Boolean
 	{
-		return ArchitecturyTarget.getCurrentTarget() == platform
+		return ArchiePlatform.platform == platform
 	}
 
 	@Transient

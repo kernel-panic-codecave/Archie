@@ -1,12 +1,11 @@
-package com.withertech.archie.config.fabric
+package com.withertech.archie.config
 
 import dev.architectury.platform.Mod
 import me.shedaniel.clothconfig2.api.ConfigBuilder
 
-object ArchieConfigPlatformImpl
+actual object ArchieConfigPlatform
 {
-	@JvmStatic
-	fun registerScreenHandler(mod: Mod, builder: () -> ConfigBuilder)
+	actual fun registerScreenHandler(mod: Mod, builder: () -> ConfigBuilder)
 	{
 		screenHandlers[mod] = builder
 	}

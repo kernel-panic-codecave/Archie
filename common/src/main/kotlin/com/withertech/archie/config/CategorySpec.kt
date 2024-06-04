@@ -11,14 +11,12 @@ import kotlinx.serialization.encoding.*
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
 import me.shedaniel.clothconfig2.api.ConfigCategory
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
-import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import me.shedaniel.clothconfig2.gui.entries.SubCategoryListEntry
 import me.shedaniel.clothconfig2.impl.builders.*
 import me.shedaniel.math.Color
 import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.entity.animal.Cat
 import net.peanuuutz.tomlkt.TomlComment
 import java.util.function.Consumer
 import java.util.function.Supplier
@@ -40,7 +38,7 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 	internal val strings: MutableMap<String, String> = mutableMapOf()
 	internal val specs: MutableMap<String, CategorySpec> = mutableMapOf()
 	internal val registries: MutableMap<String, ResourceLocation> = mutableMapOf()
-	internal val keycodes: MutableMap<String, ModifierKeyCode> = mutableMapOf()
+	internal val keycodes: MutableMap<String, CommonKeyCode> = mutableMapOf()
 	internal val colors: MutableMap<String, Color> = mutableMapOf()
 	internal val enums: MutableMap<String, Enum<*>> = mutableMapOf()
 	internal val selectors: MutableMap<String, Any> = mutableMapOf()
@@ -51,7 +49,7 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 	internal val stringLists: MutableMap<String, List<String>> = mutableMapOf()
 	internal val specLists: MutableMap<String, List<CategorySpec>> = mutableMapOf()
 	internal val registryLists: MutableMap<String, List<ResourceLocation>> = mutableMapOf()
-	internal val keycodeLists: MutableMap<String, List<ModifierKeyCode>> = mutableMapOf()
+	internal val keycodeLists: MutableMap<String, List<CommonKeyCode>> = mutableMapOf()
 	internal val colorLists: MutableMap<String, List<Color>> = mutableMapOf()
 	internal val intMaps: MutableMap<String, Map<String, Int>> = mutableMapOf()
 	internal val longMaps: MutableMap<String, Map<String, Long>> = mutableMapOf()
@@ -60,7 +58,7 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 	internal val stringMaps: MutableMap<String, Map<String, String>> = mutableMapOf()
 	internal val specMaps: MutableMap<String, Map<String, CategorySpec>> = mutableMapOf()
 	internal val registryMaps: MutableMap<String, Map<String, ResourceLocation>> = mutableMapOf()
-	internal val keycodeMaps: MutableMap<String, Map<String, ModifierKeyCode>> = mutableMapOf()
+	internal val keycodeMaps: MutableMap<String, Map<String, CommonKeyCode>> = mutableMapOf()
 	internal val colorMaps: MutableMap<String, Map<String, Color>> = mutableMapOf()
 
 	open val subcategories: List<CategorySpec> = listOf()
@@ -564,10 +562,10 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 	protected fun keycode(
 		title: Component,
 		comment: Comment? = null,
-		default: ModifierKeyCode = ModifierKeyCode.unknown(),
+		default: CommonKeyCode = CommonKeyCode.unknown,
 		resetKey: Component? = null,
 		block: KeyCodeBuilder.() -> Unit = {}
-	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, ModifierKeyCode>> =
+	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, CommonKeyCode>> =
 		PropertyDelegateProvider { _, property ->
 			val id = property.name.toSnakeCase()
 			if (comment != null)
@@ -580,13 +578,13 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 				resetButtonKey = resetKey ?: resetButtonKey
 				val ret = startModifierKeyCodeField(
 					title,
-					keycodes.getOrPut(id) { default })
+					keycodes.getOrPut(id) { default }.toClient())
 					.apply {
 						setModifierSaveConsumer {
-							keycodes[id] = it
+							keycodes[id] = it.toCommon()
 						}
 						setModifierDefaultValue {
-							default
+							default.toClient()
 						}
 					}
 					.apply(
@@ -1077,11 +1075,11 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 	protected fun keycodeList(
 		title: Component,
 		comment: Comment? = null,
-		default: List<ModifierKeyCode> = listOf(),
-		factory: () -> ModifierKeyCode = ModifierKeyCode::unknown,
+		default: List<CommonKeyCode> = listOf(),
+		factory: () -> CommonKeyCode = CommonKeyCode.Companion::unknown,
 		resetKey: Component? = null,
 		block: KeycodeListBuilder.() -> Unit = {}
-	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, List<ModifierKeyCode>>> =
+	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, List<CommonKeyCode>>> =
 		PropertyDelegateProvider { _, property ->
 			val id = property.name.toSnakeCase()
 			if (comment != null)
@@ -1097,15 +1095,14 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 					title,
 					keycodeLists.getOrPut(
 						id
-					) { default },
-					factory
-				)
+					) { default }.map { it.toClient() }
+				) { factory().toClient() }
 					.apply {
 						saveConsumer = Consumer {
-							keycodeLists[id] = it
+							keycodeLists[id] = it.map { it.toCommon() }
 						}
 						defaultValue = Supplier {
-							default
+							default.map { it.toClient() }
 						}
 					}
 					.apply(
@@ -1116,7 +1113,7 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 				ret
 			}
 			types[id] = FieldType.KeyCodeList
-			keycodeLists.putIfAbsent(id, default)
+			keycodeLists.putIfAbsent(id, default )
 			ReadOnlyProperty { _, _ ->
 				keycodeLists.getOrPut(id) {
 					default
@@ -1511,11 +1508,11 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 	protected fun keycodeMap(
 		title: Component,
 		comment: Comment? = null,
-		default: Map<String, ModifierKeyCode> = mapOf(),
-		factory: () -> ModifierKeyCode = ModifierKeyCode::unknown,
+		default: Map<String, CommonKeyCode> = mapOf(),
+		factory: () -> CommonKeyCode = CommonKeyCode.Companion::unknown,
 		resetKey: Component? = null,
 		block: KeycodeMapBuilder.() -> Unit = {}
-	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, Map<String, ModifierKeyCode>>> =
+	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, Map<String, CommonKeyCode>>> =
 		PropertyDelegateProvider { _, property ->
 			val id = property.name.toSnakeCase()
 			if (comment != null)
@@ -1529,16 +1526,15 @@ abstract class CategorySpec(internal val title: Component, internal val id: Stri
 				keycodeMaps.getOrPut(id) { default }
 				val ret = startKeycodeMap(
 					title,
-					keycodeMaps.getOrPut(id) { default },
-					factory
-				)
+					keycodeMaps.getOrPut(id) { default }.mapValues { it.value.toClient() }
+				) { factory().toClient() }
 					.apply {
 						saveConsumer = Consumer { value ->
 							keycodeMaps[id] =
-								value.associate { it.toPair() }
+								value.associate { it.toPair() }.mapValues { it.value.toCommon() }
 						}
 						defaultValue = Supplier {
-							default.entries.toList().map { it.toMutableEntry() }
+							default.mapValues { it.value.toClient() }.entries.toList().map { it.toMutableEntry() }
 						}
 					}
 					.apply(

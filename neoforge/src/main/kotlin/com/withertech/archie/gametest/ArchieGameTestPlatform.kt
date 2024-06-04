@@ -1,22 +1,18 @@
-package com.withertech.archie.gametest.neoforge
+package com.withertech.archie.gametest
 
-import com.withertech.archie.Archie
 import com.withertech.archie.events.ArchieEvents
-import com.withertech.archie.gametest.ArchieGameTestPlatform
 import dev.architectury.platform.Mod
 import net.neoforged.fml.ModList
 import net.neoforged.neoforge.event.RegisterGameTestsEvent
 import net.neoforged.neoforge.gametest.GameTestHooks
 
 @Suppress("unused")
-object ArchieGameTestPlatformImpl
+actual object ArchieGameTestPlatform
 {
-	@JvmStatic
-	val isGameTest: Boolean
+	actual val isGameTest: Boolean
 		get() = GameTestHooks.isGametestEnabled()
 
-	@JvmStatic
-	fun register(clazz: Class<*>, mod: Mod)
+	actual fun register(clazz: Class<*>, mod: Mod)
 	{
 		testClasses.getOrPut(mod, ::mutableListOf).add(clazz)
 	}
@@ -38,7 +34,7 @@ object ArchieGameTestPlatformImpl
 	@JvmName("addEventHandlers")
 	internal fun addEventHandlers()
 	{
-		if (ArchieGameTestPlatform.isGameTest)
+		if (isGameTest)
 		{
 			for (mod in ArchieEvents.MODS)
 			{

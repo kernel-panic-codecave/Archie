@@ -13,14 +13,13 @@ import com.withertech.archie.events.ArchieEvents
 import com.withertech.archie.gametest.ArchieGameTestPlatform
 import com.withertech.archie.gametest.internal.ArchieGameTest
 import com.withertech.archie.test.BlockRegistry
-import com.withertech.archie.test.ItemRegistry
 import com.withertech.archie.test.GuiRegistry
+import com.withertech.archie.test.ItemRegistry
 import com.withertech.archie.test.TileRegistry
 import com.withertech.archie.util.buildArray
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import kotlinx.serialization.Serializable
-import net.minecraft.client.gui.screens.MenuScreens
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
@@ -45,6 +44,7 @@ object Archie
 	@JvmStatic
 	fun init()
 	{
+		Archie
 		if (Platform.isMinecraftForge())
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
 		ArchieEvents += MOD
@@ -53,10 +53,13 @@ object Archie
 		BuiltinConditions.init()
 		CommonTags.init()
 		Config.init()
-		BlockRegistry.init()
-		ItemRegistry.init()
-		TileRegistry.init()
-		GuiRegistry.init()
+		if (Platform.isDevelopmentEnvironment())
+		{
+			BlockRegistry.init()
+			ItemRegistry.init()
+			TileRegistry.init()
+			GuiRegistry.init()
+		}
 		if (ArchieGameTestPlatform.isGameTest)
 			ArchieGameTest.init()
 		if (ArchieDataGeneratorPlatform.isDataGen)

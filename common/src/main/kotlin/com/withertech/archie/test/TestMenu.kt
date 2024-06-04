@@ -1,8 +1,9 @@
 package com.withertech.archie.test
 
+import com.withertech.archie.gui.container.ArchieContainerMenu
 import net.minecraft.world.entity.player.Inventory
 
-class TestMenu(id: Int, inventory: Inventory, tile: TestTile) : BaseContainerMenu<TestTile>(GuiRegistry.TestMenu, id, inventory, tile)
+class TestMenu(id: Int, inventory: Inventory, tile: TestTile) : ArchieContainerMenu<TestTile, TestMenu>(GuiRegistry.TestMenu, id, inventory, tile)
 {
 	val rows: Int = tile.items.slotCount / 9
 

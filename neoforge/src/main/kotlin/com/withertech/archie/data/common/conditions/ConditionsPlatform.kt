@@ -1,8 +1,6 @@
-package com.withertech.archie.data.common.conditions.neoforge
+package com.withertech.archie.data.common.conditions
 
-import com.mojang.datafixers.util.Pair
 import com.mojang.serialization.*
-import com.withertech.archie.Archie
 import com.withertech.archie.data.common.crafting.ArchieRecipeProvider
 import net.minecraft.advancements.Advancement
 import net.minecraft.advancements.AdvancementHolder
@@ -19,18 +17,15 @@ import net.minecraft.world.item.crafting.Recipe
 import net.neoforged.neoforge.common.conditions.ICondition
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
-import org.apache.commons.lang3.ArrayUtils
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import java.util.concurrent.CompletableFuture
-import java.util.function.Function
 import java.util.stream.Stream
 import com.withertech.archie.data.common.conditions.ICondition as ArchieCondition
 
 
-object ConditionsPlatformImpl
+actual object ConditionsPlatform
 {
-	@JvmStatic
-	fun register(identifier: ResourceLocation, codec: MapCodec<out ArchieCondition>)
+	actual fun register(identifier: ResourceLocation, codec: MapCodec<out ArchieCondition>)
 	{
 		val registry = DeferredRegister.create(NeoForgeRegistries.CONDITION_SERIALIZERS, identifier.namespace)
 		registry.register(identifier.path) { _ ->
@@ -39,14 +34,12 @@ object ConditionsPlatformImpl
 		registry.register(MOD_BUS)
 	}
 
-	@JvmStatic
-	fun withCondition(output: RecipeOutput, condition: ArchieCondition): RecipeOutput
+	actual fun withCondition(output: RecipeOutput, condition: ArchieCondition): RecipeOutput
 	{
 		return NeoForgeConditionalRecipeOutput(output, condition.neoforge)
 	}
 
-	@JvmStatic
-	fun codec(): Codec<ArchieCondition>
+	actual fun codec(): Codec<ArchieCondition>
 	{
 		return ICondition.CODEC.xmap({
 			it.archie
@@ -55,8 +48,7 @@ object ConditionsPlatformImpl
 		})
 	}
 
-	@JvmStatic
-	fun fabricRecipeProvider(child: ArchieRecipeProvider, registries: CompletableFuture<HolderLookup.Provider>): RecipeProvider? = null
+	actual fun fabricRecipeProvider(child: ArchieRecipeProvider, registries: CompletableFuture<HolderLookup.Provider>): RecipeProvider? = null
 
 	val ICondition.archie
 		get() = ((this as? NeoForgeCondition) ?: throw AssertionError()).condition

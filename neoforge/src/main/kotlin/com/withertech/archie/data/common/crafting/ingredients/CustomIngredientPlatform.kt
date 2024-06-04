@@ -1,8 +1,6 @@
-package com.withertech.archie.data.common.crafting.ingredients.neoforge
+package com.withertech.archie.data.common.crafting.ingredients
 
 import com.withertech.archie.data.common.crafting.ingredients.ICustomIngredient as ArchieIngredient
-import com.withertech.archie.data.common.crafting.ingredients.ICustomIngredientHolder
-import com.withertech.archie.data.common.crafting.ingredients.neoforge.CustomIngredientSerializerPlatformImpl.neoforge
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import net.neoforged.neoforge.common.crafting.ICustomIngredient
@@ -10,10 +8,9 @@ import net.neoforged.neoforge.common.crafting.IngredientType
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 import java.util.stream.Stream
 
-object CustomIngredientPlatformImpl
+actual object CustomIngredientPlatform
 {
-	@JvmStatic
-	fun vanillaOf(custom: ArchieIngredient): Ingredient
+	actual fun vanillaOf(custom: ArchieIngredient): Ingredient
 	{
 		return custom.neoforge.toVanilla()
 	}

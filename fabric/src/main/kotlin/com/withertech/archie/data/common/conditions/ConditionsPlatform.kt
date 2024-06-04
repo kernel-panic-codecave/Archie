@@ -1,8 +1,7 @@
-package com.withertech.archie.data.common.conditions.fabric
+package com.withertech.archie.data.common.conditions
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
-import com.withertech.archie.data.common.conditions.ICondition
 import com.withertech.archie.data.common.crafting.ArchieRecipeProvider
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider
@@ -24,12 +23,11 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.crafting.Recipe
 import java.util.concurrent.CompletableFuture
 
-object ConditionsPlatformImpl
+actual object ConditionsPlatform
 {
 	private val registry: MutableMap<ResourceLocation, ResourceConditionType<FabricCondition>> = mutableMapOf()
 
-	@JvmStatic
-	fun register(identifier: ResourceLocation, codec: MapCodec<out ICondition>)
+	actual fun register(identifier: ResourceLocation, codec: MapCodec<out ICondition>)
 	{
 		@Suppress("UNCHECKED_CAST")
 		registry[identifier] = ResourceConditionType.create(identifier, (codec as MapCodec<ICondition>).xmap({
@@ -40,8 +38,7 @@ object ConditionsPlatformImpl
 		ResourceConditions.register(registry[identifier])
 	}
 
-	@JvmStatic
-	fun withCondition(output: RecipeOutput, condition: ICondition): RecipeOutput
+	actual fun withCondition(output: RecipeOutput, condition: ICondition): RecipeOutput
 	{
 		return object : RecipeOutput
 		{
@@ -59,8 +56,7 @@ object ConditionsPlatformImpl
 		}
 	}
 
-	@JvmStatic
-	fun codec(): Codec<out ICondition>
+	actual fun codec(): Codec<out ICondition>
 	{
 		return ResourceCondition.CODEC.xmap(
 			{ resourceCondition ->
@@ -71,8 +67,7 @@ object ConditionsPlatformImpl
 		)
 	}
 
-	@JvmStatic
-	fun fabricRecipeProvider(
+	actual fun fabricRecipeProvider(
 		child: ArchieRecipeProvider,
 		registries: CompletableFuture<HolderLookup.Provider>
 	): RecipeProvider
