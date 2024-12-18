@@ -63,4 +63,6 @@ dependencies {
         from.attribute(patchedFMLModType, false).attribute(artifactType, "jar")
         to.attribute(patchedFMLModType, true).attribute(artifactType, "jar")
     }
+
+    extensions.add("loom", project.extensions.getByName("loom"))
 }

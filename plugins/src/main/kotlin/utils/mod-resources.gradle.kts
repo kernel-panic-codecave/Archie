@@ -1,5 +1,7 @@
 package utils
 
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import net.fabricmc.loom.util.ModPlatform
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
@@ -14,12 +16,26 @@ interface ModResourcesExtension
 }
 
 val extension = extensions.create<ModResourcesExtension>("modResources")
+val loom = extensions.getByType<LoomGradleExtensionAPI>()
 
 val versionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 extension.versions.convention(provider {
-	versionCatalog.versionAliases.associate {
+	val ret = versionCatalog.versionAliases.associate {
 		// both "." and "-" cause issues with expand :/
 		it.replace(".", "_") to versionCatalog.findVersion(it).get().requiredVersion
+	}
+	when (loom.platform.get())
+	{
+		ModPlatform.FABRIC -> ret.mapValues { (_, version) ->
+			version
+				.replace(",", " ")
+				.replace(Regex("""\s+"""), " ")
+				.replace(Regex("""\[(\S+)"""), ">=$1")
+				.replace(Regex("""(\S+)\]"""), "<=$1")
+				.replace(Regex("""\](\S+)"""), ">$1")
+				.replace(Regex("""(\S+)\["""), "<$1")
+		}
+		else -> ret
 	}
 })
 extension.properties.convention(provider {

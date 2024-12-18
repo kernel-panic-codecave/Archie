@@ -2,13 +2,11 @@ package com.withertech.archie.serialization
 
 import com.withertech.archie.transfer.ArchieItemStorage
 import dev.architectury.fluid.FluidStack
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.serializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.level.block.entity.BlockEntity
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
@@ -59,3 +57,5 @@ interface NBTHolder
 		}
 	}
 }
+
+inline fun <reified T> NBTHolder.field(noinline default: () -> T): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> = field(serializer<T>(), default)

@@ -1,11 +1,6 @@
 package com.withertech.archie.block.entity
 
-import com.withertech.archie.Archie
 import com.withertech.archie.serialization.NBTHolder
-import com.withertech.archie.transfer.ArchieItemStorage
-import earth.terrarium.botarium.item.impl.SimpleItemStorage
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
@@ -15,7 +10,6 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
-import kotlin.properties.ReadOnlyProperty
 
 abstract class NBTBlockEntity(type: BlockEntityType<*>, pos: BlockPos, blockState: BlockState) : BlockEntity(
 	type, pos,

@@ -24,6 +24,8 @@ dependencies {
 	api(libs.kotlinx.serialization.nbt) { isTransitive = false }
 	api(libs.kotlinx.serialization.toml) { isTransitive = false }
 	api(libs.kotlinx.serialization.json5) { isTransitive = false }
+	api(libs.kotlinx.serialization.cbor) { isTransitive = false }
+	api(compose.runtime)
 	// We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
 	// Do NOT use other classes from fabric loader
 	modImplementation(libs.fabric.loader)
@@ -32,8 +34,8 @@ dependencies {
 	modApi(libs.catalogue.common)
 	modApi(libs.clothConfig.common)
 	modApi(libs.architectury.common)
-	modApi(libs.botarium.common)
-	modApi(libs.botarium.resources.common)
+	modApi(libs.storage.common)
+	modApi(libs.storage.resources.common)
 }
 
 tasks {

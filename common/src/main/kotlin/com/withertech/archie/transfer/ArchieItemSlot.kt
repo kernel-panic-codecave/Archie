@@ -3,11 +3,11 @@ package com.withertech.archie.transfer
 import com.withertech.archie.serialization.NBT
 import com.withertech.archie.serialization.decodeFromNbtTagRootless
 import com.withertech.archie.serialization.encodeToNbtTagRootless
-import com.withertech.archie.serialization.nbtSerializer
-import earth.terrarium.botarium.resources.ResourceStack
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.StorageSlot
-import earth.terrarium.botarium.storage.base.UpdateManager
+import com.withertech.archie.serialization.serializer
+import earth.terrarium.common_storage_lib.resources.ResourceStack
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
+import earth.terrarium.common_storage_lib.storage.base.StorageSlot
+import earth.terrarium.common_storage_lib.storage.base.UpdateManager
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -22,29 +22,29 @@ import kotlin.math.min
 @Serializable(with = ArchieItemSlot.Serializer::class)
 class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemResource>, UpdateManager<NbtTag>
 {
-	private var unit: ItemResource = ItemResource.BLANK
+	private var resource: ItemResource = ItemResource.BLANK
 	private var amount: Long = 0
 	private var stack: ItemStack
 		get()
 		{
-			if (unit.isBlank)
+			if (resource.isBlank)
 				return ItemStack.EMPTY
-			return unit.toItemStack(amount.toInt())
+			return resource.toStack(amount.toInt())
 		}
 		set(value)
 		{
-			unit = ItemResource.of(value)
+			resource = ItemResource.of(value)
 			amount = value.count.toLong()
 		}
 
 	private var resourceStack: ResourceStack<ItemResource>
 		get()
 		{
-			return ResourceStack(unit, amount)
+			return ResourceStack(resource, amount)
 		}
 		set(value)
 		{
-			unit = value.unit
+			resource = value.resource
 			amount = value.amount
 		}
 
@@ -73,27 +73,27 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 		} else ItemStack.EMPTY
 	}
 
-	fun getMaxStackSize(): Int = limit.toInt()
+	fun getMaxStackSize(): Int = getLimit(resource).toInt()
 
 
 
 	override fun insert(unit: ItemResource, amount: Long, simulate: Boolean): Long
 	{
-		if (!isValueValid(unit)) return 0
-		if (this.unit.isBlank)
+		if (!isResourceValid(unit)) return 0
+		if (this.resource.isBlank)
 		{
 			val inserted =
 				min(amount.toDouble(), unit.cachedStack.maxStackSize.toDouble()).toLong()
 			if (!simulate)
 			{
-				this.unit = unit
+				this.resource = unit
 				this.amount = inserted
 			}
 			return inserted
-		} else if (this.unit.test(unit))
+		} else if (this.resource.test(unit.toStack()))
 		{
 			val inserted =
-				min(amount.toDouble(), (limit - this.amount).toDouble()).toLong()
+				min(amount.toDouble(), (getLimit(resource) - this.amount).toDouble()).toLong()
 			if (!simulate)
 			{
 				this.amount += inserted
@@ -105,7 +105,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 
 	override fun extract(unit: ItemResource, amount: Long, simulate: Boolean): Long
 	{
-		if (this.unit.test(unit))
+		if (this.resource.test(unit.toStack()))
 		{
 			val extracted = min(amount.toDouble(), this.amount.toDouble()).toLong()
 			if (!simulate)
@@ -113,7 +113,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 				this.amount -= extracted
 				if (this.amount == 0L)
 				{
-					this.unit = ItemResource.BLANK
+					this.resource = ItemResource.BLANK
 				}
 			}
 			return extracted
@@ -121,17 +121,15 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 		return 0
 	}
 
-	override fun getLimit(): Long =
-		if (unit.isBlank) Item.ABSOLUTE_MAX_STACK_SIZE.toLong()
-		else unit.cachedStack.maxStackSize.toLong()
+	override fun getLimit(resource: ItemResource): Long =
+		if (resource.isBlank) Item.ABSOLUTE_MAX_STACK_SIZE.toLong()
+		else resource.cachedStack.maxStackSize.toLong()
 
-	override fun isValueValid(unit: ItemResource): Boolean = true
+	override fun isResourceValid(unit: ItemResource): Boolean = true
 
-	override fun getUnit(): ItemResource = unit
+	override fun getResource(): ItemResource = resource
 
 	override fun getAmount(): Long = amount
-
-	override fun isBlank(): Boolean = unit.isBlank
 
 	override fun createSnapshot(): NbtTag
 	{
@@ -150,7 +148,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 
 	object Serializer : KSerializer<ArchieItemSlot>
 	{
-		private val surrogate = ResourceStack.ITEM_CODEC.nbtSerializer()
+		private val surrogate = ResourceStack.ITEM_CODEC.serializer()
 		override val descriptor: SerialDescriptor = surrogate.descriptor.nullable
 		override fun deserialize(decoder: Decoder): ArchieItemSlot
 		{

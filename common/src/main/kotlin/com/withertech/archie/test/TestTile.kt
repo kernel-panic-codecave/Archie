@@ -1,11 +1,10 @@
 package com.withertech.archie.test
 
-import com.withertech.archie.Archie
 import com.withertech.archie.block.entity.NBTBlockEntity
 import dev.architectury.registry.menu.ExtendedMenuProvider
-import earth.terrarium.botarium.item.util.ItemProvider
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
+import earth.terrarium.common_storage_lib.item.util.ItemProvider
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
+import earth.terrarium.common_storage_lib.storage.base.CommonStorage
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.network.FriendlyByteBuf

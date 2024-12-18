@@ -1,15 +1,14 @@
 package com.withertech.archie.gametest.internal
 
 import com.withertech.archie.Archie
-import com.withertech.archie.events.ArchieEvents
+import com.withertech.archie.events.AEvents
+import com.withertech.archie.gametest.AGameTestEventObject
 import com.withertech.archie.gametest.internal.tests.CommonTests
 
-internal object ArchieGameTest
+internal object ArchieGameTest : AGameTestEventObject(Archie.MOD)
 {
-	fun init()
+	override fun AEvents.ArchieGameTestBuilder.handler()
 	{
-		ArchieEvents.REGISTER_GAME_TEST.register(ArchieEvents.RegisterGameTestHandler.create(Archie.MOD) {
-			register<CommonTests>()
-		})
+		register<CommonTests>()
 	}
 }

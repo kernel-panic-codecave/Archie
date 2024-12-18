@@ -2,7 +2,7 @@ package com.withertech.archie.config
 
 import com.withertech.archie.config.serializer.Json5ConfigSerializer
 import com.withertech.archie.config.serializer.TomlConfigSerializer
-import com.withertech.archie.ArchiePlatform
+import com.withertech.archie.APlatform
 import dev.architectury.platform.Mod
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -21,7 +21,7 @@ abstract class ConfigSpec(protected val mod: Mod, protected val title: Component
 		categories.associateBy { it.id }
 	}
 
-	protected open val fileSerializer: IConfigSerializer = when (val platform = ArchiePlatform.platform)
+	protected open val fileSerializer: IConfigSerializer = when (val platform = APlatform.platform)
 	{
 		"fabric" -> Json5ConfigSerializer
 		"neoforge" -> TomlConfigSerializer
@@ -55,7 +55,7 @@ abstract class ConfigSpec(protected val mod: Mod, protected val title: Component
 
 	fun init()
 	{
-		ArchieConfigPlatform.registerScreenHandler(mod) {
+		AConfigPlatform.registerScreenHandler(mod) {
 			builder
 		}
 		categoriesMap.values.forEach { cat ->

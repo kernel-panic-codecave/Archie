@@ -1,25 +1,20 @@
 package com.withertech.archie.transfer
 
-import com.withertech.archie.Archie
 import com.withertech.archie.serialization.NBT
 import com.withertech.archie.serialization.decodeFromNbtTagRootless
 import com.withertech.archie.serialization.encodeToNbtTagRootless
-import earth.terrarium.botarium.item.impl.SimpleItemStorage
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
-import earth.terrarium.botarium.storage.base.UpdateManager
-import earth.terrarium.botarium.storage.util.TransferUtil
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
+import earth.terrarium.common_storage_lib.storage.base.CommonStorage
+import earth.terrarium.common_storage_lib.storage.base.UpdateManager
+import earth.terrarium.common_storage_lib.storage.util.TransferUtil
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ArraySerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.benwoodworth.knbt.NbtTag
 import net.minecraft.core.NonNullList
-import kotlin.coroutines.suspendCoroutine
-import kotlin.math.max
 import kotlin.math.min
 
 @Serializable(with = ArchieItemStorage.Serializer::class)
@@ -47,9 +42,9 @@ open class ArchieItemStorage private constructor(
 		return TransferUtil.extractSlots(this, unit, amount, simulate)
 	}
 
-	override fun getSlotCount(): Int = slots.size
+	override fun size(): Int = slots.size
 
-	override fun getSlot(slot: Int): ArchieItemSlot
+	override fun get(slot: Int): ArchieItemSlot
 	{
 		return slots[slot]
 	}

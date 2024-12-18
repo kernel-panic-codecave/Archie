@@ -2,12 +2,9 @@ package com.withertech.archie.serialization
 
 import com.withertech.archie.config.toSnakeCase
 import com.withertech.archie.transfer.ArchieItemStorage
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
 import kotlinx.serialization.KSerializer
 import net.benwoodworth.knbt.NbtTag
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.block.entity.BlockEntity
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -90,7 +87,6 @@ class NBTHolderImpl : NBTHolder
 			}
 			data.forEach { (key, value) ->
 				put(key, value)
-
 			}
 		}
 	}

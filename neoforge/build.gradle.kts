@@ -1,4 +1,5 @@
-import utils.kotlinForgeRuntimeLibrary
+import utils.bundleMod
+import utils.bundleRuntimeLibrary
 
 plugins {
 	alias(libs.plugins.shadow)
@@ -63,14 +64,20 @@ dependencies {
 	compileOnly(libs.kotlin.stdlib)
 	neoForge(libs.neoforge)
 	modApi(libs.architectury.neoforge)
-	implementation(libs.kotlin.neoforge)
-	kotlinForgeRuntimeLibrary(libs.kotlinx.serialization.nbt)
-	kotlinForgeRuntimeLibrary(libs.kotlinx.serialization.toml)
-	kotlinForgeRuntimeLibrary(libs.kotlinx.serialization.json5)
+	implementation(libs.kotlin.neoforge) {
+		exclude(group = "net.neoforged.fancymodloader", module = "loader")
+	}
+	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
+	bundleRuntimeLibrary(compose.runtime)
 	modRuntimeOnly(libs.rei.neoforge)
 	modImplementation(libs.catalogue.neoforge)
-	modApi(libs.clothConfig.neoforge)
-	modApi(libs.botarium.neoforge)
+	bundleMod(libs.clothConfig.neoforge)
+	bundleMod(libs.storage.neoforge) {
+		exclude(group = "curse.maven")
+	}
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }

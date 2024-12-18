@@ -1,7 +1,6 @@
 package com.withertech.archie.data.common.crafting.recipies
 
 import net.minecraft.advancements.Criterion
-import net.minecraft.data.recipes.RecipeBuilder
 import net.minecraft.data.recipes.RecipeCategory
 import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.data.recipes.SimpleCookingRecipeBuilder
@@ -10,7 +9,6 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.crafting.AbstractCookingRecipe
 import net.minecraft.world.item.crafting.BlastingRecipe
 import net.minecraft.world.item.crafting.CampfireCookingRecipe
-import net.minecraft.world.item.crafting.CookingBookCategory
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.crafting.SmeltingRecipe
@@ -21,7 +19,7 @@ import kotlin.properties.Delegates
 class ArchieCookingRecipeBuilder<T : AbstractCookingRecipe>(
 	private val factory: AbstractCookingRecipe.Factory<T>,
 	private val serializer: RecipeSerializer<T>
-) : IArchieRecipeBuilder
+) : IARecipeBuilder
 {
 	private val builder: SimpleCookingRecipeBuilder by lazy {
 		SimpleCookingRecipeBuilder.generic(

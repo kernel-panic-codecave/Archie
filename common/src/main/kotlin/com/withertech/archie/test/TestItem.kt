@@ -1,10 +1,10 @@
 package com.withertech.archie.test
 
 import com.withertech.archie.serialization.NBTHolder
-import earth.terrarium.botarium.context.ItemContext
-import earth.terrarium.botarium.item.util.ItemProvider
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
+import earth.terrarium.common_storage_lib.context.ItemContext
+import earth.terrarium.common_storage_lib.item.util.ItemProvider
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
+import earth.terrarium.common_storage_lib.storage.base.CommonStorage
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResultHolder

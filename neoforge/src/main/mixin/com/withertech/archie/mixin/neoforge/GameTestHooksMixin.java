@@ -1,7 +1,7 @@
 package com.withertech.archie.mixin.neoforge;
 
 import com.withertech.archie.Archie;
-import com.withertech.archie.gametest.ArchieGameTestPlatform;
+import com.withertech.archie.gametest.AGameTestPlatform;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.gametest.GameTestHooks;
@@ -21,11 +21,11 @@ public abstract class GameTestHooksMixin {
     private static void getTemplateNamespaceMixin(Method method, CallbackInfoReturnable<String> cir)
     {
         GameTest gameTest = method.getAnnotation(GameTest.class);
-        Mod mod = ArchieGameTestPlatform.INSTANCE.getTestClassToMod$archie_neoforge().get(method.getDeclaringClass());
+        Mod mod = AGameTestPlatform.INSTANCE.getTestClassToMod$archie_neoforge().get(method.getDeclaringClass());
 
         if (gameTest.template().contains(":"))
         {
-            ResourceLocation template = new ResourceLocation(gameTest.template());
+            ResourceLocation template = ResourceLocation.parse(gameTest.template());
             cir.setReturnValue(template.getNamespace());
             return;
         }
@@ -51,10 +51,10 @@ public abstract class GameTestHooksMixin {
     @Inject(method = "registerGametests()V", at = @At(value = "INVOKE", target = "Lnet/neoforged/fml/ModLoader;postEvent(Lnet/neoforged/bus/api/Event;)V"))
     private static void registerGametests(CallbackInfo ci)
     {
-        if (ArchieGameTestPlatform.INSTANCE.isGameTest())
+        if (AGameTestPlatform.INSTANCE.isGameTest())
         {
             Archie.LOGGER.info("Registering GameTests");
-            ArchieGameTestPlatform.addEventHandlers();
+            AGameTestPlatform.addEventHandlers();
         }
     }
 }

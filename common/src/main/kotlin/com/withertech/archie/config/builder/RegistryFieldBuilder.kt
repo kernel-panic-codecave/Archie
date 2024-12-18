@@ -24,7 +24,7 @@ class RegistryFieldBuilder<T : Any, R : T>(
 	value: T
 ) : DropdownMenuBuilder<T>(resetButtonKey, fieldNameKey, TopCellElementBuilder.of(value, {
 	registry.getOptional(
-		ResourceLocation(it)
+		ResourceLocation.parse(it)
 	).orElse(null)
 }, {
 	Component.literal(registry.getKey(it).toString())

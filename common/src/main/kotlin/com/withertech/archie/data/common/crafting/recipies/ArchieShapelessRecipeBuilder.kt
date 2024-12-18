@@ -1,6 +1,5 @@
 package com.withertech.archie.data.common.crafting.recipies
 
-import com.withertech.archie.data.common.tags.CommonTags
 import net.minecraft.advancements.Criterion
 import net.minecraft.core.NonNullList
 import net.minecraft.data.recipes.RecipeCategory
@@ -12,7 +11,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.level.ItemLike
 
-class ArchieShapelessRecipeBuilder : IArchieRecipeBuilder
+class ArchieShapelessRecipeBuilder : IARecipeBuilder
 {
 	private val builder: ShapelessRecipeBuilder by lazy { ShapelessRecipeBuilder(category, result, count) }
 

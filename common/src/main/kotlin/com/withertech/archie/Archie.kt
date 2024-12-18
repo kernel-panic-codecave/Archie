@@ -4,13 +4,13 @@ import com.mojang.logging.LogUtils
 import com.withertech.archie.config.CategorySpec
 import com.withertech.archie.config.ConfigSpec
 import com.withertech.archie.config.builder.alphaMode
-import com.withertech.archie.data.ArchieDataGeneratorPlatform
-import com.withertech.archie.data.common.conditions.BuiltinConditions
-import com.withertech.archie.data.common.crafting.ingredients.BuiltinIngredients
-import com.withertech.archie.data.common.tags.CommonTags
+import com.withertech.archie.data.ADataGeneratorPlatform
+import com.withertech.archie.data.common.conditions.ABuiltinConditions
+import com.withertech.archie.data.common.crafting.ingredients.ABuiltinIngredients
+import com.withertech.archie.data.common.tags.ACommonTags
 import com.withertech.archie.data.internal.ArchieDatagen
-import com.withertech.archie.events.ArchieEvents
-import com.withertech.archie.gametest.ArchieGameTestPlatform
+import com.withertech.archie.events.AEvents
+import com.withertech.archie.gametest.AGameTestPlatform
 import com.withertech.archie.gametest.internal.ArchieGameTest
 import com.withertech.archie.test.BlockRegistry
 import com.withertech.archie.test.GuiRegistry
@@ -39,19 +39,18 @@ object Archie
 	val LOGGER: Logger = LogUtils.getLogger()
 
 	@JvmStatic
-	operator fun get(loc: String): ResourceLocation = ResourceLocation(MOD_ID, loc)
+	operator fun get(loc: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, loc)
 
 	@JvmStatic
 	fun init()
 	{
-		Archie
 		if (Platform.isMinecraftForge())
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
-		ArchieEvents += MOD
+		AEvents += MOD
 
-		BuiltinIngredients.init()
-		BuiltinConditions.init()
-		CommonTags.init()
+		ABuiltinIngredients.init()
+		ABuiltinConditions.init()
+		ACommonTags.init()
 		Config.init()
 		if (Platform.isDevelopmentEnvironment())
 		{
@@ -60,10 +59,11 @@ object Archie
 			TileRegistry.init()
 			GuiRegistry.init()
 		}
-		if (ArchieGameTestPlatform.isGameTest)
+		if (AGameTestPlatform.isGameTest)
 			ArchieGameTest.init()
-		if (ArchieDataGeneratorPlatform.isDataGen)
+		if (ADataGeneratorPlatform.isDataGen)
 			ArchieDatagen.init()
+
 	}
 
 	@JvmStatic

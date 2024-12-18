@@ -33,6 +33,7 @@ mutable     field   net/minecraft/world/level/levelgen/structure/templatesystem/
 extendable  class   net/minecraft/world/item/crafting/Ingredient
 extendable  method  net/minecraft/world/item/crafting/Ingredient <init> (Ljava/util/stream/Stream;)V
 accessible  method  net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
+extendable  class   net/minecraft/client/renderer/block/model/BlockElementFace
 transitive-accessible	method	net/minecraft/data/BlockFamilies	familyBuilder	(Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/data/BlockFamily$Builder;
 transitive-accessible	field	net/minecraft/data/models/BlockModelGenerators	blockStateOutput	Ljava/util/function/Consumer;
 transitive-accessible	field	net/minecraft/data/models/BlockModelGenerators	modelOutput	Ljava/util/function/BiConsumer;
@@ -45,11 +46,11 @@ transitive-accessible	class	net/minecraft/data/models/BlockModelGenerators$TintS
 transitive-accessible	class	net/minecraft/data/models/BlockModelGenerators$BlockFamilyProvider
 transitive-accessible	class	net/minecraft/data/models/BlockModelGenerators$WoodProvider
 transitive-accessible	class	net/minecraft/data/models/BlockModelGenerators$BlockEntityModelGenerator
-transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
-transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_NO_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
+#transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
+#transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_NO_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
 transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_SHEARS	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
-transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_SHEARS_OR_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
-transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_NO_SHEARS_OR_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
+#transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_SHEARS_OR_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
+#transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	HAS_NO_SHEARS_OR_SILK_TOUCH	Lnet/minecraft/world/level/storage/loot/predicates/LootItemCondition$Builder;
 transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	NORMAL_LEAVES_SAPLING_CHANCES	[F
 transitive-accessible	field	net/minecraft/data/loot/BlockLootSubProvider	NORMAL_LEAVES_STICK_CHANCES	[F
 transitive-accessible	method	net/minecraft/data/recipes/RecipeProvider	buildAdvancement	(Lnet/minecraft/data/CachedOutput;Lnet/minecraft/core/HolderLookup$Provider;Lnet/minecraft/advancements/AdvancementHolder;)Ljava/util/concurrent/CompletableFuture;

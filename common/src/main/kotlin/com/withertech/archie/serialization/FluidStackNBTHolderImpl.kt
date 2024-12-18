@@ -3,8 +3,6 @@ package com.withertech.archie.serialization
 import com.withertech.archie.config.toSnakeCase
 import com.withertech.archie.transfer.ArchieItemStorage
 import dev.architectury.fluid.FluidStack
-import earth.terrarium.botarium.resources.item.ItemResource
-import earth.terrarium.botarium.storage.base.CommonStorage
 import kotlinx.serialization.KSerializer
 import net.benwoodworth.knbt.NbtTag
 import net.minecraft.core.component.DataComponents

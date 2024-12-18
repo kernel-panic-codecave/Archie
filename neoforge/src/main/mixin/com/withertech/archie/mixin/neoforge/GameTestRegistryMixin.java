@@ -26,7 +26,7 @@ public abstract class GameTestRegistryMixin {
         GameTest gameTest = testMethod.getAnnotation(GameTest.class);
         if (gameTest.template().contains(":"))
         {
-            ResourceLocation template = new ResourceLocation(gameTest.template());
+            ResourceLocation template = ResourceLocation.parse(gameTest.template());
 
             String s = testMethod.getDeclaringClass().getSimpleName();
             String s1 = s.toLowerCase();

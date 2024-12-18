@@ -1,4 +1,5 @@
-import utils.kotlinFabricRuntimeLibrary
+import utils.bundleMod
+import utils.bundleRuntimeLibrary
 
 plugins {
 	alias(libs.plugins.shadow)
@@ -66,15 +67,17 @@ dependencies {
 	modApi(libs.fabric.api)
 	modApi(libs.architectury.fabric)
 	modImplementation(libs.kotlin.fabric)
-	kotlinFabricRuntimeLibrary(libs.kotlinx.serialization.nbt)
-	kotlinFabricRuntimeLibrary(libs.kotlinx.serialization.toml)
-	kotlinFabricRuntimeLibrary(libs.kotlinx.serialization.json5)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
+	bundleRuntimeLibrary(compose.runtime)
 	modLocalRuntime(libs.rei.fabric)
 	modCompileOnlyApi(libs.modmenu)
 	modImplementation(libs.catalogue.fabric)
 	modLocalRuntime(libs.menulogue.fabric)
-	modApi(libs.clothConfig.fabric)
-	modApi(libs.botarium.fabric)
+	bundleMod(libs.clothConfig.fabric)
+	bundleMod(libs.storage.fabric)
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
@@ -82,15 +85,6 @@ dependencies {
 
 modResources {
 	filesMatching.add("fabric.mod.json")
-	versions = versions.get().mapValues { (_, version) ->
-		version
-			.replace(",", " ")
-			.replace(Regex("""\s+"""), " ")
-			.replace(Regex("""\[(\S+)"""), ">=$1")
-			.replace(Regex("""(\S+)\]"""), "<=$1")
-			.replace(Regex("""\](\S+)"""), ">$1")
-			.replace(Regex("""(\S+)\["""), "<$1")
-	}
 }
 
 tasks {

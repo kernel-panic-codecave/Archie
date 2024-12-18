@@ -1,35 +1,35 @@
 [versions]
 kotlin = "1.9.22"
-kotlin-fabric = "1.10.17+kotlin.1.9.22"
-kotlin-neoforge = "5.0.1"
+kotlin-fabric = "1.10.18+kotlin.1.9.22"
+kotlin-neoforge = "5.6.0"
 kotlin-neoforge-range = "5"
 kotlinx-serialization = "1.6.3"
 
 # Minecraft
 
-minecraft = { strictly = "1.20.6" }
-parchment = "2023.12.31"
+minecraft = { strictly = "1.21.1" }
+parchment = "2024.11.17"
 
-architectury = "12.0.27"
+architectury = "13.0.8"
 architectury-plugin = { require = "[3.4, 3.5[" }
-architectury-loom = { require = "[1.6, 1.7[" }
+architectury-loom = { require = "[1.7, 1.8[" }
 architectury-kotlin = "1.0.0"
 
 modfusioner = "1.0.12"
 modpublisher = "2.1.4"
 
-fabric-loader = "0.15.10"
-fabric-api = "0.97.8+1.20.6"
+fabric-loader = "0.16.9"
+fabric-api = "0.110.0+1.21.1"
 
-neoforge = "20.6.5-beta"
-neoforge-range = "20.6"
+neoforge = "21.1.80"
+neoforge-range = "21.1.80"
 
-modmenu = "10.0.0-beta.1"
-rei = "15.0.728"
-catalogue = "1.20.6-1.10.1"
-menulogue = "1.20.6-1.0.6"
-cloth-config = "14.0.126"
-botarium = "3.0.0"
+modmenu = "11.0.3"
+rei = "16.0.788"
+catalogue = "1.21.1-1.11.0"
+menulogue = "1.21.1-1.0.6"
+cloth-config = "15.0.140"
+common-storage-lib = "0.0.5"
 cloth-config-range = "10.0"
 
 # other non-Minecraft dependencies
@@ -37,6 +37,7 @@ knbt = "0.11.4"
 tomlkt = "0.3.7"
 json5k = "0.3.0"
 shadow = "8.1.1"
+compose = "1.7.1"
 
 [bundles]
 # must contain all transitive deps, so they can be included in the production jar
@@ -47,12 +48,13 @@ kotlin-fabric = { module = "net.fabricmc:fabric-language-kotlin", version.ref = 
 kotlin-neoforge = { module = "thedarkcolour:kotlinforforge-neoforge", version.ref = "kotlin-neoforge" }
 kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serialization-cbor", version.ref = "kotlinx-serialization" }
 kotlinx-serialization-json5 = { module = "io.github.xn32:json5k-jvm", version.ref = "json5k" }
 kotlinx-serialization-nbt = { module = "net.benwoodworth.knbt:knbt-jvm", version.ref = "knbt" }
 kotlinx-serialization-toml = { module = "net.peanuuutz.tomlkt:tomlkt-jvm", version.ref = "tomlkt" }
 
 minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
-parchment = { module = "org.parchmentmc.data:parchment-1.20.3", version.ref = "parchment" }
+parchment = { module = "org.parchmentmc.data:parchment-1.21.1", version.ref = "parchment" }
 
 architectury-common = { module = "dev.architectury:architectury", version.ref = "architectury" }
 architectury-neoforge = { module = "dev.architectury:architectury-neoforge", version.ref = "architectury" }
@@ -71,10 +73,10 @@ clothConfig-common = { module = "me.shedaniel.cloth:cloth-config", version.ref =
 clothConfig-neoforge = { module = "me.shedaniel.cloth:cloth-config-neoforge", version.ref = "cloth-config"}
 clothConfig-fabric = { module = "me.shedaniel.cloth:cloth-config-fabric", version.ref = "cloth-config"}
 
-botarium-common = { module = "earth.terrarium.botarium:botarium-common-1.20.6", version.ref = "botarium"}
-botarium-resources-common = { module = "earth.terrarium.botarium:botarium-resources-common-1.20.6", version.ref = "botarium"}
-botarium-neoforge = { module = "earth.terrarium.botarium:botarium-neoforge-1.20.6", version.ref = "botarium"}
-botarium-fabric = { module = "earth.terrarium.botarium:botarium-fabric-1.20.6", version.ref = "botarium"}
+storage-common = { module = "earth.terrarium.common_storage_lib:common-storage-lib-common-1.21", version.ref = "common-storage-lib"}
+storage-resources-common = { module = "earth.terrarium.common_storage_lib:common-storage-lib-resources-common-1.21", version.ref = "common-storage-lib"}
+storage-neoforge = { module = "earth.terrarium.common_storage_lib:common-storage-lib-neoforge-1.21", version.ref = "common-storage-lib"}
+storage-fabric = { module = "earth.terrarium.common_storage_lib:common-storage-lib-fabric-1.21", version.ref = "common-storage-lib"}
 
 fabric-loader = { module = "net.fabricmc:fabric-loader", version.ref = "fabric-loader" }
 fabric-api = { module = "net.fabricmc.fabric-api:fabric-api", version.ref = "fabric-api" }
@@ -86,6 +88,7 @@ modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 
 architectury = { id = "architectury-plugin", version.ref = "architectury-plugin" }
 architectury-loom = { id = "dev.architectury.loom", version.ref = "architectury-loom" }

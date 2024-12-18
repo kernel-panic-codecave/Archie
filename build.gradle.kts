@@ -1,6 +1,3 @@
-import com.hypherionmc.modfusioner.plugin.FusionerExtension
-import com.hypherionmc.modpublisher.properties.ModLoader
-import groovy.lang.Closure
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
@@ -11,15 +8,28 @@ plugins {
 	java
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
+	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.modfusioner)
 	alias(libs.plugins.modpublisher)
 }
+
+
 
 architectury.minecraft = libs.versions.minecraft.get()
 
 val localProperties = kotlin.runCatching { loadProperties("$rootDir/local.properties") }.getOrNull()
 
-fun localOrEnv(prop: String): String = localProperties?.get(prop)?.toString() ?: System.getenv(prop)?.toString()!!
+val String.prop: String?
+	get() = rootProject.properties[this] as String?
+
+val String.local: String?
+	get() = localProperties?.get(this) as String?
+
+val String.env: String?
+	get() = System.getenv(this)
+
+val String.localOrEnv: String?
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
 
 subprojects {
 	apply(plugin = "dev.architectury.loom")
@@ -31,10 +41,11 @@ subprojects {
 	}
 
 	repositories {
-		val githubUsername: String = localOrEnv("GITHUB_USERNAME")
-		val githubToken: String = localOrEnv("GITHUB_TOKEN")
+		val githubUsername = "github_username".localOrEnv
+		val githubToken = "github_token".localOrEnv
 		mavenCentral()
 		mavenLocal()
+		maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 		maven("https://maven.parchmentmc.org")
 		maven("https://maven.fabricmc.net/")
 		maven("https://maven.neoforged.net/releases/")
@@ -87,13 +98,14 @@ allprojects {
 	apply(plugin = "java")
 	apply(plugin = "org.jetbrains.kotlin.jvm")
 	apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
+	apply(plugin = "org.jetbrains.compose")
 	apply(plugin = "architectury-plugin")
 	apply(plugin = "com.withertech.architectury.kotlin.plugin")
 	apply(plugin = "maven-publish")
 
-	version = project.properties["mod_version"] as String
-	group = project.properties["maven_group"] as String
-	base.archivesName.set(project.properties["archives_base_name"] as String)
+	version = "mod_version".prop!!
+	group = "mod_group".prop!!
+	base.archivesName = "mod_id".prop!!
 
 	tasks.withType<JavaCompile>().configureEach {
 		options.encoding = "UTF-8"
@@ -124,8 +136,8 @@ fusioner {
 
 publisher {
 	apiKeys {
-		curseforge(localOrEnv("CURSEFORGE_API_KEY"))
-		modrinth(localOrEnv("MODRINTH_API_KEY"))
+		curseforge("curseforge_api_key".localOrEnv)
+		modrinth("modrinth_api_key".localOrEnv)
 	}
 
 	debug = true
