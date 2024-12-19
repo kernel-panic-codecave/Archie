@@ -52,18 +52,14 @@ object Archie
 		ABuiltinConditions.init()
 		ACommonTags.init()
 		Config.init()
-		if (Platform.isDevelopmentEnvironment())
-		{
-			BlockRegistry.init()
-			ItemRegistry.init()
-			TileRegistry.init()
-			GuiRegistry.init()
-		}
+
 		if (AGameTestPlatform.isGameTest)
 			ArchieGameTest.init()
 		if (ADataGeneratorPlatform.isDataGen)
 			ArchieDatagen.init()
 
+		if (Platform.isDevelopmentEnvironment())
+			ArchieTest.init()
 	}
 
 	@JvmStatic

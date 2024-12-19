@@ -30,7 +30,7 @@ fun Slot(modifier: Modifier = Modifier) {
 				partialTick: Float
 			)
 			{
-				guiGraphics.blit(SLOT, x, y, 0, 0, 18, 18)
+				guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
 			}
 		},
 		modifier = Modifier.sizeIn(minWidth = 18, minHeight = 18).then(modifier)

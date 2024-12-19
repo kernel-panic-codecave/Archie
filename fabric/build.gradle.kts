@@ -1,10 +1,9 @@
-import utils.bundleMod
-import utils.bundleRuntimeLibrary
+import net.kernelpanicsoft.archie.plugin.bundleMod
+import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
 
 plugins {
 	alias(libs.plugins.shadow)
-	id("utils.kotlin-runtime-library")
-	id("utils.mod-resources")
+	alias(libs.plugins.archie)
 }
 
 architectury {
@@ -87,12 +86,13 @@ modResources {
 	filesMatching.add("fabric.mod.json")
 }
 
+
 tasks {
 	base.archivesName.set(base.archivesName.get() + "-fabric")
 
 	processResources {
 		from(project(":common").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}/*.png")
+			include("assets/${project.properties["mod_id"]}/**")
 		}
 	}
 

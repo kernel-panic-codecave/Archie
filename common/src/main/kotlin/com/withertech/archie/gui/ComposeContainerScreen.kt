@@ -84,12 +84,14 @@ abstract class ComposeContainerScreen<T : AbstractContainerMenu>(
 
 	override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float)
 	{
-		renderNodes(guiGraphics, mouseX, mouseY, partialTick)
 		super.render(guiGraphics, mouseX, mouseY, partialTick)
 		renderTooltip(guiGraphics, mouseX, mouseY)
 	}
 
-	override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) = Unit
+	override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int)
+	{
+		renderNodes(guiGraphics, mouseX, mouseY, partialTick)
+	}
 
 	override fun onClose()
 	{

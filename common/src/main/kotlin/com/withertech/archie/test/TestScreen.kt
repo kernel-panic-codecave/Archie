@@ -26,12 +26,12 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 	title
 )
 {
-//	private val rows = menu.rows
+	private val rows = menu.rows
 
 	init
 	{
-//		this.imageHeight = 114 + rows * 18
-//		this.inventoryLabelY = this.imageHeight - 94
+		this.imageHeight = 114 + rows * 18
+		this.inventoryLabelY = this.imageHeight - 94
 		start {
 			content()
 		}
@@ -41,7 +41,7 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 	fun content()
 	{
 		Column {
-			for (i in 0 until menu.rows)
+			for (i in 0 until rows)
 			{
 				Row {
 					for (j in 0 until 9)

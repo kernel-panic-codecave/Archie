@@ -5,9 +5,10 @@ pluginManagement {
 		maven("https://maven.minecraftforge.net/")
 		maven("https://maven.neoforged.net/releases/")
 		maven("https://maven.firstdarkdev.xyz/releases")
+		maven("https://maven.milosworks.xyz/releases")
 		gradlePluginPortal()
 	}
-	includeBuild("plugins")
+//	includeBuild("plugins")
 }
 
 plugins {
