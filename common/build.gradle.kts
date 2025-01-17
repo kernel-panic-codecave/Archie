@@ -1,9 +1,16 @@
 architectury {
 	common("fabric", "neoforge")
-	platformSetupLoomIde()
 }
 
-loom.accessWidenerPath.set(file("src/main/resources/${project.properties["mod_id"]}.accesswidener"))
+loom {
+	accessWidenerPath = file("src/main/resources/${project.properties["mod_id"]}.accesswidener")
+//	mods {
+//		val test = maybeCreate("test")
+//		test.apply {
+//			sourceSet(project.sourceSets.test.get())
+//		}
+//	}
+}
 
 sourceSets {
 	main {

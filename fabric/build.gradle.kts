@@ -16,12 +16,29 @@ configurations {
 	create("shadowCommon")
 	compileClasspath.get().extendsFrom(configurations["common"])
 	runtimeClasspath.get().extendsFrom(configurations["common"])
+	testCompileClasspath.get().extendsFrom(compileClasspath.get())
+	testRuntimeClasspath.get().extendsFrom(runtimeClasspath.get())
 //	getByName("developmentFabric").extendsFrom(configurations["common"])
 }
 
 loom {
 	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+
+	mods {
+		maybeCreate("main").apply {
+			sourceSet(project.sourceSets.main.get())
+			sourceSet(project(":common").sourceSets.main.get())
+		}
+		create("test") {
+			sourceSet(project.sourceSets.test.get())
+			sourceSet(project(":common").sourceSets.test.get())
+		}
+	}
+
 	runs {
+		getByName("client") {
+			source(sourceSets.test.get())
+		}
 		// This adds a new gradle task that runs the datagen API: "gradlew runDatagen"
 		create("datagen") {
 			client()
@@ -78,6 +95,8 @@ dependencies {
 	bundleMod(libs.clothConfig.fabric)
 	bundleMod(libs.storage.fabric)
 
+	testImplementation(project.project(":common").sourceSets.test.get().output)
+
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
 }
@@ -94,6 +113,17 @@ tasks {
 		from(project(":common").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}/**")
 		}
+		dependsOn(processTestResources)
+	}
+
+	processTestResources {
+		from(project(":common").sourceSets.test.get().resources) {
+			include("assets/${project.properties["mod_id"]}_test/**")
+		}
+	}
+
+	classes {
+		finalizedBy(testClasses)
 	}
 
 	shadowJar {

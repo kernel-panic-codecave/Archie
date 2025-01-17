@@ -1,17 +1,17 @@
 {
   "required": true,
-  "package": "com.withertech.archie.mixin.fabric",
-  "plugin": "com.withertech.archie.mixin.fabric.ArchieMixinPlugin",
+  "package": "net.kernelpanicsoft.archie.mixin.fabric",
+  "plugin": "net.kernelpanicsoft.archie.mixin.fabric.ArchieMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
-	"ModMenuMixin"
+    "ModMenuMixin"
   ],
   "mixins": [
-	"FabricDataGenHelperMixin",
-	"FabricGameTestModInitializerMixin"
+    "FabricDataGenHelperMixin",
+    "FabricGameTestModInitializerMixin"
   ],
   "injectors": {
-	"defaultRequire": 1
+    "defaultRequire": 1
   }
 }

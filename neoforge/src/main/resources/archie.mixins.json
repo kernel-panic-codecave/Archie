@@ -1,15 +1,15 @@
 {
   "required": true,
-  "package": "com.withertech.archie.mixin.neoforge",
+  "package": "net.kernelpanicsoft.archie.mixin.neoforge",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
   ],
   "mixins": [
 	"DatagenModLoaderMixin",
-	"GameTestHooksMixin",
-	"GameTestRegistryMixin",
-	"StructureTemplateManagerMixin"
+    "GameTestHooksMixin",
+    "GameTestRegistryMixin",
+    "StructureTemplateManagerMixin"
   ],
   "injectors": {
 	"defaultRequire": 1

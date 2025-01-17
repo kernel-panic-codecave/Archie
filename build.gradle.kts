@@ -2,18 +2,16 @@ import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
+	java
 	alias(libs.plugins.architectury)
 	alias(libs.plugins.architectury.kotlin) apply false
 	alias(libs.plugins.architectury.loom) apply false
-	java
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.modfusioner)
 	alias(libs.plugins.modpublisher)
 }
-
-
 
 architectury.minecraft = libs.versions.minecraft.get()
 
@@ -77,19 +75,6 @@ subprojects {
 		})
 
 		compileOnly("org.jetbrains:annotations:24.1.0")
-	}
-
-	if (project.path != ":common")
-	{
-		configure<LoomGradleExtensionAPI> {
-			mods {
-				val main = maybeCreate("main")
-				main.apply {
-					sourceSet(project.sourceSets.main.get())
-					sourceSet(project(":common").sourceSets.main.get())
-				}
-			}
-		}
 	}
 
 }

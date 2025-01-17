@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}_test",
+  "version": "${mod_version}",
+  "name": "${mod_display_name} Test Mod",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "contributors": [
+    "${mod_credits}"
+  ],
+  "contact": {
+    "homepage": "${mod_url}",
+    "sources": "${mod_source}"
+  },
+  "custom": {
+    "catalogue": {
+      "banner": "assets/${mod_id}_test/banner.png"
+    }
+  },
+  "license": "${mod_license}",
+  "icon": "assets/${mod_id}_test/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "net.kernelpanicsoft.archie.test.ArchieTestFabric"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "net.kernelpanicsoft.archie.test.ArchieTestFabric"
+      }
+    ]
+  },
+  "depends": {
+    "minecraft": "${versions.minecraft}",
+    "fabricloader": ">=${versions.fabric_loader}",
+    "fabric-api": ">=${versions.fabric_api}",
+    "fabric-language-kotlin": ">=${versions.kotlin_fabric}",
+    "architectury": ">=${versions.architectury}",
+    "cloth-config": ">=${versions.cloth_config_range}"
+  }
+}

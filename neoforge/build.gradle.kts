@@ -17,6 +17,8 @@ configurations {
 	create("shadowCommon")
 	compileClasspath.get().extendsFrom(configurations["common"])
 	runtimeClasspath.get().extendsFrom(configurations["common"])
+	testCompileClasspath.get().extendsFrom(compileClasspath.get())
+	testRuntimeClasspath.get().extendsFrom(runtimeClasspath.get())
 //	getByName("developmentNeoForge").extendsFrom(configurations["common"])
 }
 
@@ -24,8 +26,21 @@ configurations {
 loom {
 	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
 
-	// NroForge Datagen Gradle config.  Remove if not using NeoForge datagen
+	mods {
+		maybeCreate("main").apply {
+			sourceSet(project.sourceSets.main.get())
+			sourceSet(project(":common").sourceSets.main.get())
+		}
+		create("test") {
+			sourceSet(project.sourceSets.test.get())
+			sourceSet(project(":common").sourceSets.test.get())
+		}
+	}
+
 	runs {
+		getByName("client") {
+			source(sourceSets.test.get())
+		}
 		create("datagen") {
 			data()
 			property("archie.datagen", "true")
@@ -79,6 +94,8 @@ dependencies {
 		exclude(group = "curse.maven")
 	}
 
+	testImplementation(project.project(":common").sourceSets.test.get().output)
+
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
 }
@@ -94,6 +111,17 @@ tasks {
 		from(project(":common").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}/**")
 		}
+		dependsOn(processTestResources)
+	}
+
+	processTestResources {
+		from(project(":common").sourceSets.test.get().resources) {
+			include("assets/${project.properties["mod_id"]}_test/**")
+		}
+	}
+
+	classes {
+		finalizedBy(testClasses)
 	}
 
 	shadowJar {

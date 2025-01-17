@@ -16,7 +16,7 @@
   },
   "custom": {
     "catalogue": {
-      "configFactory": "com.withertech.archie.config.ArchieCatalogue",
+      "configFactory": "net.kernelpanicsoft.archie.config.ArchieCatalogue",
       "banner": "assets/${mod_id}/banner.png"
     }
   },
@@ -27,13 +27,13 @@
     "main": [
       {
         "adapter": "kotlin",
-        "value": "com.withertech.archie.fabric.ArchieFabric"
+        "value": "net.kernelpanicsoft.archie.ArchieFabric"
       }
     ],
     "client": [
       {
         "adapter": "kotlin",
-        "value": "com.withertech.archie.fabric.ArchieFabric"
+        "value": "net.kernelpanicsoft.archie.ArchieFabric"
       }
     ]
   },
