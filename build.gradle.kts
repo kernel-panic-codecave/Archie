@@ -20,16 +20,16 @@ architectury.minecraft = libs.versions.minecraft.get()
 
 val localProperties = kotlin.runCatching { loadProperties("$rootDir/local.properties") }.getOrNull()
 
-val String.prop: String
-	get() = rootProject.properties[this].toString()
+val String.prop: String?
+	get() = rootProject.properties[this]?.toString()
 
-val String.local: String
-	get() = localProperties?.get(this).toString()
+val String.local: String?
+	get() = localProperties?.get(this)?.toString()
 
-val String.env: String
+val String.env: String?
 	get() = System.getenv(this)
 
-val String.localOrEnv: String
+val String.localOrEnv: String?
 	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
 
 subprojects {
@@ -42,7 +42,7 @@ subprojects {
 	}
 
 	repositories {
-		val githubUsername = "github_username".localOrEnv
+		val githubUsername = "github_actor".localOrEnv
 		val githubToken = "github_token".localOrEnv
 		mavenCentral()
 		mavenLocal()

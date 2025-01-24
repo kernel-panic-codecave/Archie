@@ -29,7 +29,6 @@ jobs:
       - name: Build Documentation
         run: ./gradlew embedDokkaIntoMkDocs
         env:
-          GITHUB_USERNAME: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/cache@v4
