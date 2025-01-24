@@ -21,3 +21,4 @@ classes/
 *.launch
 local.properties
 **/src/main/generated
+docs/api

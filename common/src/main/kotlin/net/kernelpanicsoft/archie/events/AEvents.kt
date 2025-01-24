@@ -54,6 +54,7 @@ object AEvents
 		}
 	}
 
+	@ConsistentCopyVisibility
 	data class ArchieGameTestBuilder internal constructor(
 		private val mod: Mod
 	)

@@ -148,28 +148,27 @@ tasks {
 	}
 }
 
-
-publishing {
-	publications.create<MavenPublication>("mavenFabric") {
-		artifactId = base.archivesName.get()
-		from(components["java"])
-	}
-
-	repositories {
-		mavenLocal()
-		maven {
-			val releasesRepoUrl = "https://example.com/releases"
-			val snapshotsRepoUrl = "https://example.com/snapshots"
-			url = uri(
-				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
-						.startsWith("0")
-				) snapshotsRepoUrl else releasesRepoUrl
-			)
-			name = "ExampleRepo"
-			credentials {
-				username = project.properties["repoLogin"]?.toString()
-				password = project.properties["repoPassword"]?.toString()
-			}
-		}
-	}
-}
+//publishing {
+//	publications.create<MavenPublication>("mavenFabric") {
+//		artifactId = base.archivesName.get()
+//		from(components["java"])
+//	}
+//
+//	repositories {
+//		mavenLocal()
+//		maven {
+//			val releasesRepoUrl = "https://example.com/releases"
+//			val snapshotsRepoUrl = "https://example.com/snapshots"
+//			url = uri(
+//				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+//						.startsWith("0")
+//				) snapshotsRepoUrl else releasesRepoUrl
+//			)
+//			name = "ExampleRepo"
+//			credentials {
+//				username = project.properties["repoLogin"]?.toString()
+//				password = project.properties["repoPassword"]?.toString()
+//			}
+//		}
+//	}
+//}

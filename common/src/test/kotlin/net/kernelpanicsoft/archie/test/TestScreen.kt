@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie.test
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import net.kernelpanicsoft.archie.gui.*
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.minecraft.network.chat.Component
@@ -14,6 +15,7 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 
 	init
 	{
+		ArchieTest.LOGGER.info("Screen: $title")
 		this.imageHeight = 114 + rows * 18
 		this.inventoryLabelY = this.imageHeight - 94
 		start {
@@ -24,17 +26,27 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 	@Composable
 	fun content()
 	{
-		Column {
-			for (i in 0 until rows)
-			{
-				Row {
-					for (j in 0 until 9)
+		CompositionLocalProvider(LocalSlotData provides SlotData()) {
+			Slots(
+				"inventory",
+				9,
+				rows
+			) {
+				Column {
+					for (i in 0 until rows)
 					{
-						Slot()
+						Row {
+							for (j in 0 until 9)
+							{
+								Slot()
+							}
+						}
 					}
 				}
 			}
 		}
+
+
 	}
 
 //	override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int)

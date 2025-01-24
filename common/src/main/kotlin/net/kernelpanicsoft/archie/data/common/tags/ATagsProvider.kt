@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.data.common.tags
 
+import dev.architectury.extensions.injected.InjectedRegistryEntryExtension
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.IADataProvider
 import net.kernelpanicsoft.archie.registries.holder
@@ -100,30 +101,30 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey].
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey].
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
-	 * @return The [IArchieTagBuilder] instance
+	 * @return The [IATagBuilder] instance
 	 */
-	operator fun TagKey<T>.invoke(): IArchieTagBuilder<T>
+	operator fun TagKey<T>.invoke(): IATagBuilder<T>
 	{
 		return ATagBuilderPlatform.createTagBuilder(super.tag(this), this@ATagsProvider)
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and applies a lambda over it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
 	 * @param block the lamda to apply over the [TagKey]
 	 */
-	operator fun TagKey<T>.invoke(block: IArchieTagBuilder<T>.() -> Unit)
+	operator fun TagKey<T>.invoke(block: IATagBuilder<T>.() -> Unit)
 	{
 		this().apply(block)
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds an element of type [T] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -135,7 +136,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds an element of type [ResourceKey] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -147,7 +148,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds an element of type [ResourceLocation] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -159,7 +160,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds a tag of type [TagKey] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -171,7 +172,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds a list of elements of type [T] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -183,7 +184,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds a list of elements of type [ResourceKey] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -196,7 +197,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds a list of elements of type [ResourceLocation] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -209,7 +210,7 @@ abstract class ATagsProvider<T : Any>(
 	}
 
 	/**
-	 * Creates a new instance of [IArchieTagBuilder] for the given [TagKey]
+	 * Creates a new instance of [IATagBuilder] for the given [TagKey]
 	 * and adds a list of tags of type [TagKey] to it.
 	 *
 	 * @receiver The [TagKey] tag to create the builder for
@@ -279,7 +280,7 @@ abstract class ATagsProvider<T : Any>(
 	{
 		override fun reverseLookup(element: Block): ResourceKey<Block>
 		{
-			return (element.holder as Holder.Reference<Block>).key()
+			return ((element as InjectedRegistryEntryExtension<Block>).holder as Holder.Reference<Block>).key()
 		}
 	}
 
@@ -357,7 +358,7 @@ abstract class ATagsProvider<T : Any>(
 
 		override fun reverseLookup(element: Item): ResourceKey<Item>
 		{
-			return (element.holder as Holder.Reference<Item>).key()
+			return ((element as InjectedRegistryEntryExtension<Item>).holder as Holder.Reference<Item>).key()
 		}
 	}
 
@@ -374,7 +375,7 @@ abstract class ATagsProvider<T : Any>(
 	{
 		override fun reverseLookup(element: Fluid): ResourceKey<Fluid>
 		{
-			return (element.holder as Holder.Reference<Fluid>).key()
+			return ((element as InjectedRegistryEntryExtension<Fluid>).holder as Holder.Reference<Fluid>).key()
 		}
 	}
 
@@ -391,7 +392,7 @@ abstract class ATagsProvider<T : Any>(
 	{
 		override fun reverseLookup(element: EntityType<*>): ResourceKey<EntityType<*>>
 		{
-			return (element.holder as Holder.Reference<EntityType<*>>).key()
+			return ((element as InjectedRegistryEntryExtension<EntityType<*>>).holder as Holder.Reference<EntityType<*>>).key()
 		}
 	}
 

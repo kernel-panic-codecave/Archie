@@ -74,7 +74,6 @@ sourceSets {
 	}
 }
 
-
 dependencies {
 	compileOnly(libs.kotlin.stdlib)
 	neoForge(libs.neoforge)
@@ -87,6 +86,7 @@ dependencies {
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
+	bundleRuntimeLibrary(compose.ui)
 	modRuntimeOnly(libs.rei.neoforge)
 	modImplementation(libs.catalogue.neoforge)
 	bundleMod(libs.clothConfig.neoforge)
@@ -133,7 +133,7 @@ tasks {
 
 	remapJar {
 		inputFile.set(shadowJar.get().archiveFile)
-		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.name))
+//		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.path))
 		dependsOn(shadowJar)
 	}
 
@@ -145,29 +145,37 @@ tasks {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })
 	}
+
+//	task("printRuntimeClasspath") {
+//		val runtimeClasspath = sourceSets.test.get().runtimeClasspath
+//		inputs.files( runtimeClasspath )
+//		doLast {
+//			println(runtimeClasspath.joinToString("\n") { it.path })
+//		}
+//	}
 }
 
-publishing {
-	publications.create<MavenPublication>("mavenNeoForge") {
-		artifactId = base.archivesName.get()
-		from(components["java"])
-	}
-
-	repositories {
-		mavenLocal()
-		maven {
-			val releasesRepoUrl = "https://example.com/releases"
-			val snapshotsRepoUrl = "https://example.com/snapshots"
-			url = uri(
-				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
-						.startsWith("0")
-				) snapshotsRepoUrl else releasesRepoUrl
-			)
-			name = "ExampleRepo"
-			credentials {
-				username = project.properties["repoLogin"]?.toString()
-				password = project.properties["repoPassword"]?.toString()
-			}
-		}
-	}
-}
+//publishing {
+//	publications.create<MavenPublication>("mavenNeoForge") {
+//		artifactId = base.archivesName.get()
+//		from(components["java"])
+//	}
+//
+//	repositories {
+//		mavenLocal()
+//		maven {
+//			val releasesRepoUrl = "https://example.com/releases"
+//			val snapshotsRepoUrl = "https://example.com/snapshots"
+//			url = uri(
+//				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+//						.startsWith("0")
+//				) snapshotsRepoUrl else releasesRepoUrl
+//			)
+//			name = "ExampleRepo"
+//			credentials {
+//				username = project.properties["repoLogin"]?.toString()
+//				password = project.properties["repoPassword"]?.toString()
+//			}
+//		}
+//	}
+//}

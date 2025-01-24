@@ -1,7 +1,9 @@
 [versions]
-kotlin = "1.9.22"
-kotlin-fabric = "1.10.18+kotlin.1.9.22"
-kotlin-neoforge = "5.6.0"
+#kotlin = "1.9.22"
+kotlin = "2.1.0"
+#kotlin-fabric = "1.10.18+kotlin.1.9.22"
+kotlin-fabric = "1.13.0+kotlin.2.1.0"
+kotlin-neoforge = "5.7.0"
 kotlin-neoforge-range = "5"
 kotlinx-serialization = "1.6.3"
 
@@ -12,13 +14,13 @@ parchment = "2024.11.17"
 
 architectury = "13.0.8"
 architectury-plugin = { require = "[3.4, 3.5[" }
-architectury-loom = { require = "[1.7, 1.8[" }
-architectury-kotlin = "1.0.0"
+architectury-loom = { require = "1.9-SNAPSHOT" }
+architectury-kotlin = "1.0.0-SNAPSHOT"
 
 modfusioner = "1.0.12"
 modpublisher = "2.1.4"
 
-archie = "1.0.0"
+archie = "1.0.0-SNAPSHOT"
 
 fabric-loader = "0.16.9"
 fabric-api = "0.110.0+1.21.1"
@@ -40,6 +42,8 @@ tomlkt = "0.3.7"
 json5k = "0.3.0"
 shadow = "8.1.1"
 compose = "1.7.1"
+dokka = "2.3.1"
+dokka-mkdocs = "0.4.2"
 
 [bundles]
 # must contain all transitive deps, so they can be included in the production jar
@@ -90,11 +94,14 @@ modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+dokka = { id = "dev.adamko.dokka-html", version.ref = "dokka" }
+dokka-mkdocs = { id = "dev.opensavvy.dokka-mkdocs", version.ref = "dokka-mkdocs" }
 
 architectury = { id = "architectury-plugin", version.ref = "architectury-plugin" }
 architectury-loom = { id = "dev.architectury.loom", version.ref = "architectury-loom" }
-architectury-kotlin = { id = "com.withertech.architectury.kotlin.plugin", version.ref = "architectury-kotlin" }
+architectury-kotlin = { id = "net.kernelpanicsoft.architectury.kotlin", version.ref = "architectury-kotlin" }
 
 shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
 modfusioner = { id = "com.hypherionmc.modutils.modfusioner", version.ref = "modfusioner" }

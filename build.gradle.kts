@@ -1,14 +1,17 @@
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import org.gradle.jvm.tasks.Jar
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
 	java
 	alias(libs.plugins.architectury)
-	alias(libs.plugins.architectury.kotlin) apply false
+	alias(libs.plugins.architectury.kotlin)
 	alias(libs.plugins.architectury.loom) apply false
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.kotlin.compose)
+	alias(libs.plugins.compose)
+	alias(libs.plugins.dokka.mkdocs)
 	alias(libs.plugins.modfusioner)
 	alias(libs.plugins.modpublisher)
 }
@@ -17,17 +20,17 @@ architectury.minecraft = libs.versions.minecraft.get()
 
 val localProperties = kotlin.runCatching { loadProperties("$rootDir/local.properties") }.getOrNull()
 
-val String.prop: String?
-	get() = rootProject.properties[this] as String?
+val String.prop: String
+	get() = rootProject.properties[this]!!.toString()
 
-val String.local: String?
-	get() = localProperties?.get(this) as String?
+val String.local: String
+	get() = localProperties?.get(this)!!.toString()
 
-val String.env: String?
-	get() = System.getenv(this)
+val String.env: String
+	get() = System.getenv(this)!!
 
-val String.localOrEnv: String?
-	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
+val String.localOrEnv: String
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())!!
 
 subprojects {
 	apply(plugin = "dev.architectury.loom")
@@ -43,6 +46,10 @@ subprojects {
 		val githubToken = "github_token".localOrEnv
 		mavenCentral()
 		mavenLocal()
+		maven {
+			name = "kernelpanic"
+			url = uri("https://repo.kernelpanicsoft.net/maven/snapshots")
+		}
 		maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 		maven("https://maven.parchmentmc.org")
 		maven("https://maven.fabricmc.net/")
@@ -83,14 +90,15 @@ allprojects {
 	apply(plugin = "java")
 	apply(plugin = "org.jetbrains.kotlin.jvm")
 	apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
+	apply(plugin = "org.jetbrains.kotlin.plugin.compose")
 	apply(plugin = "org.jetbrains.compose")
+	apply(plugin = "dev.opensavvy.dokka-mkdocs")
 	apply(plugin = "architectury-plugin")
-	apply(plugin = "com.withertech.architectury.kotlin.plugin")
 	apply(plugin = "maven-publish")
 
-	version = "mod_version".prop!!
-	group = "mod_group".prop!!
-	base.archivesName = "mod_id".prop!!
+	version = "mod_version".prop
+	group = "mod_group".prop
+	base.archivesName = "mod_id".prop
 
 	tasks.withType<JavaCompile>().configureEach {
 		options.encoding = "UTF-8"
@@ -101,7 +109,20 @@ allprojects {
 		compileOnly()
 	}
 
+	dokka {
+		dokkaGeneratorIsolation = ClassLoaderIsolation()
+//		pluginsConfiguration.html {
+//			footerMessage = "(c) 2025 Kernel Panic"
+//		}
+	}
+
 	java.withSourcesJar()
+}
+
+dependencies {
+	dokka(projects.common) {isTransitive = false}
+	dokka(projects.fabric) {isTransitive = false}
+	dokka(projects.neoforge) {isTransitive = false}
 }
 
 fusioner {
@@ -182,18 +203,6 @@ tasks {
 	}
 	assemble {
 		finalizedBy(fusejars)
-	}
-	create("release") {
-		doFirst {
-			exec {
-				workingDir = projectDir
-				executable = "npx"
-				args = buildList {
-					add("commit-and-tag-version")
-					add("--no-verify")
-				}
-			}
-		}
 	}
 }
 

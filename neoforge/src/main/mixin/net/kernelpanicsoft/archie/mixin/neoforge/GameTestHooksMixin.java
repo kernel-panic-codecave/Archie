@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.mixin.neoforge;
 
 import net.kernelpanicsoft.archie.Archie;
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform;
+import net.kernelpanicsoft.archie.gametest.AGameTestPlatformInternal;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.gametest.GameTestHooks;
@@ -21,7 +22,7 @@ public abstract class GameTestHooksMixin {
     private static void getTemplateNamespaceMixin(Method method, CallbackInfoReturnable<String> cir)
     {
         GameTest gameTest = method.getAnnotation(GameTest.class);
-        Mod mod = AGameTestPlatform.INSTANCE.getTestClassToMod$archie_neoforge().get(method.getDeclaringClass());
+        Mod mod = AGameTestPlatformInternal.getTestClassToMod().get(method.getDeclaringClass());
 
         if (gameTest.template().contains(":"))
         {
@@ -54,7 +55,7 @@ public abstract class GameTestHooksMixin {
         if (AGameTestPlatform.INSTANCE.isGameTest())
         {
             Archie.LOGGER.info("Registering GameTests");
-            AGameTestPlatform.addEventHandlers();
+            AGameTestPlatformInternal.addEventHandlers();
         }
     }
 }

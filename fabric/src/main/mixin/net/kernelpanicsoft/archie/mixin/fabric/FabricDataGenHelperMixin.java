@@ -7,6 +7,7 @@ import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.impl.datagen.FabricDataGenHelper;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
+import net.kernelpanicsoft.archie.data.ADataGeneratorPlatformInternal;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,7 +26,7 @@ class FabricDataGenHelperMixin
 		if (ADataGeneratorPlatform.INSTANCE.isDataGen())
 		{
 			Archie.LOGGER.info("Registering DataGen Handlers");
-			ADataGeneratorPlatform.addEntrypoints(dataGeneratorInitializers);
+			ADataGeneratorPlatformInternal.addEntrypoints(dataGeneratorInitializers);
 		}
 	}
 }

@@ -1,11 +1,8 @@
 package net.kernelpanicsoft.archie.gui.layout
 
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.gui.modifiers.*
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
-import net.kernelpanicsoft.archie.gui.modifiers.Constraints
-import net.kernelpanicsoft.archie.gui.modifiers.LayoutChangingModifier
-import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.OnSizeChangedModifier
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.reflect.KClass
 
@@ -50,6 +47,19 @@ internal class LayoutNode : Measurable, Placeable, AUINode
 	override var x: Int = 0
 	override var y: Int = 0
 
+	private val absoluteCoords: IntCoordinates
+		get()
+		{
+			var coordinates = IntCoordinates(this.x, this.y)
+			var parent = this.parent
+			while (parent != null)
+			{
+				coordinates += IntCoordinates(parent.x, parent.y)
+				parent = parent.parent
+			}
+			return coordinates
+		}
+
 	private fun coercedConstraints(constraints: Constraints) = with(constraints) {
 		object : Placeable by this@LayoutNode {
 			override var width: Int = this@LayoutNode.width.coerceIn(minWidth..maxWidth)
@@ -83,6 +93,19 @@ internal class LayoutNode : Measurable, Placeable, AUINode
 		}
 		this.x = offset.x
 		this.y = offset.y
+
+		val coordinates = absoluteCoords
+
+		get<OnGloballyPositionedModifier>()?.onGloballyPositioned?.invoke(coordinates)
+
+//		modifier.foldIn(Unit) {_, element ->
+//			run {
+//				if (element is OnGloballyPositionedModifier)
+//				{
+//					element.onGloballyPositioned(coordinates)
+//				}
+//			}
+//		}
 	}
 
 	override fun render(x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float)

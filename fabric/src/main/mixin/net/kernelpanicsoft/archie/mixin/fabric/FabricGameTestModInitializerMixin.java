@@ -6,6 +6,7 @@ import net.kernelpanicsoft.archie.Archie;
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform;
 import net.fabricmc.fabric.impl.gametest.FabricGameTestModInitializer;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
+import net.kernelpanicsoft.archie.gametest.AGameTestPlatformInternal;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,7 +25,7 @@ class FabricGameTestModInitializerMixin
 		if (AGameTestPlatform.INSTANCE.isGameTest())
 		{
 			Archie.LOGGER.info("Registering GameTests");
-			AGameTestPlatform.addEntrypoints(entrypointContainers);
+			AGameTestPlatformInternal.addEntrypoints(entrypointContainers);
 		}
 	}
 }

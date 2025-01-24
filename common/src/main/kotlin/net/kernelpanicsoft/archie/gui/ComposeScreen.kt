@@ -75,7 +75,7 @@ abstract class ComposeScreen(title: Component) : Screen(title), CoroutineScope
 			clock.sendFrame(System.nanoTime()) // Frame time value is not used by Compose runtime.
 		}
 		rootNode.measure(Constraints(maxWidth = width, maxHeight = height))
-		rootNode.render(rootNode.x, rootNode.y, guiGraphics, mouseX, mouseY, partialTick)
+		rootNode.render(0, 0, guiGraphics, mouseX, mouseY, partialTick)
 	}
 
 	override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float)

@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.util
 
+import dev.architectury.extensions.injected.InjectedItemPropertiesExtension
 import dev.architectury.registry.registries.DeferredSupplier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.CreativeModeTab
@@ -17,10 +18,10 @@ fun itemProperties(block: Item.Properties.() -> Unit): Item.Properties
 }
 
 @Suppress("UnstableApiUsage")
-fun Item.Properties.tab(tab: CreativeModeTab): Item.Properties = `arch$tab`(tab)
+fun Item.Properties.tab(tab: CreativeModeTab): Item.Properties = (this as InjectedItemPropertiesExtension).`arch$tab`(tab)
 
 @Suppress("UnstableApiUsage")
-fun Item.Properties.tab(tab: DeferredSupplier<CreativeModeTab>): Item.Properties = `arch$tab`(tab)
+fun Item.Properties.tab(tab: DeferredSupplier<CreativeModeTab>): Item.Properties = (this as InjectedItemPropertiesExtension).`arch$tab`(tab)
 
 @Suppress("UnstableApiUsage")
-fun Item.Properties.tab(tab: ResourceKey<CreativeModeTab>): Item.Properties = `arch$tab`(tab)
+fun Item.Properties.tab(tab: ResourceKey<CreativeModeTab>): Item.Properties = (this as InjectedItemPropertiesExtension).`arch$tab`(tab)

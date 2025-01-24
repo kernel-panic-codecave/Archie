@@ -9,7 +9,13 @@ import net.minecraft.world.inventory.MenuType
 object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries.MENU)
 {
 	val TestMenu: MenuType<TestMenu> by register("test_menu") {
-		MenuRegistry.ofExtended { id, inventory, buf -> TestMenu(id, inventory, TileRegistry.TestTile.getBlockEntity(inventory.player.level(), buf.readBlockPos())!!) }
+		MenuRegistry.ofExtended { id, inventory, buf ->
+			TestMenu(
+				id,
+				inventory,
+				TileRegistry.TestTile.getBlockEntity(inventory.player.level(), buf.readBlockPos())!!
+			)
+		}
 	}
 
 	fun initClient()

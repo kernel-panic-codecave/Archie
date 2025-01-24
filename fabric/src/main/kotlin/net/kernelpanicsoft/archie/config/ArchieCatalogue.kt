@@ -10,7 +10,7 @@ object ArchieCatalogue
 	@JvmStatic
 	fun createConfigProvider(): Map<String, BiFunction<Screen, ModContainer, Screen>>
 	{
-		return AConfigPlatform.screenHandlers
+		return AConfigPlatformInternal.screenHandlers
 			.mapKeys { (key, _) -> key.modId }
 			.mapValues { (_, value) ->
 				BiFunction { parent, _ ->

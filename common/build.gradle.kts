@@ -4,12 +4,6 @@ architectury {
 
 loom {
 	accessWidenerPath = file("src/main/resources/${project.properties["mod_id"]}.accesswidener")
-//	mods {
-//		val test = maybeCreate("test")
-//		test.apply {
-//			sourceSet(project.sourceSets.test.get())
-//		}
-//	}
 }
 
 sourceSets {
@@ -33,6 +27,7 @@ dependencies {
 	api(libs.kotlinx.serialization.json5) { isTransitive = false }
 	api(libs.kotlinx.serialization.cbor) { isTransitive = false }
 	api(compose.runtime)
+	api(compose.ui)
 	// We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
 	// Do NOT use other classes from fabric loader
 	modImplementation(libs.fabric.loader)
@@ -49,28 +44,27 @@ tasks {
 	base.archivesName.set(base.archivesName.get() + "-common")
 }
 
-
-publishing {
-	publications.create<MavenPublication>("mavenCommon") {
-		artifactId = base.archivesName.get()
-		from(components["java"])
-	}
-
-	repositories {
-		mavenLocal()
-		maven {
-			val releasesRepoUrl = "https://example.com/releases"
-			val snapshotsRepoUrl = "https://example.com/snapshots"
-			url = uri(
-				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
-						.startsWith("0")
-				) snapshotsRepoUrl else releasesRepoUrl
-			)
-			name = "ExampleRepo"
-			credentials {
-				username = project.properties["repoLogin"]?.toString()
-				password = project.properties["repoPassword"]?.toString()
-			}
-		}
-	}
-}
+//publishing {
+//	publications.create<MavenPublication>("mavenCommon") {
+//		artifactId = base.archivesName.get()
+//		from(components["java"])
+//	}
+//
+//	repositories {
+//		mavenLocal()
+//		maven {
+//			val releasesRepoUrl = "https://example.com/releases"
+//			val snapshotsRepoUrl = "https://example.com/snapshots"
+//			url = uri(
+//				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+//						.startsWith("0")
+//				) snapshotsRepoUrl else releasesRepoUrl
+//			)
+//			name = "ExampleRepo"
+//			credentials {
+//				username = project.properties["repoLogin"]?.toString()
+//				password = project.properties["repoPassword"]?.toString()
+//			}
+//		}
+//	}
+//}

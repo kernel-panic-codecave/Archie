@@ -1,3 +1,4 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 pluginManagement {
 	repositories {
 		maven("https://maven.fabricmc.net/")
@@ -5,7 +6,10 @@ pluginManagement {
 		maven("https://maven.minecraftforge.net/")
 		maven("https://maven.neoforged.net/releases/")
 		maven("https://maven.firstdarkdev.xyz/releases")
-		maven("https://maven.milosworks.xyz/releases")
+		maven {
+			name = "kernelpanic"
+			url = uri("https://repo.kernelpanicsoft.net/maven/snapshots")
+		}
 		gradlePluginPortal()
 	}
 //	includeBuild("plugins")

@@ -1,0 +1,19 @@
+site_name: My Docs
+theme:
+    name: material
+    features:
+        - navigation.indexes
+        - navigation.instant
+        - navigation.instant.prefetch
+        - navigation.tracking
+        - navigation.tabs
+        - navigation.sections
+        - navigation.expand
+        - navigation.path
+        - navigation.prune
+
+nav:
+  - Home: # your existing pages…
+      - index.md
+# !!! EMBEDDED DOKKA START, DO NOT COMMIT !!! #
+# !!! EMBEDDED DOKKA END, DO NOT COMMIT !!! #

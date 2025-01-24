@@ -2,6 +2,9 @@ package net.kernelpanicsoft.archie.mixin.neoforge;
 
 import net.kernelpanicsoft.archie.Archie;
 import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform;
+import net.kernelpanicsoft.archie.data.ADataGeneratorPlatformInternal;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.data.loading.DatagenModLoader;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,7 +25,7 @@ class DatagenModLoaderMixin
 		if (ADataGeneratorPlatform.INSTANCE.isDataGen())
 		{
 			Archie.LOGGER.info("Registering DataGen Handlers");
-			ADataGeneratorPlatform.addEventHandlers();
+			ADataGeneratorPlatformInternal.addEventHandlers();
 		}
 	}
 }

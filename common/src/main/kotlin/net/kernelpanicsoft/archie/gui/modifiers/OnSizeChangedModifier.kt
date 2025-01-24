@@ -14,6 +14,4 @@ class OnSizeChangedModifier(
 }
 
 /** Notifies callback of any size changes to element. */
-fun Modifier.onSizeChanged(onSizeChanged: (Size) -> Unit) = then(
-	OnSizeChangedModifier(onSizeChanged = onSizeChanged)
-)
+fun Modifier.onSizeChanged(onSizeChanged: (Size) -> Unit) = this then OnSizeChangedModifier(onSizeChanged = onSizeChanged)

@@ -7,5 +7,5 @@ expect object ATagBuilderPlatform
 {
 	fun setTagReplace(builder: TagBuilder, replace: Boolean)
 
-	fun <T : Any> createTagBuilder(parent: TagAppender<T>, provider: ATagsProvider<T>): IArchieTagBuilder<T>
+	fun <T : Any> createTagBuilder(parent: TagAppender<T>, provider: ATagsProvider<T>): IATagBuilder<T>
 }

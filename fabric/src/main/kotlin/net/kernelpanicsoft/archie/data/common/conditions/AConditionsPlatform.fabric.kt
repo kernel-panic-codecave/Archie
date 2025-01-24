@@ -60,7 +60,7 @@ actual object AConditionsPlatform
 		}
 	}
 
-	actual fun codec(): Codec<out IACondition>
+	actual fun codec(): Codec<IACondition>
 	{
 		return ResourceCondition.CODEC.xmap(
 			{ resourceCondition ->
@@ -74,7 +74,7 @@ actual object AConditionsPlatform
 	actual fun fabricRecipeProvider(
 		child: ARecipeProvider,
 		registries: CompletableFuture<HolderLookup.Provider>
-	): RecipeProvider
+	): RecipeProvider?
 	{
 		return object : FabricRecipeProvider(child.output as FabricDataOutput, registries)
 		{
