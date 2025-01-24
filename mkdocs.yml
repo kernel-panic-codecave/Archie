@@ -1,7 +1,14 @@
 site_name: Archie Docs
+site_description: >
+    A library mod for Kernel Panic's mods
+site_author: Kernel Panic
+repo_url: https://github.com/kernel-panic-codecave/Archie/
+edit_uri: edit/1.21.x/docs/
 theme:
     name: material
     features:
+        - content.action.edit
+        - content.action.view
         - navigation.indexes
         - navigation.instant
         - navigation.instant.prefetch
@@ -11,6 +18,30 @@ theme:
         - navigation.expand
         - navigation.path
         - navigation.prune
+    icon:
+        edit: material/pencil
+        view: material/eye
+    logo: assets/icon.svg
+    favicon: assets/icon.svg
+    palette:
+        - media: "(prefers-color-scheme)"
+          toggle:
+              icon: material/brightness-auto
+              name: "System theme (click to switch to light)"
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          primary: green
+          accent: green
+          toggle:
+              icon: material/brightness-7
+              name: "Light theme (click to switch to dark)"
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          primary: green
+          accent: green
+          toggle:
+              icon: material/brightness-4
+              name: "Dark theme (click to switch to system)"
 
 nav:
   - Home: # your existing pages…
