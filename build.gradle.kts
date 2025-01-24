@@ -1,5 +1,4 @@
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
-import org.gradle.jvm.tasks.Jar
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
@@ -96,9 +95,9 @@ allprojects {
 	apply(plugin = "architectury-plugin")
 	apply(plugin = "maven-publish")
 
-	version = "mod_version".prop
-	group = "mod_group".prop
-	base.archivesName = "mod_id".prop
+	version = "mod_version".prop!!
+	group = "mod_group".prop!!
+	base.archivesName = "mod_id".prop!!
 
 	tasks.withType<JavaCompile>().configureEach {
 		options.encoding = "UTF-8"
