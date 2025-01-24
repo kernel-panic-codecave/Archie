@@ -21,16 +21,16 @@ architectury.minecraft = libs.versions.minecraft.get()
 val localProperties = kotlin.runCatching { loadProperties("$rootDir/local.properties") }.getOrNull()
 
 val String.prop: String
-	get() = rootProject.properties[this]!!.toString()
+	get() = rootProject.properties[this].toString()
 
 val String.local: String
-	get() = localProperties?.get(this)!!.toString()
+	get() = localProperties?.get(this).toString()
 
 val String.env: String
-	get() = System.getenv(this)!!
+	get() = System.getenv(this)
 
 val String.localOrEnv: String
-	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())!!
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
 
 subprojects {
 	apply(plugin = "dev.architectury.loom")
