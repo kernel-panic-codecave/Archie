@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.konan.properties.loadProperties
 plugins {
 	java
 	alias(libs.plugins.architectury)
-	alias(libs.plugins.architectury.kotlin) 
+	alias(libs.plugins.architectury.kotlin)
 	alias(libs.plugins.architectury.loom) apply false
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
@@ -205,7 +205,9 @@ publisher {
 }
 
 tasks {
-	register<Exec>("docsDeploy") {
+	register<Exec>("publishDocs") {
+		dependsOn(getByName("embedDokkaIntoMkDocs"))
+		group = "publishing"
 		val tag = rootProject.version.toString().substringBeforeLast(".")
 		workingDir = rootDir
 		commandLine("mike", "deploy", "--push", "--update-aliases", tag, "latest")
