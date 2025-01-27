@@ -28,11 +28,6 @@ jobs:
         with:
           python-version: 3.x
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - name: Build Documentation
-        run: ./gradlew embedDokkaIntoMkDocs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
@@ -40,5 +35,8 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install mkdocs-material mike
-      - name: Deploy Documentation
-        run: ./gradlew docsDeploy
+      - run: git fetch origin gh-pages --depth=1
+      - name: Build Documentation
+        run: ./gradlew publishDocs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
