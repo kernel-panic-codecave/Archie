@@ -27,7 +27,6 @@ dependencies {
 	api(libs.kotlinx.serialization.json5) { isTransitive = false }
 	api(libs.kotlinx.serialization.cbor) { isTransitive = false }
 	api(compose.runtime)
-	api(compose.ui)
 	// We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
 	// Do NOT use other classes from fabric loader
 	modImplementation(libs.fabric.loader)

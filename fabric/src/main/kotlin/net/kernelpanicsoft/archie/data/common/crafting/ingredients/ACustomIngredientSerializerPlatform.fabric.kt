@@ -9,7 +9,7 @@ import java.util.stream.Stream
 
 actual object ACustomIngredientSerializerPlatform
 {
-	actual fun register(serializer: IACustomIngredientSerializer<*>)
+	actual fun <T : IACustomIngredient> register(serializer: IACustomIngredientSerializer<T>)
 	{
 		CustomIngredientSerializer.register(serializer.fabric)
 	}

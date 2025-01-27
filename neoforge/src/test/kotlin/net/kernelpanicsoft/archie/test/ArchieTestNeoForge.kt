@@ -1,10 +1,8 @@
 package net.kernelpanicsoft.archie.test
 
-import androidx.compose.runtime.BroadcastFrameClock
+import dev.architectury.event.events.client.ClientLifecycleEvent
+import dev.architectury.event.events.common.LifecycleEvent
 import net.neoforged.fml.common.Mod
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
-import net.neoforged.fml.event.lifecycle.FMLConstructModEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
@@ -12,13 +10,12 @@ import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 object ArchieTestNeoForge
 {
 	init {
-		MOD_BUS.addListener<FMLConstructModEvent> {
-			ArchieTest.init()
-		}
-		MOD_BUS.addListener<FMLClientSetupEvent> {
+		ArchieTest.init()
+		ClientLifecycleEvent.CLIENT_SETUP.register {
+
 			ArchieTest.initClient()
 		}
-		MOD_BUS.addListener<FMLCommonSetupEvent> {
+		LifecycleEvent.SETUP.register {
 			ArchieTest.initCommon()
 		}
 		MOD_BUS.addListener<RegisterMenuScreensEvent> {

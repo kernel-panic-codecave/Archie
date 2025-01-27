@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.konan.properties.loadProperties
 plugins {
 	java
 	alias(libs.plugins.architectury)
-	alias(libs.plugins.architectury.kotlin)
+	alias(libs.plugins.architectury.kotlin) 
 	alias(libs.plugins.architectury.loom) apply false
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
@@ -47,7 +47,7 @@ subprojects {
 		mavenLocal()
 		maven {
 			name = "kernelpanic"
-			url = uri("https://repo.kernelpanicsoft.net/maven/snapshots")
+			url = uri("https://repo.kernelpanicsoft.net/maven/releases")
 		}
 		maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 		maven("https://maven.parchmentmc.org")
@@ -139,6 +139,15 @@ fusioner {
 	}
 }
 
+tasks {
+	build {
+		finalizedBy(fusejars)
+	}
+	assemble {
+		finalizedBy(fusejars)
+	}
+}
+
 publisher {
 	apiKeys {
 		curseforge("curseforge_api_key".localOrEnv)
@@ -195,13 +204,12 @@ publisher {
 	}
 }
 
-
 tasks {
-	build {
-		finalizedBy(fusejars)
-	}
-	assemble {
-		finalizedBy(fusejars)
+	register<Exec>("docsDeploy") {
+		val tag = rootProject.version.toString().substringBeforeLast(".")
+		workingDir = rootDir
+		commandLine("mike", "deploy", "--push", "--update-aliases", tag, "latest")
 	}
 }
+
 

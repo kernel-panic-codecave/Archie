@@ -10,7 +10,7 @@ import java.util.stream.Stream
 
 actual object ACustomIngredientSerializerPlatform
 {
-	actual fun register(serializer: IACustomIngredientSerializer<*>)
+	actual fun <T : IACustomIngredient> register(serializer: IACustomIngredientSerializer<T>)
 	{
 		val registry = DeferredRegister.create(NeoForgeRegistries.INGREDIENT_TYPES, serializer.identifier.namespace)
 		registry.register(serializer.identifier.path) { _ -> serializer.neoforge }

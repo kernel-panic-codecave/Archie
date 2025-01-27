@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.events.AEvents
 import net.minecraft.resources.ResourceLocation
 import org.slf4j.Logger
 
@@ -23,6 +24,7 @@ object ArchieTest
 	@JvmStatic
 	fun init()
 	{
+		AEvents += MOD
 		BlockRegistry.init()
 		ItemRegistry.init()
 		TileRegistry.init()

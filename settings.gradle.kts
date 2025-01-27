@@ -8,26 +8,11 @@ pluginManagement {
 		maven("https://maven.firstdarkdev.xyz/releases")
 		maven {
 			name = "kernelpanic"
-			url = uri("https://repo.kernelpanicsoft.net/maven/snapshots")
+			url = uri("https://repo.kernelpanicsoft.net/maven/releases")
 		}
 		gradlePluginPortal()
 	}
 //	includeBuild("plugins")
-}
-
-plugins {
-	id("org.danilopianini.gradle-pre-commit-git-hooks") version "2.0.7"
-}
-
-gitHooks {
-	hook("prepare-commit-msg") {
-		from {
-			"""
-                exec < /dev/tty && npx cz --hook || true
-            """.trimIndent()
-		}
-	}
-	createHooks()
 }
 
 include("common", "fabric", "neoforge")

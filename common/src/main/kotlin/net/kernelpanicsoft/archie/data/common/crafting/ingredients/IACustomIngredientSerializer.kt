@@ -43,7 +43,7 @@ interface IACustomIngredientSerializer<T : IACustomIngredient>
 		 *
 		 * @throws IllegalArgumentException if the serializer is already registered
 		 */
-		fun register(serializer: IACustomIngredientSerializer<*>)
+		fun <T : IACustomIngredient> register(serializer: IACustomIngredientSerializer<T>)
 		{
 			return ACustomIngredientSerializerPlatform.register(serializer)
 		}

@@ -3,5 +3,5 @@ package net.kernelpanicsoft.archie.data.common.crafting.ingredients
 
 internal expect object ACustomIngredientSerializerPlatform
 {
-	fun register(serializer: IACustomIngredientSerializer<*>)
+	fun <T : IACustomIngredient> register(serializer: IACustomIngredientSerializer<T>)
 }

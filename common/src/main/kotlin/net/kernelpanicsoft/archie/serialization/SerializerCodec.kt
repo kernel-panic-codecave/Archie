@@ -1,11 +1,13 @@
 package net.kernelpanicsoft.archie.serialization
 
 import com.mojang.datafixers.util.Pair
-import com.mojang.serialization.*
+import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
+import com.mojang.serialization.DynamicOps
+import com.mojang.serialization.JsonOps
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.cbor.Cbor
-import kotlinx.serialization.encodeToByteArray
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import net.minecraft.nbt.NbtOps

@@ -15,12 +15,12 @@ parchment = "2024.11.17"
 architectury = "13.0.8"
 architectury-plugin = { require = "[3.4, 3.5[" }
 architectury-loom = { require = "1.9-SNAPSHOT" }
-architectury-kotlin = "1.0.0-SNAPSHOT"
+architectury-kotlin = "2.0.0"
 
 modfusioner = "1.0.12"
 modpublisher = "2.1.4"
 
-archie = "1.0.0-SNAPSHOT"
+archie = "1.0.1"
 
 fabric-loader = "0.16.9"
 fabric-api = "0.110.0+1.21.1"
@@ -42,7 +42,6 @@ tomlkt = "0.3.7"
 json5k = "0.3.0"
 shadow = "8.1.1"
 compose = "1.7.1"
-dokka = "2.3.1"
 dokka-mkdocs = "0.4.2"
 
 [bundles]
@@ -96,7 +95,7 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
-dokka = { id = "dev.adamko.dokka-html", version.ref = "dokka" }
+
 dokka-mkdocs = { id = "dev.opensavvy.dokka-mkdocs", version.ref = "dokka-mkdocs" }
 
 architectury = { id = "architectury-plugin", version.ref = "architectury-plugin" }
@@ -108,4 +107,5 @@ modfusioner = { id = "com.hypherionmc.modutils.modfusioner", version.ref = "modf
 modpublisher = { id = "com.hypherionmc.modutils.modpublisher", version.ref = "modpublisher" }
 
 archie = { id = "net.kernelpanicsoft.archie.plugin", version.ref = "archie" }
+
 

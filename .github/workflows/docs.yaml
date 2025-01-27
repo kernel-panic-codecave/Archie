@@ -39,6 +39,6 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install mkdocs-material
+      - run: pip install mkdocs-material mike
       - name: Deploy Documentation
-        run: mkdocs gh-deploy --force
+        run: ./gradlew docsDeploy

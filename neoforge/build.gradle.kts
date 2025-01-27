@@ -1,5 +1,8 @@
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import net.fabricmc.loom.util.ModPlatform
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+import org.jetbrains.compose.compose
 
 
 plugins {
@@ -22,23 +25,23 @@ configurations {
 //	getByName("developmentNeoForge").extendsFrom(configurations["common"])
 }
 
-
 loom {
 	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(project.sourceSets.main.get())
-			sourceSet(project(":common").sourceSets.main.get())
+//			sourceSet(project(":common").sourceSets.main.get())
 		}
 		create("test") {
 			sourceSet(project.sourceSets.test.get())
-			sourceSet(project(":common").sourceSets.test.get())
+//			sourceSet(project(":common").sourceSets.test.get())
 		}
 	}
 
 	runs {
 		getByName("client") {
+			source(sourceSets.main.get())
 			source(sourceSets.test.get())
 		}
 		create("datagen") {
@@ -74,6 +77,12 @@ sourceSets {
 	}
 }
 
+//val bundleRuntimeLibrary: Configuration by configurations.creating {
+//	exclude(group = "com.mojang")
+//	exclude(group = "org.jetbrains.kotlin")
+//	exclude(group = "org.jetbrains.kotlinx")
+//}
+
 dependencies {
 	compileOnly(libs.kotlin.stdlib)
 	neoForge(libs.neoforge)
@@ -86,7 +95,6 @@ dependencies {
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
-	bundleRuntimeLibrary(compose.ui)
 	modRuntimeOnly(libs.rei.neoforge)
 	modImplementation(libs.catalogue.neoforge)
 	bundleMod(libs.clothConfig.neoforge)
@@ -98,6 +106,15 @@ dependencies {
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
+//	bundleRuntimeLibrary.resolvedConfiguration.resolvedArtifacts.forEach {
+//		include(it.moduleVersion.id.toString())
+//		implementation(it.moduleVersion.id.toString())
+//		localRuntime(it.moduleVersion.id.toString()) {
+//			attributes {
+//				attribute(patchedFMLModType, true)
+//			}
+//		}
+//	}
 }
 
 modResources {

@@ -18,8 +18,8 @@ displayURL = "${mod_url}"
 [[mixins]]
 config = "archie.mixins.json"
 
-[[mixins]]
-config = "archie-common.mixins.json"
+#[[mixins]]
+#config = "archie-common.mixins.json"
 
 [[dependencies."${mod_id}"]]
 modId = "neoforge"

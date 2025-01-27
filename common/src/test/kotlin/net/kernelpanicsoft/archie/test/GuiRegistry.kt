@@ -4,6 +4,8 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.registries.ADeferredRegistryHolder
 import dev.architectury.registry.menu.MenuRegistry
 import net.minecraft.core.registries.Registries
+import net.minecraft.network.chat.Component
+import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.inventory.MenuType
 
 object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries.MENU)
@@ -20,7 +22,10 @@ object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries
 
 	fun initClient()
 	{
-		MenuRegistry.registerScreenFactory(TestMenu, ::TestScreen)
+		MenuRegistry.registerScreenFactory(TestMenu) { testMenu: TestMenu, inventory: Inventory, component: Component ->
+			ArchieTest.LOGGER.info("Test menu created")
+			TestScreen(testMenu, inventory, component)
+		}
 	}
 
 }

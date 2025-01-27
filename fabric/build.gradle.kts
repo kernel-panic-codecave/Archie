@@ -1,6 +1,7 @@
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
 
+
 plugins {
 	alias(libs.plugins.shadow)
 	alias(libs.plugins.archie)
