@@ -16,11 +16,13 @@ value class IntCoordinates(val pair: Long) {
 	override fun toString(): String = "($x, $y)"
 
 	operator fun plus(other: IntCoordinates) = IntCoordinates(x + other.x, y + other.y)
+	operator fun minus(other: IntCoordinates) = IntCoordinates(x - other.x, y - other.y)
 }
 
 typealias IntOffset = IntCoordinates
 
 @JvmInline
+@Serializable
 value class IntSize(val pair: Long) {
 	val width get() = (pair shr 32).toInt()
 	val height get() = pair.toInt()

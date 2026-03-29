@@ -48,6 +48,7 @@ fun Texture(
     modifier: Modifier = Modifier,
 ) {
     Layout(
+        name = "Texture",
         measurePolicy = { _, _, constraints ->
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },

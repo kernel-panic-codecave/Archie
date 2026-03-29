@@ -1,4 +1,4 @@
-modLoader = "kotlinforforge"
+modLoader = "klf"
 loaderVersion = "[${versions.kotlin_neoforge_range},)"
 issueTrackerURL = ""
 license = "${mod_license}"
@@ -35,12 +35,12 @@ versionRange = "[${versions.minecraft}]"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies."${mod_id}"]]
-modId = "kotlinforforge"
-type = "required"
-versionRange = "[${versions.kotlin_neoforge_range},)"
-ordering = "NONE"
-side = "BOTH"
+#[[dependencies."${mod_id}"]]
+#modId = "klf"
+#type = "required"
+#versionRange = "[${versions.kotlin_neoforge_range},)"
+#ordering = "NONE"
+#side = "BOTH"
 
 [[dependencies."${mod_id}"]]
 modId = "cloth_config"

@@ -10,6 +10,7 @@ import net.kernelpanicsoft.archie.gui.layout.Column
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
+import net.kernelpanicsoft.archie.gui.modifiers.position.margin
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.size
 
@@ -25,11 +26,11 @@ import net.kernelpanicsoft.archie.gui.modifiers.size
  * ### Layout Structure
  * ```
  * ┌─────────────────────────────────┐
- * │ [Screen Contents]                │  <- titleLabelX/Y set here
+ * │ [Screen Contents]               │  <- titleLabelX/Y set here
  * ├─────────────────────────────────┤  <- contentSpacing
- * │ [Player Inventory 3×9]           │  <- inventoryLabelX/Y set here
- * │ [spacing]                        │
- * │ [Hotbar 1×9]                     │
+ * │ [Player Inventory 3×9]          │  <- inventoryLabelX/Y set here
+ * │ [spacing]                       │
+ * │ [Hotbar 1×9]                    │
  * └─────────────────────────────────┘
  * ```
  *
@@ -45,23 +46,23 @@ fun ContainerScreenLayout(
 ) {
     val screen = LocalContainerScreen.current
 
-    Box(modifier = modifier.padding(4)) {
+    Surface(modifier = modifier.padding(8)) {
         Column {
             // Screen contents (container inventory)
             Box(
-                modifier = Modifier.onGloballyPositioned { coords ->
-                    screen.titleLabelPos = coords
-                }
+                modifier = Modifier
+                    .padding(top = 10)
+                    .onGloballyPositioned { coords ->
+                        screen.titleLabelPos = coords
+                    }
             ) {
                 content()
             }
-
-            // Spacing between container and player inventory
-            Spacer(modifier = Modifier.size(4, contentSpacing))
-
             // Player inventory section
             Box(
-                modifier = Modifier.onGloballyPositioned { coords ->
+                modifier = Modifier
+                    .padding(top = contentSpacing)
+                    .onGloballyPositioned { coords ->
                     screen.inventoryLabelPos = coords
                 }
             ) {

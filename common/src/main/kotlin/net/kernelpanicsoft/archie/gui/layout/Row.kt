@@ -3,6 +3,9 @@ package net.kernelpanicsoft.archie.gui.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.MarginModifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
 
 /**
  * A layout composable that arranges its children in a horizontal sequence from left to right.
@@ -41,6 +44,7 @@ fun Row(
 		)
 	}
 	Layout(
+		name = "Row",
 		measurePolicy,
 		modifier = modifier,
 		content = content
@@ -55,12 +59,12 @@ private data class RowMeasurePolicy(
         val positions = IntArray(placeables.size)
         horizontalArrangement.arrange(totalSize = width, sizes = placeables.map { it.width }.toIntArray(), layoutDirection = LayoutDirection.Ltr, outPositions = positions)
         return MeasureResult(width, height) {
-            val inset = (scope as? LayoutNode)?.get<net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier>()?.padding
-                ?: net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues()
+            val inset = (scope as? LayoutNode)?.get<PaddingModifier>()?.padding
+                ?: PaddingValues()
             var accumulatedOutset = 0
             placeables.forEachIndexed { i, child ->
                 child.placeAt(positions[i] + accumulatedOutset + inset.left, verticalAlignment.align(child.height, height) + inset.top)
-                (measurables[i] as? LayoutNode)?.get<net.kernelpanicsoft.archie.gui.modifiers.position.MarginModifier>()?.let { accumulatedOutset += it.horizontal }
+                (measurables[i] as? LayoutNode)?.get<MarginModifier>()?.let { accumulatedOutset += it.horizontal }
             }
         }
     }

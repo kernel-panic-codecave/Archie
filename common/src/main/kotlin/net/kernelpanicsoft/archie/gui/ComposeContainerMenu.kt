@@ -4,10 +4,12 @@ import earth.terrarium.common_storage_lib.item.impl.vanilla.AbstractVanillaConta
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.CommonStorage
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.transfer.ArchieItemMenuSlot
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import net.kernelpanicsoft.archie.transfer.VanillaMenuSlot
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.world.Container
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
@@ -136,7 +138,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         }
         broadcastChanges()
         // Notify server of the new layout so it can validate slot indices
-        CHANNEL.toServer(data)
+        ArchieNetworkChannel.toServer(data)
     }
 
     /**
@@ -161,13 +163,14 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
         // Reposition menu slots
         slotData.groups.forEach { (id, group) ->
+
             slotHandlers[id]?.let { _ ->
-                for (row in 0 until group.height) {
-                    for (col in 0 until group.width) {
+                for (row in 0 until group.size.height) {
+                    for (col in 0 until group.size.width) {
                         if (slotIndex < slots.size) {
                             val mcSlot = slots[slotIndex]
-                            mcSlot.x = group.x + col * 18 - screenLeftPos
-                            mcSlot.y = group.y + row * 18 - screenTopPos
+                            mcSlot.x = group.pos.x + 1 + col * 18 - screenLeftPos
+                            mcSlot.y = group.pos.y + 1 + row * 18 - screenTopPos
                             slotIndex++
                         }
                     }
@@ -180,16 +183,16 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
             for (row in 0 until 3) {
                 for (col in 0 until 9) {
                     if (slotIndex < slots.size) {
-                        slots[slotIndex].x = pg.x + col * 18 - screenLeftPos
-                        slots[slotIndex].y = pg.y + row * 18 - screenTopPos
+                        slots[slotIndex].x = pg.pos.x + 1 + col * 18 - screenLeftPos
+                        slots[slotIndex].y = pg.pos.y + 1 + row * 18 - screenTopPos
                         slotIndex++
                     }
                 }
             }
             for (col in 0 until 9) {
                 if (slotIndex < slots.size) {
-                    slots[slotIndex].x = pg.x + col * 18 - screenLeftPos
-                    slots[slotIndex].y = pg.y + 58 - screenTopPos
+                    slots[slotIndex].x = pg.pos.x + 1 + col * 18 - screenLeftPos
+                    slots[slotIndex].y = pg.pos.y + 1 + 58 - screenTopPos
                     slotIndex++
                 }
             }
@@ -202,24 +205,27 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         slotData.groups.forEach { (id, group) ->
             slotHandlers[id]?.let { handler ->
                 // Use slot-relative coords (subtract screen offset so vanilla adds it back correctly)
-                slotGrid(group.x - screenLeftPos, group.y - screenTopPos, group.width, group.height, handler)
+//	            group.slots.forEachIndexed { slot, coords ->
+//		            slot(handler, slot, coords.x - screenLeftPos, coords.y - screenTopPos)
+//	            }
+                slotGrid(group.pos.x - screenLeftPos, group.pos.y - screenTopPos, group.size.width, group.size.height, handler)
             }
         }
     }
 
     private fun addPlayerSlots() {
         slotData.playerGroup.let { pg ->
-            val relX = pg.x - screenLeftPos
-            val relY = pg.y - screenTopPos
+            val relX = pg.pos.x - screenLeftPos
+            val relY = pg.pos.y - screenTopPos
             // 3 rows of 9 (main inventory: playerInventory indices 9–35)
             for (row in 0 until 3) {
                 for (col in 0 until 9) {
-                    addSlot(Slot(playerInventory, col + row * 9 + 9, relX + col * 18, relY + row * 18))
+                    slot(playerInventory, col + row * 9 + 9, relX + col * 18, relY + row * 18)
                 }
             }
             // Hotbar (playerInventory indices 0–8), 58px below main inventory
             for (col in 0 until 9) {
-                addSlot(Slot(playerInventory, col, relX + col * 18, relY + 58))
+                slot(playerInventory, col, relX + col * 18, relY + 58)
             }
         }
     }
@@ -287,7 +293,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
     override fun clicked(slotId: Int, button: Int, clickType: ClickType, player: Player) {
         super.clicked(slotId, button, clickType, player)
-        broadcastFullState()
+        broadcastChanges()
     }
 
     override fun stillValid(player: Player): Boolean = true
@@ -295,15 +301,9 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     // ── Networking ─────────────────────────────────────────────────────────
 
     companion object {
-        /**
-         * The [NetworkChannel] used to sync [SlotData] from client layout → server.
-         *
-         * Registered automatically when the companion object is first loaded.
-         */
-        val CHANNEL: NetworkChannel = NetworkChannel(Archie["compose_menu"])
 
-        init {
-            CHANNEL.serverbound(SlotData::class) { data, context ->
+        fun register() {
+            ArchieNetworkChannel.serverbound(SlotData::class) { data, context ->
                 val menu = context.player.containerMenu
                 if (menu is ComposeContainerMenu<*, *>) {
                     menu.slotData = data
@@ -316,7 +316,6 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
                     menu.broadcastChanges()
                 }
             }
-            CHANNEL.register()
         }
     }
 }

@@ -6,12 +6,20 @@ import androidx.compose.runtime.compositionLocalOf
 import kotlinx.serialization.Serializable
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
+import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.OnGloballyPositionedModifier
 import net.kernelpanicsoft.archie.gui.modifiers.OnSizeChangedModifier
+import net.kernelpanicsoft.archie.gui.modifiers.height
+import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
+import net.kernelpanicsoft.archie.gui.modifiers.size
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.theme.NinePatchThemeState
+import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
+import net.kernelpanicsoft.archie.gui.util.extension.ninePatchTexture
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.resources.ResourceLocation
 
@@ -26,10 +34,8 @@ import net.minecraft.resources.ResourceLocation
  */
 @Serializable
 data class SlotGroup(
-    var x: Int = 0,
-    var y: Int = 0,
-    var width: Int = 0,
-    var height: Int = 0,
+    var pos: IntCoordinates = IntCoordinates(0, 0),
+    var size: IntSize = IntSize(0, 0),
     var slots: MutableSet<IntCoordinates> = mutableSetOf(),
 )
 
@@ -42,7 +48,7 @@ data class SlotGroup(
 @Serializable
 data class SlotData(
     val groups: MutableMap<String, SlotGroup> = mutableMapOf(),
-    val playerGroup: SlotGroup = SlotGroup(),
+    val playerGroup: SlotGroup = SlotGroup(size = IntSize(9, 3)),
 ) {
     /** All slot coordinates across all groups (does not include [playerGroup]). */
     val slots: Set<IntCoordinates> get() = groups.values.flatMap { it.slots }.toSet()
@@ -72,9 +78,21 @@ fun Slots(
     id: String,
     width: Int,
     height: Int,
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit = {
+        Column {
+            for (i in 0 until height)
+            {
+                Row {
+                    for (j in 0 until width)
+                    {
+                        Slot()
+                    }
+                }
+            }
+        }
+    },
 ): SlotGroup {
-    val group = SlotGroup(width = width, height = height)
+    val group = SlotGroup(size = IntSize(width = width, height = height))
     val data = LocalSlotData.current
     data.groups[id] = group
 
@@ -82,13 +100,10 @@ fun Slots(
     group.slots.clear()
 
     Box(
-        modifier = Modifier.then(
-            OnGloballyPositionedModifier { coords ->
-                group.x = coords.x
-                group.y = coords.y
-                data.groups[id] = group
-            }
-        )
+        modifier = Modifier.onGloballyPositioned { coords ->
+            group.pos = coords
+            data.groups[id] = group
+        }
     ) {
         CompositionLocalProvider(LocalSlotGroup provides group) {
             content()
@@ -106,32 +121,57 @@ fun Slots(
  * @param modifier Additional modifiers applied to the slot layout node.
  */
 @Composable
-fun Slot(modifier: Modifier = Modifier) {
+fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
     val data  = LocalSlotData.current
     val group = LocalSlotGroup.current
     val menu  = LocalContainerMenu.current
+    val theme = LocalTheme.current
+    val composableTheme = theme.getComposableTheme(texture)
+    val state = composableTheme.getState(TextureStates.DEFAULT, theme.mode)
 
     Layout(
+        name = "Slot",
         measurePolicy = { _, _, constraints ->
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },
         renderer = object : Renderer {
-            private val SLOT = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, "textures/gui/slot.png")
+//            private val SLOT = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, "textures/gui/slot.png")
             override fun render(
                 node: AUINode, x: Int, y: Int,
                 guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
-                guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
+//                guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
+                if (composableTheme.isNinepatch) return guiGraphics.ninePatchTexture(
+                    x,
+                    y,
+                    node.width,
+                    node.height,
+                    state as NinePatchThemeState
+                )
+
+                guiGraphics.blit(
+                    (state as SimpleThemeState).texture,
+                    x,
+                    y,
+                    state.width,
+                    state.height,
+                    state.u.toFloat(),
+                    state.v.toFloat(),
+                    state.textureSize.width,
+                    state.textureSize.height,
+                    state.uWidth,
+                    state.vHeight
+                )
+
+                super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }
         },
         modifier = Modifier
             .sizeIn(minWidth = 18, minHeight = 18)
-            .then(
-                OnGloballyPositionedModifier { pos ->
-                    group.slots.add(pos)
-                    tryUpdateMenu(data, menu)
-                }
-            )
+            .onGloballyPositioned { pos ->
+                group.slots.add(pos)
+                tryUpdateMenu(data, menu)
+            }
             .then(modifier),
     )
 }
@@ -151,28 +191,25 @@ fun PlayerSlots() {
     data.playerGroup.slots.clear()
 
     Box(
-        modifier = Modifier.then(
-            OnGloballyPositionedModifier { coords ->
-                data.playerGroup.x = coords.x
-                data.playerGroup.y = coords.y
-            }
-        )
+        modifier = Modifier.onGloballyPositioned { coords ->
+            data.playerGroup.pos = coords
+        }
     ) {
         Column {
             // 3 rows of 9 (main inventory)
             for (i in 0 until 3) {
                 Row {
                     for (j in 0 until 9) {
-                        PlayerSlot(data, menu)
+                        PlayerSlot()
                     }
                 }
             }
             // 58px gap to match vanilla inventory layout
-            Spacer(modifier = Modifier.sizeIn(minHeight = 4))
+            Spacer(modifier = Modifier.size(4))
             // Hotbar (1 row of 9)
             Row {
                 for (i in 0 until 9) {
-                    PlayerSlot(data, menu)
+                    PlayerSlot()
                 }
             }
         }
@@ -181,28 +218,55 @@ fun PlayerSlots() {
 
 /** A single player-inventory slot cell that tracks its position in [SlotData.playerGroup]. */
 @Composable
-private fun PlayerSlot(data: SlotData, menu: ComposeContainerMenu<*, *>) {
+private fun PlayerSlot(texture: String = "slot", modifier: Modifier = Modifier) {
+    val data = LocalSlotData.current
+    val menu = LocalContainerMenu.current
+    val theme = LocalTheme.current
+    val composableTheme = theme.getComposableTheme(texture)
+    val state = composableTheme.getState(TextureStates.DEFAULT, theme.mode)
     Layout(
+        name = "PlayerSlot",
         measurePolicy = { _, _, constraints ->
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },
         renderer = object : Renderer {
-            private val SLOT = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, "textures/gui/slot.png")
+//            private val SLOT = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, "textures/gui/slot.png")
             override fun render(
                 node: AUINode, x: Int, y: Int,
                 guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
-                guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
+//                guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
+                if (composableTheme.isNinepatch) return guiGraphics.ninePatchTexture(
+                    x,
+                    y,
+                    node.width,
+                    node.height,
+                    state as NinePatchThemeState
+                )
+
+                guiGraphics.blit(
+                    (state as SimpleThemeState).texture,
+                    x,
+                    y,
+                    state.width,
+                    state.height,
+                    state.u.toFloat(),
+                    state.v.toFloat(),
+                    state.textureSize.width,
+                    state.textureSize.height,
+                    state.uWidth,
+                    state.vHeight
+                )
+
+                super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }
         },
-        modifier = Modifier
+        modifier = modifier
             .sizeIn(minWidth = 18, minHeight = 18)
-            .then(
-                OnGloballyPositionedModifier { pos ->
-                    data.playerGroup.slots.add(pos)
-                    tryUpdateMenu(data, menu)
-                }
-            ),
+            .onGloballyPositioned { pos ->
+                data.playerGroup.slots.add(pos)
+                tryUpdateMenu(data, menu)
+            },
     )
 }
 
@@ -213,7 +277,7 @@ private fun PlayerSlot(data: SlotData, menu: ComposeContainerMenu<*, *>) {
  * This prevents partial updates where only some groups are positioned.
  */
 private fun tryUpdateMenu(data: SlotData, menu: ComposeContainerMenu<*, *>) {
-    val namedGroupsFull = data.groups.values.all { g -> g.slots.size >= g.width * g.height }
+    val namedGroupsFull = data.groups.values.all { g -> g.slots.size >= g.size.width * g.size.height }
     val playerGroupFull = data.playerGroup.slots.size >= 36
     if (namedGroupsFull && playerGroupFull) {
         menu.updateSlotData(data)

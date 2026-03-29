@@ -1,10 +1,10 @@
 package net.kernelpanicsoft.archie
 
+import dev.nyon.klf.MOD_BUS
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 /**
  * Main class for the mod on the NeoForge platform.

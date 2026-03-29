@@ -6,6 +6,7 @@ import dev.architectury.networking.NetworkManager
 import dev.architectury.utils.GameInstance
 import kotlinx.serialization.*
 import net.kernelpanicsoft.archie.serialization.SerializationManager
+import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
 import net.kernelpanicsoft.archie.serialization.streamCodec
 import net.minecraft.core.RegistryAccess
 import net.minecraft.network.protocol.Packet
@@ -35,8 +36,7 @@ typealias PacketHandler<T> = (T, IPacketContext) -> Unit
  */
 @Serializable
 internal data class Payload(
-    @kotlinx.serialization.Contextual
-    val id: ResourceLocation,
+    val id: SResourceLocation,
     val index: Int,
     val data: ByteArray,
 ) : CustomPacketPayload {
@@ -90,7 +90,7 @@ internal val PayloadCodec = Payload.serializer().streamCodec
  */
 @Suppress("unused")
 @OptIn(ExperimentalSerializationApi::class)
-class NetworkChannel(private val id: ResourceLocation) {
+open class NetworkChannel(private val id: ResourceLocation) {
     private val clientPacketId = CustomPacketPayload.Type<Payload>(id.withSuffix("_client"))
     private val serverPacketId = CustomPacketPayload.Type<Payload>(id.withSuffix("_server"))
 

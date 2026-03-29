@@ -4,6 +4,7 @@ import com.google.common.base.Joiner
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.resources.ResourceLocation
 
 data class AEqualsCondition(override val children: List<IACondition>) :
@@ -29,6 +30,6 @@ data class AEqualsCondition(override val children: List<IACondition>) :
 					IACondition.CODEC.listOf().fieldOf("children").forGetter(AEqualsCondition::children),
 				).apply(builder, ::AEqualsCondition)
 			}
-		val ID: ResourceLocation = Archie["equals"]
+		val ID: ResourceLocation = Archie % "equals"
 	}
 }

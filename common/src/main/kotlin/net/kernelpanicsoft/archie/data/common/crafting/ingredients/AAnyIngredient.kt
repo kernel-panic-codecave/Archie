@@ -3,6 +3,7 @@ package net.kernelpanicsoft.archie.data.common.crafting.ingredients
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import java.util.*
@@ -41,7 +42,7 @@ class AAnyIngredient private constructor(ingredients: List<Ingredient>): ACombin
 
 		val Serializer: IACustomIngredientSerializer<AAnyIngredient> =
 			Serializer(
-				Archie["any"],
+				Archie % "any",
 				::AAnyIngredient, ALLOW_EMPTY_CODEC, DISALLOW_EMPTY_CODEC
 			)
 	}

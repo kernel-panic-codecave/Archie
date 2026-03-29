@@ -54,7 +54,8 @@ subprojects {
 		maven("https://maven.fabricmc.net/")
 		maven("https://maven.neoforged.net/releases/")
 		maven("https://maven.terraformersmc.com/releases/")
-		maven("https://thedarkcolour.github.io/KotlinForForge/")
+//		maven("https://thedarkcolour.github.io/KotlinForForge/")
+		maven("https://repo.nyon.dev/releases")
 		maven("https://maven.resourcefulbees.com/repository/maven-public/")
 		maven {
 			url = uri("https://maven.pkg.github.com/MrCrayfish/Maven")

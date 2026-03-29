@@ -5,7 +5,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.ContentDrawScope
 import net.kernelpanicsoft.archie.gui.modifiers.DrawModifier
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.util.KColor
-import net.kernelpanicsoft.archie.gui.util.drawRectOutline
+import net.kernelpanicsoft.archie.gui.util.extension.drawRectOutline
 
 /**
  * A [DrawModifier] that draws a rectangular border around a composable.

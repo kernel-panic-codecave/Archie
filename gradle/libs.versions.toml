@@ -3,8 +3,10 @@
 kotlin = "2.1.0"
 #kotlin-fabric = "1.10.18+kotlin.1.9.22"
 kotlin-fabric = "1.13.0+kotlin.2.1.0"
-kotlin-neoforge = "5.7.0"
-kotlin-neoforge-range = "5"
+#kotlin-neoforge = "5.7.0"
+kotlin-neoforge = "2.11.1-k2.2.21-3.0+neoforge"
+#kotlin-neoforge-range = "5"
+kotlin-neoforge-range = "2"
 kotlinx-serialization = { require = "[1.8.0,)", prefer = "1.9.0" }
 # Minecraft
 
@@ -13,7 +15,7 @@ parchment = "2024.11.17"
 
 architectury = "13.0.8"
 architectury-plugin = { require = "[3.4, 3.5[" }
-architectury-loom = { require = "1.9-SNAPSHOT" }
+architectury-loom = { require = "1.13.469" }
 architectury-kotlin = "2.0.0"
 
 modfusioner = "1.0.12"
@@ -49,7 +51,8 @@ dokka-mkdocs = "0.6.1"
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 kotlin-fabric = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "kotlin-fabric" }
-kotlin-neoforge = { module = "thedarkcolour:kotlinforforge-neoforge", version.ref = "kotlin-neoforge" }
+#kotlin-neoforge = { module = "thedarkcolour:kotlinforforge-neoforge", version.ref = "kotlin-neoforge" }
+kotlin-neoforge = { module = "dev.nyon:KotlinLangForge", version.ref = "kotlin-neoforge" }
 kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serialization-cbor", version.ref = "kotlinx-serialization" }

@@ -9,7 +9,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.ZIndexModifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
-import net.kernelpanicsoft.archie.gui.util.drawRectOutline
+import net.kernelpanicsoft.archie.gui.util.extension.drawRectOutline
 import kotlin.reflect.KClass
 
 // ARGB debug overlay colours

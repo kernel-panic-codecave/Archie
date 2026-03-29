@@ -15,8 +15,11 @@ import net.kernelpanicsoft.archie.data.internal.ArchieDatagen
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.gametest.internal.ArchieGameTest
+import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.util.buildArray
+import net.kernelpanicsoft.archie.util.div
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
@@ -51,19 +54,18 @@ object Archie
 	val LOGGER: Logger = LogUtils.getLogger()
 
 	@JvmStatic
-	operator fun get(loc: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, loc)
-
-	@JvmStatic
 	fun init()
 	{
 		if (Platform.isMinecraftForge())
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
 		AEvents += MOD
+		ArchieNetworkChannel.init()
 
 		ABuiltinIngredients.init()
 		ABuiltinConditions.init()
 		ACommonTags.init()
 		Config.init()
+
 
 		if (AGameTestPlatform.isGameTest)
 			ArchieGameTest.init()

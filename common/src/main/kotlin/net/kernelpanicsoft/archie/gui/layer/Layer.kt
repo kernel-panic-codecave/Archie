@@ -26,7 +26,7 @@ class Layer(
     parentComposition: CompositionContext,
     content: @Composable () -> Unit,
 ) {
-    val rootNode = LayoutNode()
+    val rootNode = LayoutNode("Root")
     val composition = Composition(AUINodeApplier(rootNode), parentComposition)
 
     init {

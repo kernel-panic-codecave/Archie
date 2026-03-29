@@ -2,6 +2,8 @@ package net.kernelpanicsoft.archie.gui.modifiers.position
 
 import androidx.compose.runtime.Stable
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
+import net.kernelpanicsoft.archie.gui.modifiers.Constraints
+import net.kernelpanicsoft.archie.gui.modifiers.LayoutChangingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 
 /**
@@ -33,7 +35,7 @@ data class PaddingValues(
  *
  * @property padding The [PaddingValues] describing each side's padding.
  */
-data class PaddingModifier(val padding: PaddingValues) : Modifier.Element<PaddingModifier> {
+data class PaddingModifier(val padding: PaddingValues) : Modifier.Element<PaddingModifier>, LayoutChangingModifier {
     override fun mergeWith(other: PaddingModifier): PaddingModifier = PaddingModifier(padding + other.padding)
 
     /** Total horizontal padding (left + right). */
@@ -41,6 +43,14 @@ data class PaddingModifier(val padding: PaddingValues) : Modifier.Element<Paddin
 
     /** Total vertical padding (top + bottom). */
     val vertical get() = padding.top + padding.bottom
+
+    override fun modifyInnerConstraints(constraints: Constraints): Constraints =
+        constraints.copy(
+            maxWidth = (constraints.maxWidth - horizontal).coerceAtLeast(0),
+            maxHeight = (constraints.maxHeight - vertical).coerceAtLeast(0),
+            minWidth = (constraints.minWidth - horizontal).coerceAtLeast(0),
+            minHeight = (constraints.minHeight - vertical).coerceAtLeast(0),
+        )
 
     override fun toString(): String = buildString {
         append("PaddingModifier(")

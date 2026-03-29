@@ -5,7 +5,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.ContentDrawScope
 import net.kernelpanicsoft.archie.gui.modifiers.DrawModifier
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.util.KColor
-import net.kernelpanicsoft.archie.gui.util.fillGradient
+import net.kernelpanicsoft.archie.gui.util.extension.fillGradient
 
 /**
  * The direction along which a background gradient transitions.

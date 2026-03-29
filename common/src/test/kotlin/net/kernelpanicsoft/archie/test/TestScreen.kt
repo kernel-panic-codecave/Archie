@@ -4,9 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import net.kernelpanicsoft.archie.gui.*
 import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
+import net.kernelpanicsoft.archie.gui.composables.containers.ContainerScreenLayout
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.height
+import net.kernelpanicsoft.archie.gui.modifiers.size
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
+import net.kernelpanicsoft.archie.gui.theme.Theme
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 
@@ -29,28 +33,14 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 	@Composable
 	fun content()
 	{
-		// All slot composables must share the same SlotData instance, provided here.
-		// Named groups (block inventory) and PlayerSlots are siblings at the top level.
-		Column {
-			Slots(
-				"inventory",
-				9,
-				rows
-			) {
-				Column {
-					for (i in 0 until rows)
-					{
-						Row {
-							for (j in 0 until 9)
-							{
-								Slot()
-							}
-						}
-					}
-				}
+		Theme {
+			ContainerScreenLayout {
+				Slots(
+					"inventory",
+					9,
+					rows
+				)
 			}
-//			Spacer(modifier = Modifier.sizeIn(minHeight = 8))
-			PlayerSlots()
 		}
 	}
 

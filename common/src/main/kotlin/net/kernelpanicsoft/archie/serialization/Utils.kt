@@ -121,6 +121,12 @@ fun defer(deferred: () -> SerialDescriptor): SerialDescriptor = object : SerialD
 		get() = original.kind
 	override val elementsCount: Int
 		get() = original.elementsCount
+	override val isInline: Boolean
+		get() = original.isInline
+	override val isNullable: Boolean
+		get() = original.isNullable
+	override val annotations: List<Annotation>
+		get() = original.annotations
 
 	override fun getElementName(index: Int): String = original.getElementName(index)
 	override fun getElementIndex(name: String): Int = original.getElementIndex(name)

@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.serialization.buildCompoundTag
 import net.benwoodworth.knbt.NbtCompoundBuilder
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.component.DataComponents
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.TagParser
@@ -62,7 +63,7 @@ class ACustomDataIngredient private constructor(
 
 	object Serializer : IACustomIngredientSerializer<ACustomDataIngredient>
 	{
-		private val ID = Archie["custom_data"]
+		private val ID = Archie % "custom_data"
 
 		private val ALLOW_EMPTY_CODEC: MapCodec<ACustomDataIngredient> = createCodec(
 			Ingredient.CODEC

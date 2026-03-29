@@ -5,6 +5,4 @@ nav:
   - Home: # your existing pages…
       - index.md
 # !!! EMBEDDED DOKKA START, DO NOT COMMIT !!! #
-  - Reference:
-      - api/index.md
 # !!! EMBEDDED DOKKA END, DO NOT COMMIT !!! #

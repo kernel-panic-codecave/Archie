@@ -11,6 +11,11 @@ import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
+import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
+import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
+import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
+import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
+import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component

@@ -100,6 +100,7 @@ private fun CollapsibleArrow(isExpanded: Boolean) {
     }
 
     Layout(
+        name = "CollapsibleArrow",
         measurePolicy = { _, _, _ -> MeasureResult(8, 8) {} },
         renderer = object : Renderer {
             override fun render(

@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie.data.common.conditions
 
 import com.mojang.serialization.*
+import dev.nyon.klf.MOD_BUS
 import net.kernelpanicsoft.archie.data.common.crafting.ARecipeProvider
 import net.minecraft.advancements.Advancement
 import net.minecraft.advancements.AdvancementHolder
@@ -17,7 +18,6 @@ import net.minecraft.world.item.crafting.Recipe
 import net.neoforged.neoforge.common.conditions.ICondition
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import java.util.concurrent.CompletableFuture
 import java.util.stream.Stream
 import net.kernelpanicsoft.archie.data.common.conditions.IACondition as ArchieCondition

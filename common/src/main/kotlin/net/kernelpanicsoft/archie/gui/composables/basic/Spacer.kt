@@ -28,6 +28,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 @Composable
 fun Spacer(modifier: Modifier = Modifier) {
     Layout(
+        name = "Spacer",
         measurePolicy = { _, _, constraints ->
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },

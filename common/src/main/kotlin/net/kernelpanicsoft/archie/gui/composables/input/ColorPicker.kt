@@ -8,8 +8,8 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.*
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.util.HsvColor
 import net.kernelpanicsoft.archie.gui.util.KColor
-import net.kernelpanicsoft.archie.gui.util.drawRectOutline
-import net.kernelpanicsoft.archie.gui.util.fillGradient
+import net.kernelpanicsoft.archie.gui.util.extension.drawRectOutline
+import net.kernelpanicsoft.archie.gui.util.extension.fillGradient
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.math.max
 
@@ -31,6 +31,7 @@ private fun SaturationValueArea(
     }
 
     Layout(
+        name = "SaturationValueArea",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
             override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -53,6 +54,7 @@ private fun HueBar(modifier: Modifier = Modifier, hue: Float, onHueChanged: (Flo
         onHueChanged(newHue); event.consume()
     }
     Layout(
+        name = "HueBar",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
             override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -73,6 +75,7 @@ private fun AlphaBar(modifier: Modifier = Modifier, color: HsvColor, onAlphaChan
         onAlphaChanged(newAlpha); event.consume()
     }
     Layout(
+        name = "AlphaBar",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
             override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -163,7 +166,7 @@ fun ColorPicker(
         }
     }
 
-    Layout(measurePolicy = measurePolicy, modifier = modifier) {
+    Layout(name = "ColorPicker", measurePolicy = measurePolicy, modifier = modifier) {
         SaturationValueArea(hue = color.hue, saturation = color.saturation, value = color.value) { s, v ->
             updatedCallback(color.copy(saturation = s, value = v))
         }

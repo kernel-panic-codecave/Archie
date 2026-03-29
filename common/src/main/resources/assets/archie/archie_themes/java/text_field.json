@@ -1,7 +1,7 @@
 {
     "states": {
         "default": {
-            "texture": "klib:textures/gui/java/text_field.png",
+            "texture": "archie:textures/gui/java/text_field.png",
             "texture_size": {
                 "width": 16,
                 "height": 32

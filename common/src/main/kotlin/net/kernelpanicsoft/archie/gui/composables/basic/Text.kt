@@ -60,6 +60,7 @@ fun Text(
 ) {
     val textSize = getTextSize(text, fontScale, font)
     Layout(
+        name = "Text",
         measurePolicy = { _, _, constraints ->
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },

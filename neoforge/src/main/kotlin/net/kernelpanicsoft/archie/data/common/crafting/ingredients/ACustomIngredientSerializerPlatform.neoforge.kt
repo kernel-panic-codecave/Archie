@@ -1,11 +1,11 @@
 package net.kernelpanicsoft.archie.data.common.crafting.ingredients
 
 import com.mojang.serialization.*
+import dev.nyon.klf.MOD_BUS
 import net.kernelpanicsoft.archie.data.common.crafting.ingredients.ACustomIngredientPlatform.neoforge
 import net.neoforged.neoforge.common.crafting.IngredientType
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import java.util.stream.Stream
 
 actual object ACustomIngredientSerializerPlatform

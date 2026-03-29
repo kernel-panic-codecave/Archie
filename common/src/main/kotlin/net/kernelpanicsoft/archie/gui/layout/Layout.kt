@@ -42,13 +42,14 @@ import net.kernelpanicsoft.archie.gui.nodes.AUINodeApplier
  */
 @Composable
 inline fun Layout(
+	name: String,
 	measurePolicy: MeasurePolicy,
 	renderer: Renderer = EmptyRenderer,
 	modifier: Modifier = Modifier,
 	content: @Composable () -> Unit = {}
 ) {
 	ComposeNode<AUINode, AUINodeApplier>(
-		factory = AUINode.Constructor,
+		factory = { LayoutNode(name) },
 		update = {
 			set(measurePolicy) { this.measurePolicy = it }
 			set(renderer) { this.renderer = it }

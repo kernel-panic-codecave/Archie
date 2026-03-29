@@ -1,109 +1,412 @@
-package net.kernelpanicsoft.archie.gui.util
+package net.kernelpanicsoft.archie.gui.util.extension
 
-import com.mojang.blaze3d.vertex.VertexConsumer
+import net.kernelpanicsoft.archie.gui.theme.NinePatchThemeState
+import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
+import net.kernelpanicsoft.archie.gui.theme.ThemeState
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.renderer.RenderType
-import org.joml.Matrix4f
-
-/* ─────────────────────────── VertexConsumer ─────────────────────────── */
 
 /**
- * Adds a vertex to this [VertexConsumer] using integer screen coordinates.
+ * Draws a ThemeState to the screen, automatically handling whether it's a
+ * NinePatch or a Simple texture state.
  *
- * This is a convenience overload that avoids repeated [Int.toFloat] casts when working
- * with pixel-aligned UI geometry.
- *
- * @param matrix The current pose matrix.
- * @param x      The x position in screen pixels.
- * @param y      The y position in screen pixels.
- * @param z      The z (depth) position.
+ * @param state The ThemeState object containing all rendering information.
+ * @param x The x-coordinate to draw the component at.
+ * @param y The y-coordinate to draw the component at.
+ * @param width The width of the component. For a SimpleThemeState, this is ignored.
+ * @param height The height of the component. For a SimpleThemeState, this is ignored.
  */
-fun VertexConsumer.addVertex(matrix: Matrix4f, x: Int, y: Int, z: Int): VertexConsumer =
-    addVertex(matrix, x.toFloat(), y.toFloat(), z.toFloat())
+fun GuiGraphics.drawThemeState(state: ThemeState, x: Int, y: Int, width: Int, height: Int) {
+    when (state) {
+        is NinePatchThemeState -> {
+            ninePatchTexture(x, y, width, height, state)
+        }
 
-/* ─────────────────────────── GuiGraphics ─────────────────────────── */
+        is SimpleThemeState -> {
+            blit(state, x, y)
+        }
+    }
+}
 
 /**
- * Draws a four-corner gradient rectangle on the GUI.
+ * A helper extension to blit a SimpleThemeState without manually extracting all its properties.
  *
- * Each corner can have an independent ARGB colour, enabling both solid fills
- * (all four colours identical) and arbitrary gradient fills.
+ * @param state The SimpleThemeState to draw.
+ * @param x The x-coordinate to draw at.
+ * @param y The y-coordinate to draw at.
+ */
+fun GuiGraphics.blit(state: SimpleThemeState, x: Int, y: Int) {
+    this.blit(
+        state.texture,
+        x,
+        y,
+        state.width,
+        state.height,
+        state.u.toFloat(),
+        state.v.toFloat(),
+        state.uWidth,
+        state.vHeight,
+        state.textureSize.width,
+        state.textureSize.height
+    )
+}
+
+/**
+ * Draws a rectangle gradient on the GUI.
  *
- * @param x              X coordinate of the top-left corner.
- * @param y              Y coordinate of the top-left corner.
- * @param width          Width of the rectangle in pixels.
- * @param height         Height of the rectangle in pixels.
- * @param topLeftColor   ARGB colour of the top-left corner.
- * @param topRightColor  ARGB colour of the top-right corner.
- * @param bottomLeftColor  ARGB colour of the bottom-left corner.
- * @param bottomRightColor ARGB colour of the bottom-right corner.
+ * @param x The x-coordinate of the top-left corner of the rectangle.
+ * @param y The y-coordinate of the top-left corner of the rectangle.
+ * @param width The width of the rectangle in pixels.
+ * @param height The height of the rectangle in pixels.
+ * @param topLeftColor The ARGB colour of the top-left corner.
+ * @param topRightColor The ARGB colour of the top-right corner.
+ * @param bottomLeftColor The ARGB colour of the bottom-left corner.
+ * @param bottomRightColor The ARGB colour of the bottom-right corner.
  */
 fun GuiGraphics.fillGradient(
-    x: Int, y: Int, width: Int, height: Int,
-    topLeftColor: Int, topRightColor: Int,
-    bottomLeftColor: Int, bottomRightColor: Int,
-) = fillGradient(RenderType.gui(), x, y, width, height, topLeftColor, topRightColor, bottomLeftColor, bottomRightColor)
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    topLeftColor: Int,
+    topRightColor: Int,
+    bottomLeftColor: Int,
+    bottomRightColor: Int
+) = fillGradient(
+    RenderType.gui(),
+    x,
+    y,
+    width,
+    height,
+    topLeftColor,
+    topRightColor,
+    bottomLeftColor,
+    bottomRightColor
+)
 
 /**
- * Draws a four-corner gradient rectangle with an explicit [RenderType].
+ * Draws a rectangle gradient on the GUI.
  *
- * @param type             The [RenderType] to use for rendering (e.g. [RenderType.gui]).
- * @param x                X coordinate of the top-left corner.
- * @param y                Y coordinate of the top-left corner.
- * @param width            Width of the rectangle in pixels.
- * @param height           Height of the rectangle in pixels.
- * @param topLeftColor     ARGB colour of the top-left corner.
- * @param topRightColor    ARGB colour of the top-right corner.
- * @param bottomLeftColor  ARGB colour of the bottom-left corner.
- * @param bottomRightColor ARGB colour of the bottom-right corner.
+ * @param type The render type to use for rendering (e.g., {@link RenderType.gui()}).
+ * @param x The x-coordinate of the top-left corner of the rectangle.
+ * @param y The y-coordinate of the top-left corner of the rectangle.
+ * @param width The width of the rectangle in pixels.
+ * @param height The height of the rectangle in pixels.
+ * @param topLeftColor The ARGB colour of the top-left corner.
+ * @param topRightColor The ARGB colour of the top-right corner.
+ * @param bottomLeftColor The ARGB colour of the bottom-left corner.
+ * @param bottomRightColor The ARGB colour of the bottom-right corner.
  */
 fun GuiGraphics.fillGradient(
     type: RenderType,
-    x: Int, y: Int, width: Int, height: Int,
-    topLeftColor: Int, topRightColor: Int,
-    bottomLeftColor: Int, bottomRightColor: Int,
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    topLeftColor: Int,
+    topRightColor: Int,
+    bottomLeftColor: Int,
+    bottomRightColor: Int
 ) {
     val buffer = bufferSource().getBuffer(type)
     val matrix = pose().last().pose()
-    buffer.addVertex(matrix, x + width, y,          0).setColor(topRightColor)
-    buffer.addVertex(matrix, x,          y,          0).setColor(topLeftColor)
-    buffer.addVertex(matrix, x,          y + height, 0).setColor(bottomLeftColor)
+
+    buffer.addVertex(matrix, x + width, y, 0).setColor(topRightColor)
+    buffer.addVertex(matrix, x, y, 0).setColor(topLeftColor)
+    buffer.addVertex(matrix, x, y + height, 0).setColor(bottomLeftColor)
     buffer.addVertex(matrix, x + width, y + height, 0).setColor(bottomRightColor)
 }
 
 /**
- * Draws a hollow rectangle outline using [RenderType.gui].
+ * Draws a rectangle outline on the GUI.
  *
- * @param x         X coordinate of the top-left corner.
- * @param y         Y coordinate of the top-left corner.
- * @param width     Width of the rectangle in pixels.
- * @param height    Height of the rectangle in pixels.
- * @param color     ARGB colour of the outline.
- * @param thickness Stroke width in pixels (default 1).
+ * @param x The x-coordinate of the top-left corner of the rectangle.
+ * @param y The y-coordinate of the top-left corner of the rectangle.
+ * @param width The width of the rectangle in pixels.
+ * @param height The height of the rectangle in pixels.
+ * @param color The ARGB colour of the rectangle's outline.
  */
 fun GuiGraphics.drawRectOutline(
-    x: Int, y: Int, width: Int, height: Int,
-    color: Int, thickness: Int = 1,
-) = drawRectOutline(RenderType.gui(), x, y, width, height, color, thickness)
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    color: Int,
+    thickness: Int = 1
+) =
+    drawRectOutline(RenderType.gui(), x, y, width, height, color, thickness)
 
 /**
- * Draws a hollow rectangle outline with an explicit [RenderType].
+ * Draws a rectangle outline on the GUI with a specified render type.
  *
- * @param type      The [RenderType] to use.
- * @param x         X coordinate of the top-left corner.
- * @param y         Y coordinate of the top-left corner.
- * @param width     Width of the rectangle in pixels.
- * @param height    Height of the rectangle in pixels.
- * @param color     ARGB colour of the outline.
- * @param thickness Stroke width in pixels (default 1).
+ * @param type The render type to use for rendering (e.g., [RenderType.gui]).
+ * @param x The x-coordinate of the top-left corner of the rectangle.
+ * @param y The y-coordinate of the top-left corner of the rectangle.
+ * @param width The width of the rectangle in pixels.
+ * @param height The height of the rectangle in pixels.
+ * @param color The ARGB colour of the rectangle's outline.
  */
 fun GuiGraphics.drawRectOutline(
     type: RenderType,
-    x: Int, y: Int, width: Int, height: Int,
-    color: Int, thickness: Int = 1,
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    color: Int,
+    thickness: Int = 1
 ) {
-    fill(type, x,              y,              x + width,     y + thickness,          color)
-    fill(type, x,              y + height - thickness, x + width,     y + height,     color)
-    fill(type, x,              y + thickness,  x + thickness, y + height - thickness, color)
-    fill(type, x + width - thickness, y + thickness,  x + width,     y + height - thickness, color)
+    fill(type, x, y, x + width, y + thickness, color)
+    fill(type, x, y + height - thickness, x + width, y + height, color)
+
+    fill(type, x, y + thickness, x + thickness, y + height - thickness, color)
+    fill(type, x + width - thickness, y + thickness, x + width, y + height - thickness, color)
+}
+
+// REMEMBER: blit() requires a renderType on 1.21.4
+/**
+ * Draws a [NinePatchTexture] on the GUI.
+ * All NinePatchTextures need to be under "assets/mod_id/nine_patch_textures".
+ *
+ * For more information check [NinePatchTexture]
+ *
+ * @param x The x-coordinate of the top-left corner of the texture.
+ * @param y The y-coordinate of the top-left corner of the texture.
+ * @param width The width of the texture in pixels.
+ * @param height The height of the texture in pixels.
+ * @param loc The [ResourceLocation] of the texture.
+ */
+fun GuiGraphics.ninePatchTexture(
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    npt: NinePatchThemeState
+) {
+    val rightEdge = npt.cornersSize.width + npt.centerSize.width
+    val bottomEdge = npt.cornersSize.height + npt.centerSize.height
+
+    blit(
+        npt.texture,
+        x,
+        y,
+        npt.u.toFloat(),
+        npt.v.toFloat(),
+        npt.cornersSize.width,
+        npt.cornersSize.height,
+        npt.textureSize.width,
+        npt.textureSize.height
+    )
+    blit(
+        npt.texture,
+        x + width - npt.cornersSize.width,
+        y,
+        npt.u.toFloat() + rightEdge,
+        npt.v.toFloat(),
+        npt.cornersSize.width,
+        npt.cornersSize.height,
+        npt.textureSize.width,
+        npt.textureSize.height
+    )
+    blit(
+        npt.texture,
+        x,
+        y + height - npt.cornersSize.height,
+        npt.u.toFloat(),
+        npt.v.toFloat() + bottomEdge,
+        npt.cornersSize.width,
+        npt.cornersSize.height,
+        npt.textureSize.width,
+        npt.textureSize.height
+    )
+    blit(
+        npt.texture,
+        x + width - npt.cornersSize.width,
+        y + height - npt.cornersSize.height,
+        npt.u.toFloat() + rightEdge,
+        npt.v.toFloat() + bottomEdge,
+        npt.cornersSize.width,
+        npt.cornersSize.height,
+        npt.textureSize.width,
+        npt.textureSize.height
+    )
+
+    val cornerHeight = npt.cornersSize.height * 2
+    val cornerWidth = npt.cornersSize.width * 2
+
+    if (npt.repeat) {
+        if (width > cornerWidth && height > cornerHeight) {
+            var leftoverHeight: Int = height - cornerHeight
+
+            while (leftoverHeight > 0) {
+                val drawHeight = npt.centerSize.height.coerceAtMost(leftoverHeight)
+
+                var leftoverWidth: Int = width - cornerWidth
+                while (leftoverWidth > 0) {
+                    val drawWidth = npt.centerSize.width.coerceAtMost(leftoverWidth)
+                    blit(
+                        npt.texture,
+                        x + npt.cornersSize.width + leftoverWidth - drawWidth,
+                        y + npt.cornersSize.height + leftoverHeight - drawHeight,
+                        drawWidth,
+                        drawHeight,
+                        npt.u.toFloat() + npt.cornersSize.width + npt.centerSize.width - drawWidth,
+                        npt.v.toFloat() + npt.cornersSize.height + npt.centerSize.height - drawHeight,
+                        drawWidth,
+                        drawHeight,
+                        npt.textureSize.width,
+                        npt.textureSize.height
+                    )
+
+                    leftoverWidth -= npt.centerSize.width
+                }
+                leftoverHeight -= npt.centerSize.height
+            }
+        }
+
+        if (width > cornerWidth) {
+            var leftoverWidth: Int = width - cornerWidth
+            while (leftoverWidth > 0) {
+                val drawWidth = npt.centerSize.width.coerceAtMost(leftoverWidth)
+
+                blit(
+                    npt.texture,
+                    x + npt.cornersSize.width + leftoverWidth - drawWidth,
+                    y,
+                    drawWidth,
+                    npt.cornersSize.height,
+                    npt.u.toFloat() + npt.cornersSize.width + npt.centerSize.width - drawWidth,
+                    npt.v.toFloat(),
+                    drawWidth,
+                    npt.cornersSize.height,
+                    npt.textureSize.width,
+                    npt.textureSize.height
+                )
+                blit(
+                    npt.texture,
+                    x + npt.cornersSize.width + leftoverWidth - drawWidth,
+                    y + height - npt.cornersSize.height,
+                    drawWidth,
+                    npt.cornersSize.height,
+                    npt.u.toFloat() + npt.cornersSize.width + npt.centerSize.width - drawWidth,
+                    npt.v.toFloat() + bottomEdge,
+                    drawWidth,
+                    npt.cornersSize.height,
+                    npt.textureSize.width,
+                    npt.textureSize.height
+                )
+
+                leftoverWidth -= npt.centerSize.width
+            }
+        }
+
+        if (height > cornerHeight) {
+            var leftoverHeight: Int = height - cornerHeight
+            while (leftoverHeight > 0) {
+                val drawHeight = npt.centerSize.height.coerceAtMost(leftoverHeight)
+
+                blit(
+                    npt.texture,
+                    x,
+                    y + npt.cornersSize.height + leftoverHeight - drawHeight,
+                    npt.cornersSize.width,
+                    drawHeight,
+                    npt.u.toFloat(),
+                    npt.v.toFloat() + npt.cornersSize.height + npt.centerSize.height - drawHeight,
+                    npt.cornersSize.width,
+                    drawHeight,
+                    npt.textureSize.width,
+                    npt.textureSize.height
+                )
+                blit(
+                    npt.texture,
+                    x + width - npt.cornersSize.width,
+                    y + npt.cornersSize.height + leftoverHeight - drawHeight,
+                    npt.cornersSize.width,
+                    drawHeight,
+                    npt.u.toFloat() + rightEdge,
+                    npt.v.toFloat() + npt.cornersSize.height + npt.centerSize.height - drawHeight,
+                    npt.cornersSize.width,
+                    drawHeight,
+                    npt.textureSize.width,
+                    npt.textureSize.height
+                )
+
+                leftoverHeight -= npt.centerSize.height
+            }
+        }
+    } else {
+        if (width > cornerWidth && height > cornerHeight) {
+            blit(
+                npt.texture,
+                x + npt.cornersSize.width,
+                y + npt.cornersSize.height,
+                width - cornerWidth,
+                height - cornerHeight,
+                npt.u.toFloat() + npt.cornersSize.width,
+                npt.v.toFloat() + npt.cornersSize.height,
+                npt.centerSize.width,
+                npt.centerSize.height,
+                npt.textureSize.width,
+                npt.textureSize.height
+            )
+        }
+
+        if (width > cornerWidth) {
+            blit(
+                npt.texture,
+                x + npt.cornersSize.width,
+                y,
+                width - cornerWidth,
+                npt.cornersSize.height,
+                npt.u.toFloat() + npt.cornersSize.width,
+                npt.v.toFloat(),
+                npt.centerSize.width,
+                npt.cornersSize.height,
+                npt.textureSize.width,
+                npt.textureSize.height
+            )
+            blit(
+                npt.texture,
+                x + npt.cornersSize.width,
+                y + height - npt.cornersSize.height,
+                width - cornerWidth,
+                npt.cornersSize.height,
+                npt.u.toFloat() + npt.cornersSize.width,
+                npt.v.toFloat() + bottomEdge,
+                npt.centerSize.width,
+                npt.cornersSize.height,
+                npt.textureSize.width,
+                npt.textureSize.height
+            )
+        }
+
+        if (height > cornerHeight) {
+            blit(
+                npt.texture,
+                x,
+                y + npt.cornersSize.height,
+                npt.cornersSize.width,
+                height - cornerHeight,
+                npt.u.toFloat(),
+                npt.v.toFloat() + npt.cornersSize.height,
+                npt.cornersSize.width,
+                npt.centerSize.height,
+                npt.textureSize.width,
+                npt.textureSize.height
+            )
+            blit(
+                npt.texture,
+                x + width - npt.cornersSize.width,
+                y + npt.cornersSize.height,
+                npt.cornersSize.width,
+                height - cornerHeight,
+                npt.u.toFloat() + rightEdge,
+                npt.v.toFloat() + npt.cornersSize.height,
+                npt.cornersSize.width,
+                npt.centerSize.height,
+                npt.textureSize.width,
+                npt.textureSize.height
+            )
+        }
+    }
 }

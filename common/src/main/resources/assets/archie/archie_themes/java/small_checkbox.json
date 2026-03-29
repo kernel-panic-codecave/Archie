@@ -2,7 +2,7 @@
     "ninepatch": false,
     "states": {
         "default": {
-            "texture": "klib:textures/gui/java/small_checkbox.png",
+            "texture": "archie:textures/gui/java/small_checkbox.png",
             "texture_size": {
                 "width": 13,
                 "height": 26

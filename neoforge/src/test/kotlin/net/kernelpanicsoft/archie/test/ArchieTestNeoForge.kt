@@ -2,9 +2,9 @@ package net.kernelpanicsoft.archie.test
 
 import dev.architectury.event.events.client.ClientLifecycleEvent
 import dev.architectury.event.events.common.LifecycleEvent
+import dev.nyon.klf.MOD_BUS
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 @Mod(ArchieTest.MOD_ID)
 object ArchieTestNeoForge

@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.serialization.buildComponentPatch
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.component.DataComponentPatch
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
@@ -60,7 +61,7 @@ class AComponentsIngredient private constructor(val base: Ingredient, components
 
 	object Serializer : IACustomIngredientSerializer<AComponentsIngredient>
 	{
-		private val ID = Archie["components"]
+		private val ID = Archie % "components"
 
 		private val ALLOW_EMPTY_CODEC: MapCodec<AComponentsIngredient> = createCodec(
 			Ingredient.CODEC

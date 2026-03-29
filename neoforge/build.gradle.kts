@@ -31,18 +31,19 @@ loom {
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(project.sourceSets.main.get())
-			sourceSet(project(":common").sourceSets.main.get())
+//			sourceSet(project(":common").sourceSets.main.get())
 		}
 		create("test") {
 			sourceSet(project.sourceSets.test.get())
-			sourceSet(project(":common").sourceSets.test.get())
+//			sourceSet(project(":common").sourceSets.test.get())
 		}
 	}
 
 	runs {
 		getByName("client") {
+			source(sourceSets.main.get())
 			source(sourceSets.test.get())
-			vmArg("-XX:+AllowEnhancedClassRedefinition")
+			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		create("datagen") {
 			data()

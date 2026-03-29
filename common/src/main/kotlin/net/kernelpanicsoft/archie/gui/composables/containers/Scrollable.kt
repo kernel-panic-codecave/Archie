@@ -134,6 +134,7 @@ fun Scrollable(
     }
 
     Layout(
+        name = "Scrollable",
         measurePolicy = measurePolicy,
         renderer = object : Renderer {
             override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {

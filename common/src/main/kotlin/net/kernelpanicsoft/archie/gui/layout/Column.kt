@@ -3,6 +3,9 @@ package net.kernelpanicsoft.archie.gui.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.MarginModifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
 
 /**
  * A layout component that places contents in a column top-to-bottom.
@@ -21,6 +24,7 @@ fun Column(
 		)
 	}
 	Layout(
+		name = "Column",
 		measurePolicy,
 		modifier = modifier,
 		content = content
@@ -42,10 +46,12 @@ private data class ColumnMeasurePolicy(
 			outPositions = positions
 		)
 		return MeasureResult(width, height) {
-			var childY = 0
+			val inset = (scope as? LayoutNode)?.get<PaddingModifier>()?.padding
+				?: PaddingValues()
+			var accumulatedOutset = 0
 			placeables.forEachIndexed { index, child ->
-				child.placeAt(horizontalAlignment.align(child.height, height, LayoutDirection.Ltr), positions[index])
-				childY += child.height
+				child.placeAt(horizontalAlignment.align(child.width, width, LayoutDirection.Ltr) + inset.left, positions[index] + accumulatedOutset + inset.top)
+				(measurables[index] as? LayoutNode)?.get<MarginModifier>()?.let { accumulatedOutset += it.vertical }
 			}
 		}
 	}

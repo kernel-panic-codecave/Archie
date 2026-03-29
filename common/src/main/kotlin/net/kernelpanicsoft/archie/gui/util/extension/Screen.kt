@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.gui
+package net.kernelpanicsoft.archie.gui.util.extension
 
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.modifiers.input.*

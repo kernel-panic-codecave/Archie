@@ -50,6 +50,10 @@ class Constraints(
 		maxHeight.coerceAtLeast(minHeight)
 	)
 
+	override fun toString(): String
+	{
+		return "Constraints(minWidth=$minWidth, maxWidth=$maxWidth, minHeight=$minHeight, maxHeight=$maxHeight)"
+	}
 }
 
 /**

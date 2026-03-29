@@ -125,6 +125,7 @@ fun TextFieldCore(
     }
 
     Layout(
+        name = "TextFieldCore",
         measurePolicy = { _, _, constraints ->
             val w = constraints.maxWidth
             val h = if (singleLine) font.lineHeight + BORDER_PADDING * 2 else constraints.maxHeight

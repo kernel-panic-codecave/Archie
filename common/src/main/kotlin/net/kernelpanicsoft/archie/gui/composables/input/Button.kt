@@ -1,15 +1,94 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.*
+import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.Alignment
+import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
+import net.kernelpanicsoft.archie.gui.layout.Layout
+import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
+import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.GuiGraphics
 import org.lwjgl.glfw.GLFW
+
+@Composable
+fun Button(
+    onClick: (AUINode) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    texture: String = "button",
+    content: @Composable () -> Unit = {}
+) {
+    val theme = LocalTheme.current
+    val composableTheme = theme.getComposableTheme(texture)
+
+    ButtonCore(
+        onClick,
+        modifier,
+        enabled
+    ) { isHovered, isPressed ->
+        Layout(
+            name = "Button",
+            content = content,
+            measurePolicy = BoxMeasurePolicy(Alignment.Center),
+            renderer = object : Renderer
+            {
+                override fun render(
+                    node: AUINode,
+                    x: Int,
+                    y: Int,
+                    guiGraphics: GuiGraphics,
+                    mouseX: Int,
+                    mouseY: Int,
+                    partialTick: Float
+                ) {
+                    val state = composableTheme.getState(
+                        when {
+                            !enabled -> TextureStates.DISABLED
+                            isPressed && composableTheme.hasState(
+                                TextureStates.CLICKED,
+                                theme.mode
+                            ) -> TextureStates.CLICKED
+
+                            isHovered -> TextureStates.HOVERED
+                            else -> TextureStates.DEFAULT
+                        },
+                        theme.mode
+                    )
+
+                    guiGraphics.drawThemeState(state, x, y, node.width, node.height)
+
+                    return super.render(
+                        node,
+                        x,
+                        y,
+                        guiGraphics,
+                        mouseX,
+                        mouseY,
+                        partialTick
+                    )
+                }
+            },
+            modifier = modifier.apply {
+                if (!composableTheme.isNinepatch) with(composableTheme.states["default"]!!) {
+                    sizeIn(
+                        minWidth = textureSize.width,
+                        minHeight = textureSize.height
+                    )
+                }
+            }
+        )
+    }
+}
+
 
 /**
  * A stateless clickable container composable.

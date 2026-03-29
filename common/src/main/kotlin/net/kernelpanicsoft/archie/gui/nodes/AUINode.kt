@@ -16,8 +16,4 @@ interface AUINode {
 	var y: Int
 
 	fun render(x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float)
-
-	companion object {
-		val Constructor: () -> AUINode = ::LayoutNode
-	}
 }
