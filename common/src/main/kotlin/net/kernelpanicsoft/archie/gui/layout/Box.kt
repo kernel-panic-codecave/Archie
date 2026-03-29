@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.gui.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
@@ -42,6 +43,20 @@ fun Box(
 internal data class BoxMeasurePolicy(
     private val alignment: Alignment,
 ) : RowColumnMeasurePolicy() {
+    override fun measure(scope: MeasureScope, measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        // Measure children with intrinsic size constraints (minWidth=0, maxWidth=infinity)
+        // This prevents size modifiers from forcing children to fill the Box.
+        // The Box itself will be constrained by its own modifiers, but children are not.
+        val intrinsicConstraints = Constraints(0, constraints.maxWidth, 0, constraints.maxHeight)
+        val placeables = measurables.map { it.measure(intrinsicConstraints) }
+        
+        // Calculate Box dimensions based on content
+        val width  = (placeables.maxOfOrNull { it.width }  ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
+        val height = (placeables.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
+        
+        return placeChildren(scope, measurables, placeables, width, height)
+    }
+    
     override fun placeChildren(scope: MeasureScope, measurables: List<Measurable>, placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
         return MeasureResult(width, height) {
             val inset = (scope as? LayoutNode)?.get<PaddingModifier>()?.padding
