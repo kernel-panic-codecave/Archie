@@ -3,11 +3,14 @@ package net.kernelpanicsoft.archie.test
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import net.kernelpanicsoft.archie.gui.*
+import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
 import net.kernelpanicsoft.archie.gui.layout.*
+import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 
-class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) : ComposeContainerScreen<TestMenu>(menu, playerInventory,
+class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) : ComposeContainerScreen<TestMenu, TestTile>(menu, playerInventory,
 	title
 )
 {
@@ -15,9 +18,9 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 
 	init
 	{
-		ArchieTest.LOGGER.info("Screen: $title")
-		this.imageHeight = 114 + rows * 18
-		this.inventoryLabelY = this.imageHeight - 94
+//		ArchieTest.LOGGER.info("Screen: $title")
+//		this.imageHeight = 114 + rows * 18
+//		this.inventoryLabelY = this.imageHeight - 94
 		start {
 			content()
 		}
@@ -26,7 +29,9 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 	@Composable
 	fun content()
 	{
-		CompositionLocalProvider(LocalSlotData provides SlotData()) {
+		// All slot composables must share the same SlotData instance, provided here.
+		// Named groups (block inventory) and PlayerSlots are siblings at the top level.
+		Column {
 			Slots(
 				"inventory",
 				9,
@@ -44,9 +49,9 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 					}
 				}
 			}
+//			Spacer(modifier = Modifier.sizeIn(minHeight = 8))
+			PlayerSlots()
 		}
-
-
 	}
 
 //	override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int)

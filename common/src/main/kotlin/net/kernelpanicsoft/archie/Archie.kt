@@ -15,6 +15,7 @@ import net.kernelpanicsoft.archie.data.internal.ArchieDatagen
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.gametest.internal.ArchieGameTest
+import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.util.buildArray
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
@@ -24,6 +25,21 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.entity.BlockEntityType
 import org.slf4j.Logger
 
+/**
+ * The root singleton for the Archie library mod.
+ *
+ * Provides the mod ID, the Architectury [Mod] descriptor, a shared [Logger], and the
+ * `get(path)` operator for constructing [ResourceLocation]s in the `archie` namespace.
+ * Also hosts Archie's own [ConfigSpec] as a nested [Config] object for testing purposes.
+ *
+ * ### Initialization
+ * Call [init] once during common mod initialization and [initClient] once on the client side:
+ * ```kotlin
+ * // In your mod entrypoint:
+ * Archie.init()       // common
+ * Archie.initClient() // client-only
+ * ```
+ */
 object Archie
 {
 	const val MOD_ID = "archie"
@@ -58,6 +74,10 @@ object Archie
 	@JvmStatic
 	fun initClient()
 	{
+		dev.architectury.registry.ReloadListenerRegistry.register(
+			net.minecraft.server.packs.PackType.CLIENT_RESOURCES,
+			net.kernelpanicsoft.archie.gui.theme.ThemeResourceListener()
+		)
 	}
 
 	@JvmStatic

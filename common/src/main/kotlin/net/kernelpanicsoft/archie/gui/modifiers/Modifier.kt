@@ -83,6 +83,11 @@ interface Modifier {
 		fun mergeWith(other: Self): Self
 
 		fun unsafeMergeWith(other: Element<*>) = mergeWith(other as Self)
+
+		/**
+		 * Converts this modifier element to a debug [Component] representation.
+		 */
+		fun toComponent(): net.minecraft.network.chat.Component = net.minecraft.network.chat.Component.literal(toString())
 	}
 
 	/**
@@ -131,3 +136,13 @@ class CombinedModifier(
 		if (acc.isEmpty()) element.toString() else "$acc, $element"
 	} + "]"
 }
+
+/**
+ * Collects all [Modifier.Element] instances of type [T] from this modifier chain.
+ *
+ * @return A list of all modifier elements matching type [T], in declaration order.
+ */
+inline fun <reified T : Modifier.Element<T>> Modifier.getAll(): List<T> =
+	foldIn(mutableListOf()) { acc, element ->
+		if (element is T) acc.apply { add(element) } else acc
+	}

@@ -11,6 +11,24 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
 
+/**
+ * A [BlockEntity] base class that automatically persists fields declared with [NBTHolder]
+ * delegates to and from the block entity's [CompoundTag].
+ *
+ * Subclass this and declare fields using the [NBTHolder] delegation API:
+ * ```kotlin
+ * class MyBlockEntity(pos: BlockPos, state: BlockState)
+ *     : NBTBlockEntity(MY_TYPE, pos, state) {
+ *
+ *     var energy by nbt.intField()
+ *     var label  by nbt.stringField { "default" }
+ *     val items  by nbt.itemField(9)
+ * }
+ * ```
+ *
+ * Saving and loading are handled automatically via [saveAdditional] and [loadAdditional].
+ * Call [sendUpdate] to push the block entity state to tracking clients.
+ */
 abstract class NBTBlockEntity(type: BlockEntityType<*>, pos: BlockPos, blockState: BlockState) : BlockEntity(
 	type, pos,
 	blockState

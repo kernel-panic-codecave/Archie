@@ -1,23 +1,15 @@
 package net.kernelpanicsoft.archie.test
 
-import net.kernelpanicsoft.archie.test.container.ArchieContainerMenu
+import net.kernelpanicsoft.archie.gui.ComposeContainerMenu
 import net.minecraft.world.entity.player.Inventory
 
-class TestMenu(id: Int, inventory: Inventory, tile: TestTile) : ArchieContainerMenu<TestTile, TestMenu>(GuiRegistry.TestMenu, id, inventory, tile)
+class TestMenu(id: Int, inventory: Inventory, tile: TestTile) : ComposeContainerMenu<TestTile, TestMenu>(GuiRegistry.TestMenu, id, inventory, tile)
 {
 	val rows: Int = tile.items.size() / 9
 
-	override val playerXOffset: Int = 8
-	override val playerYOffset: Int = 103 + ((rows - 4) * 18)
-
-
-	override fun addMenuSlots()
+	override fun registerSlotHandlers()
 	{
-		slotGrid(8, 18, 9, rows, tile.items)
+		handler("inventory", tile.items)
 	}
 
-	init
-	{
-		addSlots()
-	}
 }

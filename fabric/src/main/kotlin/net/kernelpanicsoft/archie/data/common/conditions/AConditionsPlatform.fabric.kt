@@ -4,7 +4,6 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.common.crafting.ARecipeProvider
-import net.kernelpanicsoft.archie.serialization.serializer
 import kotlinx.serialization.json.Json
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider
@@ -12,6 +11,7 @@ import net.fabricmc.fabric.api.resource.conditions.v1.ResourceCondition
 import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditionType
 import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions
 import net.fabricmc.fabric.impl.datagen.FabricDataGenHelper
+import net.kernelpanicsoft.archie.serialization.kSerializer
 import net.minecraft.advancements.Advancement
 import net.minecraft.advancements.AdvancementHolder
 import net.minecraft.core.Holder
@@ -49,7 +49,7 @@ actual object AConditionsPlatform
 			override fun accept(identifier: ResourceLocation, recipe: Recipe<*>, advancementEntry: AdvancementHolder?)
 			{
 				FabricDataGenHelper.addConditions(recipe, arrayOf(condition.fabric))
-				Archie.LOGGER.info(Json.encodeToString(ResourceCondition.CODEC.serializer(), condition.fabric))
+				Archie.LOGGER.info(Json.encodeToString(ResourceCondition.CODEC.kSerializer, condition.fabric))
 				output.accept(identifier, recipe, advancementEntry)
 			}
 

@@ -34,7 +34,7 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install mkdocs-material mike
+      - run: pip install mkdocs-material mike mkdocs-rss-plugin cairosvg pngquant
       - run: git fetch origin gh-pages --depth=1
       - name: Build Documentation
         run: ./gradlew publishDocs

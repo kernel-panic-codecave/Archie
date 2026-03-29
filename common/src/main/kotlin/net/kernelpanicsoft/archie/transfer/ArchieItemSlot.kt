@@ -3,7 +3,6 @@ package net.kernelpanicsoft.archie.transfer
 import net.kernelpanicsoft.archie.serialization.NBT
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
-import net.kernelpanicsoft.archie.serialization.serializer
 import earth.terrarium.common_storage_lib.resources.ResourceStack
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.StorageSlot
@@ -15,6 +14,7 @@ import kotlinx.serialization.descriptors.nullable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.benwoodworth.knbt.NbtTag
+import net.kernelpanicsoft.archie.serialization.kSerializer
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import kotlin.math.min
@@ -148,7 +148,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 
 	object Serializer : KSerializer<ArchieItemSlot>
 	{
-		private val surrogate = ResourceStack.ITEM_CODEC.serializer()
+		private val surrogate = ResourceStack.ITEM_CODEC.kSerializer
 		override val descriptor: SerialDescriptor = surrogate.descriptor.nullable
 		override fun deserialize(decoder: Decoder): ArchieItemSlot
 		{

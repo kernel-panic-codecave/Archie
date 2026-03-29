@@ -20,6 +20,18 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 
 @Immutable
+/**
+ * Immutable size constraints passed from a parent layout to its children during measurement.
+ *
+ * A child must produce a size whose width is in `[minWidth, maxWidth]` and whose height is
+ * in `[minHeight, maxHeight]`. Use [copy] to derive a modified copy with some dimensions changed,
+ * and [offset] to shrink the available space by a fixed amount (e.g. for padding).
+ *
+ * @property minWidth  Minimum allowed width in pixels (inclusive).
+ * @property maxWidth  Maximum allowed width in pixels (inclusive).
+ * @property minHeight Minimum allowed height in pixels (inclusive).
+ * @property maxHeight Maximum allowed height in pixels (inclusive).
+ */
 class Constraints(
 	val minWidth: Int = 0,
 	val maxWidth: Int = Int.MAX_VALUE,
@@ -40,7 +52,13 @@ class Constraints(
 
 }
 
-// Android
+/**
+ * Returns a copy of these [Constraints] expanded or shrunk by [horizontal] pixels on each
+ * horizontal side and [vertical] pixels on each vertical side.
+ *
+ * Negative values shrink the available space (useful for padding).
+ * [maxWidth] and [maxHeight] are never reduced below zero.
+ */
 @Stable
 fun Constraints.offset(horizontal: Int = 0, vertical: Int = 0) = Constraints(
 	(minWidth + horizontal).coerceAtLeast(0),

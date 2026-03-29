@@ -5,7 +5,27 @@ import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 
 /**
- * A layout component that places contents in a row left-to-right.
+ * A layout composable that arranges its children in a horizontal sequence from left to right.
+ *
+ * Children are measured sequentially and their widths subtracted from the available space.
+ * Use [horizontalArrangement] to control spacing and alignment along the main axis, and
+ * [verticalAlignment] to align children along the cross axis.
+ *
+ * ### Example
+ * ```kotlin
+ * Row(
+ *     horizontalArrangement = Arrangement.spacedBy(8),
+ *     verticalAlignment = Alignment.CenterVertically,
+ * ) {
+ *     Icon(...)
+ *     Text(Component.literal("Label"))
+ * }
+ * ```
+ *
+ * @param modifier              Modifiers applied to the Row node.
+ * @param horizontalArrangement Controls spacing and placement along the horizontal axis.
+ * @param verticalAlignment     Controls alignment of children along the vertical axis.
+ * @param content               The child composables to lay out in a row.
  */
 @Composable
 fun Row(
@@ -28,24 +48,20 @@ fun Row(
 }
 
 private data class RowMeasurePolicy(
-	private val horizontalArrangement: Arrangement.Horizontal,
-	private val verticalAlignment: Alignment.Vertical,
-) : RowColumnMeasurePolicy(
-	sumWidth = true,
-	arrangementSpacing = horizontalArrangement.spacing
-) {
-	override fun placeChildren(placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
-		val positions = IntArray(placeables.size)
-		horizontalArrangement.arrange(
-			totalSize = width,
-			sizes = placeables.map { it.width }.toIntArray(),
-			layoutDirection = LayoutDirection.Ltr,
-			outPositions = positions
-		)
-		return MeasureResult(width, height) {
-			placeables.forEachIndexed { index, child ->
-				child.placeAt(positions[index], verticalAlignment.align(child.height, height))
-			}
-		}
-	}
+    private val horizontalArrangement: Arrangement.Horizontal,
+    private val verticalAlignment: Alignment.Vertical,
+) : RowColumnMeasurePolicy(sumWidth = true, arrangementSpacing = horizontalArrangement.spacing) {
+    override fun placeChildren(scope: MeasureScope, measurables: List<Measurable>, placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
+        val positions = IntArray(placeables.size)
+        horizontalArrangement.arrange(totalSize = width, sizes = placeables.map { it.width }.toIntArray(), layoutDirection = LayoutDirection.Ltr, outPositions = positions)
+        return MeasureResult(width, height) {
+            val inset = (scope as? LayoutNode)?.get<net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier>()?.padding
+                ?: net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues()
+            var accumulatedOutset = 0
+            placeables.forEachIndexed { i, child ->
+                child.placeAt(positions[i] + accumulatedOutset + inset.left, verticalAlignment.align(child.height, height) + inset.top)
+                (measurables[i] as? LayoutNode)?.get<net.kernelpanicsoft.archie.gui.modifiers.position.MarginModifier>()?.let { accumulatedOutset += it.horizontal }
+            }
+        }
+    }
 }

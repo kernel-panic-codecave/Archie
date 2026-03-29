@@ -4,7 +4,7 @@ import com.google.common.base.Joiner
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
-import net.kernelpanicsoft.archie.serialization.ResourceLocationSerializer
+import net.kernelpanicsoft.archie.serialization.serializers.ResourceLocationSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.minecraft.core.Registry

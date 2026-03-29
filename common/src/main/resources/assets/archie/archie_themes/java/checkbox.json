@@ -1,0 +1,14 @@
+{
+  "ninepatch": false,
+  "states": {
+    "default": {
+      "texture": "archie:textures/gui/java/checkbox.png",
+      "texture_size": { "width": 20, "height": 80 },
+      "width": 20,
+      "height": 20
+    },
+    "hovered":           { "v": 20 },
+    "clicked":           { "v": 40 },
+    "clicked_and_hovered": { "v": 60 }
+  }
+}

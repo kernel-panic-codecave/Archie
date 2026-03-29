@@ -39,6 +39,7 @@ loom {
 	runs {
 		getByName("client") {
 			source(sourceSets.test.get())
+			vmArg("-XX:+AllowEnhancedClassRedefinition")
 		}
 		// This adds a new gradle task that runs the datagen API: "gradlew runDatagen"
 		create("datagen") {

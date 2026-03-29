@@ -34,7 +34,7 @@ private data class ColumnMeasurePolicy(
 	sumHeight = true,
 	arrangementSpacing = verticalArrangement.spacing
 ) {
-	override fun placeChildren(placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
+	override fun placeChildren(scope: MeasureScope, measurables: List<Measurable>, placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
 		val positions = IntArray(placeables.size)
 		verticalArrangement.arrange(
 			totalSize = height,

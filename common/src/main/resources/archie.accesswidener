@@ -34,6 +34,8 @@ extendable  class   net/minecraft/world/item/crafting/Ingredient
 extendable  method  net/minecraft/world/item/crafting/Ingredient <init> (Ljava/util/stream/Stream;)V
 accessible  method  net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
 extendable  class   net/minecraft/client/renderer/block/model/BlockElementFace
+mutable     field   net/minecraft/world/inventory/Slot x I
+mutable     field   net/minecraft/world/inventory/Slot y I
 transitive-accessible	method	net/minecraft/data/BlockFamilies	familyBuilder	(Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/data/BlockFamily$Builder;
 transitive-accessible	field	net/minecraft/data/models/BlockModelGenerators	blockStateOutput	Ljava/util/function/Consumer;
 transitive-accessible	field	net/minecraft/data/models/BlockModelGenerators	modelOutput	Ljava/util/function/BiConsumer;

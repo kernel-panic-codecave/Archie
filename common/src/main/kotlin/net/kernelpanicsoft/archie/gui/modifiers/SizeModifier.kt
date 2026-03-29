@@ -3,6 +3,18 @@ package net.kernelpanicsoft.archie.gui.modifiers
 import androidx.compose.runtime.Stable
 import kotlin.math.roundToInt
 
+/**
+ * A [Modifier.Element] that constrains the intrinsic size of a composable node by clamping
+ * the [Constraints] passed to it during measurement.
+ *
+ * Multiple [SizeModifier] elements on the same node are merged by intersecting their ranges,
+ * so the resulting constraints satisfy all modifiers simultaneously.
+ *
+ * Prefer the extension functions ([size], [sizeIn], [width], [height]) over constructing
+ * this class directly.
+ *
+ * @property constraints The [Constraints] to enforce.
+ */
 data class SizeModifier(
 	val constraints: Constraints
 ) : Modifier.Element<SizeModifier>, LayoutChangingModifier {
@@ -22,6 +34,12 @@ data class SizeModifier(
 	}
 }
 
+/**
+ * A [LayoutChangingModifier] that forces the node to fill a [percent] fraction of the
+ * available horizontal space.
+ *
+ * @property percent Fraction of available width to fill (0.0–1.0, default 1.0 = full width).
+ */
 data class HorizontalFillModifier(
 	val percent: Double
 ) : Modifier.Element<HorizontalFillModifier>, LayoutChangingModifier {
@@ -36,6 +54,12 @@ data class HorizontalFillModifier(
 	}
 }
 
+/**
+ * A [LayoutChangingModifier] that forces the node to fill a [percent] fraction of the
+ * available vertical space.
+ *
+ * @property percent Fraction of available height to fill (0.0–1.0, default 1.0 = full height).
+ */
 data class VerticalFillModifier(
 	val percent: Double
 ) : Modifier.Element<VerticalFillModifier>, LayoutChangingModifier {
@@ -51,20 +75,37 @@ data class VerticalFillModifier(
 	}
 }
 
-/** Forces element width to a percentage between min and max width constraints */
+/**
+ * Forces the node to fill [percent] of the maximum available width.
+ *
+ * @param percent Fraction of available width (0.0–1.0). Default `1.0` fills all available width.
+ */
 @Stable
 fun Modifier.fillMaxWidth(percent: Double = 1.0) = then(HorizontalFillModifier(percent))
 
-/** Forces element height to a percentage between min and max height constraints */
+/**
+ * Forces the node to fill [percent] of the maximum available height.
+ *
+ * @param percent Fraction of available height (0.0–1.0). Default `1.0` fills all available height.
+ */
 @Stable
 fun Modifier.fillMaxHeight(percent: Double = 1.0) = then(VerticalFillModifier(percent))
 
-/** Forces element width and height to a percentage between min and max width and height constraints */
+/**
+ * Forces the node to fill [percent] of both the available width and height.
+ *
+ * @param percent Fraction of available space (0.0–1.0). Default `1.0` fills all available space.
+ */
 @Stable
 fun Modifier.fillMaxSize(percent: Double = 1.0) = then(HorizontalFillModifier(percent)).then(VerticalFillModifier(percent))
 
 /**
- * Sets min and max, width and height constraints for this element.
+ * Constrains the node's width and height to be within the given min/max bounds.
+ *
+ * @param minWidth  Minimum width in pixels.
+ * @param maxWidth  Maximum width in pixels.
+ * @param minHeight Minimum height in pixels.
+ * @param maxHeight Maximum height in pixels.
  */
 @Stable
 fun Modifier.sizeIn(
@@ -74,18 +115,18 @@ fun Modifier.sizeIn(
 	maxHeight: Int = Integer.MAX_VALUE,
 ) = then(SizeModifier(Constraints(minWidth, maxWidth, minHeight, maxHeight)))
 
-/** Sets identical min/max width and height constraints for this element. */
+/** Sets an exact fixed size of [width] × [height] pixels. */
 @Stable
 fun Modifier.size(width: Int, height: Int) = sizeIn(width, width, height, height)
 
-/** Sets identical min/max width and height constraints for this element. */
+/** Sets an exact fixed square size of [size] × [size] pixels. */
 @Stable
 fun Modifier.size(size: Int) = size(size, size)
 
-/** Sets identical min/max width constraints for this element. */
+/** Sets an exact fixed width of [width] pixels (height unconstrained). */
 @Stable
 fun Modifier.width(width: Int) = sizeIn(width, width, 0, Integer.MAX_VALUE)
 
-/** Sets identical min/max height constraints for this element. */
+/** Sets an exact fixed height of [height] pixels (width unconstrained). */
 @Stable
 fun Modifier.height(height: Int) = sizeIn(0, Integer.MAX_VALUE, height, height)

@@ -1,6 +1,9 @@
 package net.kernelpanicsoft.archie.gui.layout
 
+import kotlinx.serialization.Serializable
+
 @JvmInline
+@Serializable
 value class IntCoordinates(val pair: Long) {
 	val x get() = (pair shr 32).toInt()
 	val y get() = pair.toInt()

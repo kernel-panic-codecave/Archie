@@ -1,0 +1,212 @@
+# GUI Framework
+
+Archie includes a **Compose-for-Minecraft** UI framework that mirrors the structure of
+Jetpack Compose. Screens, layouts, composables, modifiers, and an input event system work
+together to build declarative, reactive GUIs without writing manual render code.
+
+---
+
+## Screens
+
+### `ComposeScreen`
+
+Base class for standalone Minecraft screens.
+
+```kotlin
+class MyScreen : ComposeScreen(Component.literal("My Screen")) {
+    override fun init() {
+        super.init()
+        start {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(Component.literal("Hello, World!"))
+            }
+        }
+    }
+}
+```
+
+### `ComposeContainerScreen`
+
+Base class for screens attached to a container menu (inventory, crafting grid, etc.).
+
+```kotlin
+class MyContainerScreen(
+    menu: MyMenu, inventory: Inventory, title: Component,
+) : ComposeContainerScreen<MyMenu>(menu, inventory, title) {
+    override fun init() {
+        super.init()
+        start { MyContainerContent(menu) }
+    }
+}
+```
+
+---
+
+## Layout containers
+
+### `Box`
+
+Stacks children on top of each other, aligned within the box.
+
+```kotlin
+Box(contentAlignment = Alignment.Center) {
+    Image(...)
+    Text(Component.literal("Overlay"))
+}
+```
+
+### `Row`
+
+Arranges children horizontally.
+
+```kotlin
+Row(
+    horizontalArrangement = Arrangement.spacedBy(8),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Icon(...)
+    Text(Component.literal("Label"))
+}
+```
+
+### `Column`
+
+Arranges children vertically.
+
+```kotlin
+Column(verticalArrangement = Arrangement.spacedBy(4)) {
+    repeat(5) { Text(Component.literal("Item $it")) }
+}
+```
+
+---
+
+## Built-in composables
+
+| Composable | Description |
+|---|---|
+| `Text` | Renders a `Component` with optional scale and colour |
+| `Spacer` | Fills available space (useful as a flex gap) |
+| `Texture` | Blits a UV region from a texture atlas |
+| `Scrollable` | Wraps a child in a scrollable viewport |
+| `Collapsible` | Expand/collapse container with an animated arrow |
+| `ButtonCore` | Unstyled clickable container exposing hover/pressed state |
+| `CheckboxCore` | Unstyled toggle exposing hover state |
+| `TextField` | Full controlled text input (single-line or multi-line) |
+| `BasicTextField` | Simpler `String`-based text field |
+| `ColorPicker` | HSV + alpha colour picker |
+
+---
+
+## Modifiers
+
+Modifiers are immutable, composable decorators applied to layout nodes via `Modifier.then(...)`.
+
+### Layout modifiers
+
+```kotlin
+Modifier
+    .size(80, 20)              // fixed size
+    .width(100)                // width only
+    .height(40)                // height only
+    .fillMaxSize()             // fill all available space
+    .fillMaxWidth(0.5)         // fill 50% of width
+    .sizeIn(minWidth = 50, maxWidth = 200)
+    .padding(horizontal = 8, vertical = 4)
+    .margin(all = 4)
+    .offset(x = 10, y = 0)
+    .zIndex(2f)
+```
+
+### Appearance modifiers
+
+```kotlin
+Modifier
+    .background(KColor.DARK_GRAY)
+    .background(KColor.BLACK, KColor.GRAY, GradientDirection.TOP_TO_BOTTOM)
+    .border(KColor.WHITE, thickness = 1)
+    .texture(myResourceLocation)
+    .tooltip(myTooltipComponent)
+    .debug("key=value")        // shown in Ctrl+Shift debug overlay
+```
+
+### Input modifiers
+
+```kotlin
+Modifier
+    .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, event ->
+        println("Pressed at ${event.mouseX}, ${event.mouseY}")
+        event.consume()
+    }
+    .onPointerEvent<AUINode>(PointerEventType.ENTER) { _, _ -> hovered = true }
+    .onPointerEvent<AUINode>(PointerEventType.EXIT)  { _, _ -> hovered = false }
+    .onScroll<AUINode> { _, event -> scrollOffset += event.scrollY }
+    .onDrag<AUINode>   { _, event -> dx += event.dragX }
+    .onKeyEvent        { _, event -> if (event.keyCode == GLFW.GLFW_KEY_ESCAPE) close() }
+    .onCharTyped       { _, event -> buffer += event.codePoint }
+    .combinedClickable(
+        onClick      = { _, _ -> println("click") },
+        onDoubleClick = { _, _ -> println("double") },
+        onLongClick  = { _, _ -> println("held") },
+    )
+```
+
+---
+
+## Layer system
+
+The layer stack enables floating overlays (modals, dropdowns, tooltips) that render on top
+of the base screen and receive input first.
+
+```kotlin
+val layerManager = LocalLayerManager.current
+
+// Generic layer
+val dismiss = layerManager.push { dismiss ->
+    MyDropdown(onClose = dismiss)
+}
+
+// Modal (blocks input to layers below)
+layerManager.modal(
+    alignment = Alignment.Center,
+    dismissOnClickOutside = true,
+) {
+    ConfirmDialog(onConfirm = { dismiss() })
+}
+```
+
+---
+
+## Colours
+
+### `KColor`
+
+```kotlin
+val red    = KColor.RED
+val custom = KColor.ofRgb(0xFF8000)
+val semi   = KColor.ofArgb(0x80FF0000L)
+val hsv    = KColor.ofHsv(0.33f, 1f, 0.8f)
+val argb   = custom.argb    // Int: 0xAARRGGBB
+```
+
+### `HsvColor`
+
+Used with `ColorPicker`:
+
+```kotlin
+var color by remember { mutableStateOf(HsvColor.from(KColor.CYAN)) }
+ColorPicker(
+    color = color,
+    modifier = Modifier.size(180, 120),
+    onColorChanged = { color = it },
+)
+val kColor = color.toKColor()
+```
+
+---
+
+## Debug overlay
+
+Press **Ctrl + Shift** while a Compose screen is open to toggle the layout debug overlay.
+Hold **Shift** (in debug mode) to inspect individual node dimensions, coordinates, and
+any `debug(...)` modifier annotations.

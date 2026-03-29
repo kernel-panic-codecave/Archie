@@ -7,7 +7,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
-import me.shedaniel.math.Color
+import net.kernelpanicsoft.archie.serialization.serializers.ColorSerializer
+import net.kernelpanicsoft.archie.serialization.serializers.ResourceLocationSerializer
 import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KClass
 
@@ -165,7 +166,9 @@ internal sealed class FieldType<T>
 
 	data object RegistryMap : FieldType<Map<kotlin.String, ResourceLocation>>()
 	{
-		override val serializer: KSerializer<Map<kotlin.String, ResourceLocation>> = MapSerializer(kotlin.String.serializer(), ResourceLocationSerializer)
+		override val serializer: KSerializer<Map<kotlin.String, ResourceLocation>> = MapSerializer(kotlin.String.serializer(),
+			ResourceLocationSerializer
+		)
 	}
 
 	data object KeyCodeMap : FieldType<Map<kotlin.String, CommonKeyCode>>()
@@ -175,6 +178,8 @@ internal sealed class FieldType<T>
 
 	data object ColorMap : FieldType<Map<kotlin.String, me.shedaniel.math.Color>>()
 	{
-		override val serializer: KSerializer<Map<kotlin.String, me.shedaniel.math.Color>> = MapSerializer(kotlin.String.serializer(), ColorSerializer)
+		override val serializer: KSerializer<Map<kotlin.String, me.shedaniel.math.Color>> = MapSerializer(kotlin.String.serializer(),
+			ColorSerializer
+		)
 	}
 }

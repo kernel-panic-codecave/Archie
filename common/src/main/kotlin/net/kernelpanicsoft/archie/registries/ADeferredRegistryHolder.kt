@@ -8,6 +8,27 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KProperty
 
+/**
+ * A registry holder that stores every registered entry in a [Map] keyed by its [ResourceLocation],
+ * providing O(1) lookup by id string as well as property delegation via `by register(...)`.
+ *
+ * This class wraps an Architectury [DeferredRegister] and exposes the registered suppliers
+ * through the [Map] interface. Use it as a base for per-registry object singletons.
+ *
+ * **Note:** Always use `by register(...)` (delegation) rather than calling `.get()` eagerly,
+ * to avoid touching the registry before it is unfrozen.
+ *
+ * ### Example
+ * ```kotlin
+ * object MyItems : ADeferredRegistryHolder<Item>(MyMod.MOD, Registries.ITEM) {
+ *     val MY_ITEM by register("my_item") { Item(Item.Properties()) }
+ * }
+ * // In mod init:
+ * MyItems.init()
+ * ```
+ *
+ * @param T The registry entry type.
+ */
 abstract class ADeferredRegistryHolder<T> private constructor(
 	private val mod: Mod,
 	registryKey: ResourceKey<Registry<T>>,

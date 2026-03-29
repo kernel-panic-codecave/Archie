@@ -1,31 +1,22 @@
-package net.kernelpanicsoft.archie.serialization
+package net.kernelpanicsoft.archie.serialization.serializers
 
 import com.mojang.blaze3d.platform.InputConstants.Type
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.modules.SerializersModule
 import me.shedaniel.clothconfig2.api.Modifier
 import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import me.shedaniel.math.Color
-import net.minecraft.resources.ResourceLocation
 
-object ResourceLocationSerializer : KSerializer<ResourceLocation>
-{
-	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ResourceLocation", PrimitiveKind.STRING)
+/* ------------------ TypeAliases ------------------ */
 
-	override fun deserialize(decoder: Decoder): ResourceLocation
-	{
-		return ResourceLocation.parse(decoder.decodeString())
-	}
+typealias SModifierKeyCode = @Contextual ModifierKeyCode
+typealias SColor = @Contextual Color
 
-	override fun serialize(encoder: Encoder, value: ResourceLocation)
-	{
-		encoder.encodeString(value.toString())
-	}
-
-}
-typealias SerializableResourceLocation = @Serializable(with = ResourceLocationSerializer::class) ResourceLocation
+/* ------------------ Serializers ------------------ */
 
 object ModifierKeyCodeSerializer : KSerializer<ModifierKeyCode>
 {
@@ -113,4 +104,9 @@ object ColorSerializer : KSerializer<Color>
 		encoder.encodeString("#${Integer.toHexString(value.color).padStart(8, '0')}")
 	}
 
+}
+
+val BuiltInSerializersModule = SerializersModule {
+	contextual(ModifierKeyCode::class, ModifierKeyCodeSerializer)
+	contextual(Color::class, ColorSerializer)
 }

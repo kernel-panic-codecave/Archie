@@ -11,6 +11,24 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 
+/**
+ * An interface for managing NBT-backed fields on block entities, item stacks, or fluid stacks.
+ *
+ * [NBTHolder] provides a property-delegation API that serializes field values to/from a
+ * [CompoundTag] using kotlinx.serialization. Each delegated field is keyed by its Kotlin
+ * property name.
+ *
+ * ### Usage on a block entity
+ * ```kotlin
+ * class MyBlockEntity(pos, state) : NBTBlockEntity(pos, state) {
+ *     var count by nbt.intField()
+ *     var label by nbt.stringField { "default" }
+ *     val items by nbt.itemField(9)   // 9-slot inventory
+ * }
+ * ```
+ *
+ * Obtain instances via [NBTHolder.create], [NBTHolder.item], or [NBTHolder.fluid].
+ */
 @Suppress("unused")
 interface NBTHolder
 {

@@ -8,7 +8,7 @@ pluginManagement {
 		maven("https://maven.firstdarkdev.xyz/releases")
 		maven {
 			name = "kernelpanic"
-			url = uri("https://repo.kernelpanicsoft.net/maven/releases")
+			url = uri("https://maven.kernelpanicsoft.net/releases")
 		}
 		gradlePluginPortal()
 	}
