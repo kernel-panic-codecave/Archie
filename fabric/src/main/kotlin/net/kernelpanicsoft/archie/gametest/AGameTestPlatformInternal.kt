@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie.gametest
 
 import com.llamalad7.mixinextras.sugar.ref.LocalRef
+import dev.architectury.platform.Mod
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer
@@ -15,29 +16,35 @@ internal object AGameTestPlatformInternal
 	@JvmName("addEntrypoints")
 	internal fun addEntrypoints(entrypointContainers: LocalRef<MutableList<EntrypointContainer<Any?>>>)
 	{
-		if (isGameTest)
-		{
-			val result: MutableList<EntrypointContainer<Any?>> = entrypointContainers.get().toMutableList()
-			for (mod in AEvents.MODS)
-			{
-				AEvents.REGISTER_GAME_TEST.invoker()(mod)
-				for (clazz in testClasses.getOrPut(mod, ::mutableListOf))
-				{
-					result.add(object : EntrypointContainer<Any?>
-					{
-						override fun getEntrypoint(): Any?
-						{
-							return clazz.kotlin.objectInstance ?: clazz.kotlin.primaryConstructor?.call()
-						}
+		if (!isGameTest) return
 
-						override fun getProvider(): ModContainer
-						{
-							return FabricLoader.getInstance().getModContainer(mod.modId).orElse(null)
-						}
-					})
-				}
+		val result: MutableList<EntrypointContainer<Any?>> = entrypointContainers.get().toMutableList()
+		for (mod in AEvents.MODS)
+		{
+			AEvents.REGISTER_GAME_TEST.invoker()(mod)
+			for (clazz in testClasses.getOrPut(mod, ::mutableListOf))
+			{
+				result.add(createEntrypointContainer(mod, clazz))
 			}
-			entrypointContainers.set(result)
+		}
+		entrypointContainers.set(result)
+	}
+
+	private fun createEntrypointContainer(
+		mod: Mod,
+		clazz: Class<*>,
+	): EntrypointContainer<Any?> {
+		return object : EntrypointContainer<Any?>
+		{
+			override fun getEntrypoint(): Any?
+			{
+				return clazz.kotlin.objectInstance ?: clazz.kotlin.primaryConstructor?.call()
+			}
+
+			override fun getProvider(): ModContainer
+			{
+				return FabricLoader.getInstance().getModContainer(mod.modId).orElse(null)
+			}
 		}
 	}
 }

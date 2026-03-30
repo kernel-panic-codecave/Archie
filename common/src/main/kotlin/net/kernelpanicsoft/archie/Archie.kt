@@ -62,7 +62,9 @@ object Archie
 	{
 		if (Platform.isMinecraftForge())
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
+		// Register mod-scoped hooks first so downstream modules can subscribe during init.
 		AEvents += MOD
+		// Register packet handlers before any features try to send packets.
 		ArchieNetworkChannel.init()
 		BlockEntityStateManager.init()
 
@@ -72,6 +74,7 @@ object Archie
 		Config.init()
 
 
+		// Datagen and GameTest code paths are only activated in dedicated run configs.
 		if (AGameTestPlatform.isGameTest)
 			ArchieGameTest.init()
 		if (ADataGeneratorPlatform.isDataGen)

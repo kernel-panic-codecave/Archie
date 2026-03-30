@@ -204,18 +204,18 @@ object TransformationHelper
 			)
 
 			val matrix = Transformation(translation, leftRot, scale, rightRot)
-			return matrix.applyOrigin(Vector3f(origin))
+			return matrix.applyOriginLocal(Vector3f(origin))
 		}
 
-		fun Transformation.isIdentity(): Boolean
+		fun Transformation.isIdentityLocal(): Boolean
 		{
-			return this@isIdentity == Transformation.identity()
+			return this@isIdentityLocal == Transformation.identity()
 		}
 
-		fun Transformation.applyOrigin(origin: Vector3f): Transformation
+		fun Transformation.applyOriginLocal(origin: Vector3f): Transformation
 		{
-			val transform: Transformation = this@applyOrigin
-			if (transform.isIdentity()) return Transformation.identity()
+			val transform: Transformation = this@applyOriginLocal
+			if (transform.isIdentityLocal()) return Transformation.identity()
 
 			val ret = transform.matrix
 			val tmp = Matrix4f().translation(origin.x(), origin.y(), origin.z())

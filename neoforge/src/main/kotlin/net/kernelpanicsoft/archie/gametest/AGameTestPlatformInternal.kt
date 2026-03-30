@@ -12,31 +12,27 @@ internal object AGameTestPlatformInternal
 
 	@JvmStatic
 	@get:JvmName("getTestClassToMod")
-	internal val testClassToMod: Map<Class<*>, Mod> get() {
-		return buildMap {
-			testClasses.forEach { (key, value) ->
-				value.forEach {
-					put(it, key)
-				}
+	internal val testClassToMod: Map<Class<*>, Mod>
+		get() = buildMap {
+			testClasses.forEach { (mod, classes) ->
+				classes.forEach { put(it, mod) }
 			}
 		}
-	}
 
 	@JvmStatic
 	@JvmName("addEventHandlers")
 	fun addEventHandlers()
 	{
-		if (AGameTestPlatform.isGameTest)
+		if (!AGameTestPlatform.isGameTest) return
+
+		for (mod in AEvents.MODS)
 		{
-			for (mod in AEvents.MODS)
-			{
-				ModList.get().getModContainerById(mod.modId).ifPresent {
-					it.eventBus?.addListener<RegisterGameTestsEvent> { event ->
-						AEvents.REGISTER_GAME_TEST.invoker()(mod)
-						for (clazz in testClasses.getOrPut(mod, ::mutableListOf))
-						{
-							event.register(clazz)
-						}
+			ModList.get().getModContainerById(mod.modId).ifPresent {
+				it.eventBus?.addListener<RegisterGameTestsEvent> { event ->
+					AEvents.REGISTER_GAME_TEST.invoker()(mod)
+					for (clazz in testClasses.getOrPut(mod, ::mutableListOf))
+					{
+						event.register(clazz)
 					}
 				}
 			}

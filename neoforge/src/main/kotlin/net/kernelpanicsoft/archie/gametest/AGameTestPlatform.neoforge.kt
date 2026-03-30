@@ -1,9 +1,6 @@
 package net.kernelpanicsoft.archie.gametest
 
-import net.kernelpanicsoft.archie.events.AEvents
 import dev.architectury.platform.Mod
-import net.neoforged.fml.ModList
-import net.neoforged.neoforge.event.RegisterGameTestsEvent
 import net.neoforged.neoforge.gametest.GameTestHooks
 
 @Suppress("unused")

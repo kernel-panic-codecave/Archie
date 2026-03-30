@@ -146,13 +146,12 @@ open class NetworkChannel(private val id: ResourceLocation) {
     fun <T : Any> toServer(vararg packets: T) {
         require(packets.isNotEmpty()) { "You need to specify one or more packets to send" }
         packets.map {
-            @Suppress("UNCHECKED_CAST")
-            val klass = serverClasses.find { x -> x == it::class } as? KClass<T>
-                ?: throw IllegalStateException("Trying to send a packet to server but it hasn't registered the packet and its handler")
-            val index = serverClasses.indexOf(klass)
-            val bytes = SerializationManager.cbor.encodeToByteArray(klass.serializer(), it)
-
-            Payload(id.withSuffix("_client"), index, bytes)
+            createPayload(
+                packet = it,
+                classes = serverClasses,
+                payloadId = id.withSuffix("_client"),
+                missingMessage = "Trying to send a packet to server but it hasn't registered the packet and its handler",
+            )
         }.forEach { NetworkManager.sendToServer(it) }
     }
 
@@ -270,12 +269,43 @@ open class NetworkChannel(private val id: ResourceLocation) {
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any> createPayloads(packets: Array<out T>): List<Payload> {
         return packets.map {
-            val klass = clientClasses.find { x -> x == it::class } as? KClass<T>
-                ?: throw IllegalStateException("Trying to send a packet to clients but client hasn't registered the packet and its handler")
-            val index = clientClasses.indexOf(klass)
-            val bytes = SerializationManager.cbor.encodeToByteArray(klass.serializer(), it)
-            Payload(id.withSuffix("_server"), index, bytes)
+            createPayload(
+                packet = it,
+                classes = clientClasses,
+                payloadId = id.withSuffix("_server"),
+                missingMessage = "Trying to send a packet to clients but client hasn't registered the packet and its handler",
+            )
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Any> createPayload(
+        packet: T,
+        classes: List<KClass<*>>,
+        payloadId: ResourceLocation,
+        missingMessage: String,
+    ): Payload {
+        val klass = classes.find { it == packet::class } as? KClass<T>
+            ?: throw IllegalStateException(missingMessage)
+        val index = classes.indexOf(klass)
+        val bytes = SerializationManager.cbor.encodeToByteArray(klass.serializer(), packet)
+        return Payload(payloadId, index, bytes)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun decodeDispatchData(
+        payload: Payload,
+        classes: List<KClass<*>>,
+        handlers: List<PacketHandler<*>>,
+        missingClassMessage: String,
+        missingHandlerMessage: String,
+    ): Pair<Any, PacketHandler<Any>> {
+        val klass = classes.getOrNull(payload.index)
+            ?: throw NoSuchElementException(missingClassMessage)
+        val handler = handlers.getOrNull(payload.index) as? PacketHandler<Any>
+            ?: throw NoSuchElementException(missingHandlerMessage)
+        val msg = SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
+        return msg to handler
     }
 
     private fun makeClientboundPacket(vararg payloads: CustomPacketPayload): Packet<*> {
@@ -292,11 +322,13 @@ open class NetworkChannel(private val id: ResourceLocation) {
     @Suppress("UNCHECKED_CAST")
     fun register() {
         NetworkManager.registerReceiver(NetworkManager.Side.S2C, serverPacketId, PayloadCodec) { payload, ctx ->
-            val klass = clientClasses.getOrNull(payload.index)
-                ?: throw NoSuchElementException("No class was found on the clientside. Did you forget to do clientbound?")
-            val handler = clientboundHandlers.getOrNull(payload.index) as? PacketHandler<Any>
-                ?: throw NoSuchElementException("No handler was found on the clientside. Did you forget to do clientbound?")
-            val msg = SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
+            val (msg, handler) = decodeDispatchData(
+                payload = payload,
+                classes = clientClasses,
+                handlers = clientboundHandlers,
+                missingClassMessage = "No class was found on the clientside. Did you forget to do clientbound?",
+                missingHandlerMessage = "No handler was found on the clientside. Did you forget to do clientbound?",
+            )
             handler(msg, object : IPacketContext {
                 override val player: Player get() = ctx.player
                 override val registryAccess: RegistryAccess get() = ctx.registryAccess()
@@ -304,11 +336,13 @@ open class NetworkChannel(private val id: ResourceLocation) {
         }
 
         NetworkManager.registerReceiver(NetworkManager.Side.C2S, clientPacketId, PayloadCodec) { payload, ctx ->
-            val klass = serverClasses.getOrNull(payload.index)
-                ?: throw NoSuchElementException("No class was found on the serverside. Did you forget to do serverbound?")
-            val handler = serverboundHandlers.getOrNull(payload.index) as? PacketHandler<Any>
-                ?: throw NoSuchElementException("No handler was found on the serverside. Did you forget to do serverbound?")
-            val msg = SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
+            val (msg, handler) = decodeDispatchData(
+                payload = payload,
+                classes = serverClasses,
+                handlers = serverboundHandlers,
+                missingClassMessage = "No class was found on the serverside. Did you forget to do serverbound?",
+                missingHandlerMessage = "No handler was found on the serverside. Did you forget to do serverbound?",
+            )
             handler(msg, object : IPacketContext {
                 override val player: Player get() = ctx.player
                 override val registryAccess: RegistryAccess get() = ctx.registryAccess()
