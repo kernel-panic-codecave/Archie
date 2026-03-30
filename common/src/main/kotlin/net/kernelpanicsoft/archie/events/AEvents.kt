@@ -9,18 +9,27 @@ import dev.architectury.platform.Mod
 
 object AEvents
 {
+	/** Fired during datagen runs; handlers should gate by owning [Mod]. */
 	val GATHER_DATA: Event<GatherDataHandler> = EventFactory.createEventResult()
 
+	/** Fired during gametest registration runs; handlers should register test classes per [Mod]. */
 	val REGISTER_GAME_TEST: Event<RegisterGameTestHandler> = EventFactory.createEventResult()
 
-	val MODS: List<Mod> = mutableListOf()
+	private val mods: MutableList<Mod> = mutableListOf()
 
-	fun register(mod: Mod) = (MODS as MutableList<Mod>).add(mod).let {  }
+	/** Mods that opted into Archie event plumbing via `AEvents += MOD`. */
+	val MODS: List<Mod>
+		get() = mods
+
+	fun register(mod: Mod)
+	{
+		mods.add(mod)
+	}
 
 	operator fun plusAssign(mod: Mod) = register(mod)
 	
 	interface Handler<T>
-	
+
 	fun interface HandlerConstructor<T, H : Handler<T>>
 	{
 		fun create(mod: Mod, block: T.() -> Unit): H
