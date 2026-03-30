@@ -10,14 +10,13 @@ internal object ADataGeneratorPlatformInternal
 	@JvmName("addEventHandlers")
 	fun addEventHandlers()
 	{
-		if (ADataGeneratorPlatform.isDataGen)
+		if (!ADataGeneratorPlatform.isDataGen) return
+
+		for (mod in AEvents.MODS)
 		{
-			for (mod in AEvents.MODS)
-			{
-				ModList.get().getModContainerById(mod.modId).ifPresent {
-					it.eventBus?.addListener<GatherDataEvent> { event ->
-						AEvents.GATHER_DATA.invoker()(ADataGeneratorNeoForge(event, mod))
-					}
+			ModList.get().getModContainerById(mod.modId).ifPresent {
+				it.eventBus?.addListener<GatherDataEvent> { event ->
+					AEvents.GATHER_DATA.invoker()(ADataGeneratorNeoForge(event, mod))
 				}
 			}
 		}

@@ -16,38 +16,36 @@ internal object ADataGeneratorPlatformInternal
 	@JvmName("addEntrypoints")
 	internal fun addEntrypoints(dataGeneratorInitializers: LocalRef<MutableList<EntrypointContainer<DataGeneratorEntrypoint>>>)
 	{
-		if (isDataGen)
-		{
-			val result: MutableList<EntrypointContainer<DataGeneratorEntrypoint>> =
-				dataGeneratorInitializers.get().toMutableList()
-			for (mod in AEvents.MODS)
-			{
-				result.add(object : EntrypointContainer<DataGeneratorEntrypoint>
-				{
-					override fun getEntrypoint(): DataGeneratorEntrypoint
-					{
-						return object : DataGeneratorEntrypoint
-						{
-							override fun onInitializeDataGenerator(fabricDataGenerator: FabricDataGenerator)
-							{
-								AEvents.GATHER_DATA.invoker()(ADataGeneratorFabric(fabricDataGenerator, mod))
-							}
+		if (!isDataGen) return
 
-							override fun buildRegistry(registryBuilder: RegistrySetBuilder?)
-							{
-								super.buildRegistry(registryBuilder)
-							}
+		// Fabric expects datagen entrypoints; inject one per registered Archie mod.
+		val result = dataGeneratorInitializers.get().toMutableList()
+		for (mod in AEvents.MODS)
+		{
+			result.add(object : EntrypointContainer<DataGeneratorEntrypoint>
+			{
+				override fun getEntrypoint(): DataGeneratorEntrypoint
+				{
+					return object : DataGeneratorEntrypoint
+					{
+						override fun onInitializeDataGenerator(fabricDataGenerator: FabricDataGenerator)
+						{
+							AEvents.GATHER_DATA.invoker()(ADataGeneratorFabric(fabricDataGenerator, mod))
+						}
+
+						override fun buildRegistry(registryBuilder: RegistrySetBuilder?)
+						{
+							super.buildRegistry(registryBuilder)
 						}
 					}
+				}
 
-					override fun getProvider(): ModContainer
-					{
-						return FabricLoader.getInstance().getModContainer(mod.modId).orElse(null)
-					}
-
-				})
-			}
-			dataGeneratorInitializers.set(result)
+				override fun getProvider(): ModContainer
+				{
+					return FabricLoader.getInstance().getModContainer(mod.modId).orElse(null)
+				}
+			})
 		}
+		dataGeneratorInitializers.set(result)
 	}
 }
