@@ -180,7 +180,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return rootTransforms.apply(block)
 	}
 
-	private fun BlockElement.uvsByFace(face: Direction): FloatArray
+	private fun BlockElement.computeUvsByFace(face: Direction): FloatArray
 	{
 		when (face)
 		{
@@ -339,7 +339,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 
 						val faceObj = JsonObject()
 						faceObj.addProperty("texture", serializeLocOrKey(face.texture))
-						if (!face.uv.uvs.contentEquals(part.uvsByFace(dir)))
+									if (!face.uv.uvs.contentEquals(part.computeUvsByFace(dir)))
 						{
 							faceObj.add("uv", Gson().toJsonTree(face.uv.uvs))
 						}

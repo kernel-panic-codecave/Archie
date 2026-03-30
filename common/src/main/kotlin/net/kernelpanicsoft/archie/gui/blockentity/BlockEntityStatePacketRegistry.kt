@@ -76,6 +76,7 @@ object BlockEntityStatePacketRegistry {
 /**
  * Extension function to convert SerializedValue back to its original Kotlin type.
  */
+@OptIn(ExperimentalSerializationApi::class)
 internal fun BlockEntityStatePacket.SerializedValue.deserialize(serializer: KSerializer<out Any>? = null): Any? = when (this) {
     is BlockEntityStatePacket.SerializedValue.IntValue -> this.value
     is BlockEntityStatePacket.SerializedValue.StringValue -> this.value
