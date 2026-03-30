@@ -32,6 +32,8 @@ object ThemeVariants {
 data class ThemeData(
     val mode: String,
     val type: String,
+    val darkTextColor: Int,
+    val lightTextColor: Int,
     val namespace: String = Archie.MOD_ID,
 ) {
     /**
@@ -47,7 +49,7 @@ data class ThemeData(
 }
 
 /** Provides the current [ThemeData] to composables in the tree. */
-val LocalTheme = compositionLocalOf { ThemeData(ThemeVariants.DEFAULT, "java", Archie.MOD_ID) }
+val LocalTheme = compositionLocalOf { ThemeData(ThemeVariants.DEFAULT, "java", 0x404040, 0xFFFFFF, Archie.MOD_ID) }
 
 /**
  * Builds the [ResourceLocation] used to look up a composable's theme definition.
@@ -75,9 +77,11 @@ inline fun composableThemeLocation(
 fun Theme(
     mode: String = ThemeVariants.DEFAULT,
     type: String = "java",
+    darkTextColor: Int = 0x404040,
+    lightTextColor: Int = 0xFFFFFF,
     namespace: String = Archie.MOD_ID,
     content: @Composable () -> Unit,
-) = CompositionLocalProvider(LocalTheme provides ThemeData(mode, type, namespace)) { content() }
+) = CompositionLocalProvider(LocalTheme provides ThemeData(mode, type, darkTextColor, lightTextColor, namespace)) { content() }
 
 /**
  * Sets the active theme using a pre-built [ThemeData].

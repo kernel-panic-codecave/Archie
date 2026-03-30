@@ -1,7 +1,15 @@
 package net.kernelpanicsoft.archie.gui.blockentity
 
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.serializerOrNull
+import net.kernelpanicsoft.archie.serialization.Sync
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.entity.BlockEntity
+import kotlin.reflect.KClass
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 /**
  * Wraps a block entity and tracks which properties have changed since the last sync.
@@ -11,6 +19,7 @@ import net.minecraft.world.level.block.entity.BlockEntity
  *
  * @param blockEntity The block entity to monitor for changes.
  */
+@OptIn(InternalSerializationApi::class)
 class BlockEntityStateContainer(
     val blockEntity: BlockEntity,
 ) {
@@ -19,6 +28,20 @@ class BlockEntityStateContainer(
 
     /** Map of property names to their current values. */
     private val propertyValues = mutableMapOf<String, Any?>()
+
+    internal val propertySerializers = mutableMapOf<String, KSerializer<out Any>>()
+
+    init {
+        blockEntity::class.memberProperties.forEach { property ->
+            if (property.hasAnnotation<Sync>())
+            {
+                property.isAccessible = true
+                (property.returnType.classifier as KClass<out Any>).serializerOrNull()?.let { serializer ->
+                    propertySerializers[property.name] = serializer
+                }
+            }
+        }
+    }
 
     /** Set of property names that have changed since the last sync. */
     private val dirtyProperties = mutableSetOf<String>()
@@ -36,7 +59,8 @@ class BlockEntityStateContainer(
      * @param value The new value.
      * @return True if the value changed, false if it's the same as before.
      */
-    fun updateProperty(propertyName: String, value: Any?): Boolean {
+    fun <T> updateProperty(propertyName: String, value: T): Boolean {
+
         val oldValue = propertyValues[propertyName]
         val changed = oldValue != value
         if (changed) {
@@ -44,6 +68,10 @@ class BlockEntityStateContainer(
             dirtyProperties.add(propertyName)
         }
         return changed
+    }
+
+    fun <T> setPropertySerializer(propertyName: String, serializer: KSerializer<T>) {
+        propertySerializers.putIfAbsent(propertyName, serializer as KSerializer<out Any>)
     }
 
     /**
@@ -61,7 +89,7 @@ class BlockEntityStateContainer(
      * @param T The expected type of the property.
      * @return The property value cast to type T, or null if not found/wrong type.
      */
-    fun <T : Any> getProperty(propertyName: String, type: Class<T>): T? =
+    fun <T : Any> getProperty(propertyName: String, type: KClass<T>): T? =
         propertyValues[propertyName] as? T
 
     /**
@@ -73,8 +101,8 @@ class BlockEntityStateContainer(
     fun generatePacket(serverTick: Long): BlockEntityStatePacket? {
         if (dirtyProperties.isEmpty()) return null
 
-        val updates = dirtyProperties.associate { propertyName ->
-            propertyName to propertyValues[propertyName].toSerializedValue()
+        val updates = dirtyProperties.associateWith { propertyName ->
+            propertyValues[propertyName].toSerializedValue(propertySerializers[propertyName] as KSerializer<Any>)
         }
 
         return BlockEntityStatePacket(

@@ -1,5 +1,7 @@
 package net.kernelpanicsoft.archie.gui.blockentity
 
+import dev.architectury.event.events.common.TickEvent
+import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -21,6 +23,13 @@ object BlockEntityStateManager {
 
     /** Registry of players tracking each block entity, keyed by (level, pos) */
     private val trackedPlayers = ConcurrentHashMap<String, MutableSet<ServerPlayer>>()
+
+    fun init() {
+        TickEvent.SERVER_POST.register {
+            syncDirtyEntities(it.tickCount.toLong())
+        }
+
+    }
 
     /**
      * Registers a block entity for state tracking.
@@ -137,8 +146,9 @@ object BlockEntityStateManager {
      *
      * Should be replaced with actual network channel integration.
      */
-    private val DEFAULT_NETWORK_SENDER: (BlockEntityStatePacket, List<ServerPlayer>) -> Unit =
-        { _, _ -> /* No-op */ }
+    private val DEFAULT_NETWORK_SENDER: (BlockEntityStatePacket, List<ServerPlayer>) -> Unit = { packet, players ->
+        ArchieNetworkChannel.toPlayers(players, packet)
+    }
 }
 
 /**

@@ -143,7 +143,7 @@ fun ButtonCore(
                 e.consume()
             }
             .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, e ->
-                if (enabled) { pressed = true; onClick(node); e.consume() }
+                if (enabled) { pressed = true; onClick(node); e.consume(true) }
             }
             .onPointerEvent<AUINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
                 if (enabled) pressed = false

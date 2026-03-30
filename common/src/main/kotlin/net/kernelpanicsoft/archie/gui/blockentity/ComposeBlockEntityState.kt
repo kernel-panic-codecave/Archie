@@ -2,6 +2,9 @@ package net.kernelpanicsoft.archie.gui.blockentity
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.minecraft.core.BlockPos
 
 /**
@@ -17,22 +20,7 @@ class ComposeBlockEntityState(
 ) {
     /** Map of property names to their Compose state values */
     val propertyStates = mutableMapOf<String, MutableState<Any?>>()
-
-    /**
-     * Gets or creates a Compose state for a property.
-     *
-     * @param propertyName The name of the property.
-     * @param initialValue The initial value (optional, defaults to null).
-     * @return A [MutableState] that can be observed in composables.
-     */
-    fun observeProperty(
-        propertyName: String,
-        initialValue: Any? = null,
-    ): MutableState<Any?> {
-        return propertyStates.computeIfAbsent(propertyName) {
-            mutableStateOf(initialValue)
-        }
-    }
+    val propertySerializers = mutableMapOf<String, KSerializer<out Any>>()
 
     /**
      * Gets or creates a Compose state for a property with a specific type.
@@ -43,13 +31,26 @@ class ComposeBlockEntityState(
      * @return A [MutableState] of type T that can be observed in composables.
      */
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any?> observePropertyTyped(
+    fun <T> observeProperty(
         propertyName: String,
-        initialValue: T = null as T,
-    ): MutableState<T> {
+        serializer: KSerializer<T>,
+        initialValue: T? = null,
+    ): MutableState<T?> {
+        propertySerializers[propertyName] = serializer as KSerializer<out Any>
         return propertyStates.computeIfAbsent(propertyName) {
-            mutableStateOf(initialValue as Any?)
-        } as MutableState<T>
+            PropertyState(this,propertyName, mutableStateOf(initialValue as Any?))
+        } as MutableState<T?>
+    }
+
+    class PropertyState<T>(private val state: ComposeBlockEntityState, private val propertyName: String, internal val mutableState: MutableState<T>) : MutableState<T> by mutableState
+    {
+        override var value: T
+            get() = mutableState.value
+            set(value)
+            {
+                mutableState.value = value
+                state.sendUpdatedProperty(propertyName, value)
+            }
     }
 
     /**
@@ -60,13 +61,36 @@ class ComposeBlockEntityState(
      * @param propertyName The name of the property.
      * @param value The new serialized value from the network packet.
      */
+    @OptIn(ExperimentalSerializationApi::class)
     fun updateProperty(propertyName: String, value: BlockEntityStatePacket.SerializedValue) {
-        val deserializedValue = value.deserialize()
+        val deserializedValue = value.deserialize(propertySerializers[propertyName])
         val state = propertyStates.computeIfAbsent(propertyName) {
             mutableStateOf(deserializedValue)
         }
         state.value = deserializedValue
     }
+
+    /**
+     * Updates a property value and sends the change to the server.
+     *
+     * This method should be called when a client-side interaction changes a property.
+     *
+     * @param propertyName The name of the property.
+     * @param value The new value.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    fun <T> sendUpdatedProperty(propertyName: String, value: T) {
+        val serializer = propertySerializers[propertyName] ?: run {
+            println("No serializer found for property $propertyName. Cannot send update to server.")
+            return
+        }
+
+        val serializedValue = value.toSerializedValue(serializer as KSerializer<T>)
+        val packet = BlockEntityUpdatePacket.singleUpdate(pos, propertyName, serializedValue)
+        ArchieNetworkChannel.toServer(packet)
+    }
+
+
 
     /**
      * Gets the current value of a property.
@@ -107,20 +131,4 @@ class ComposeBlockEntityState(
     fun getAllProperties(): Map<String, Any?> {
         return propertyStates.mapValues { (_, state) -> state.value }
     }
-}
-
-/**
- * Extension function to deserialize network values back to Kotlin objects.
- */
-internal fun BlockEntityStatePacket.SerializedValue.deserialize(): Any? = when (this) {
-    is BlockEntityStatePacket.SerializedValue.IntValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.StringValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.BooleanValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.FloatValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.DoubleValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.LongValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.ByteValue -> this.value
-    is BlockEntityStatePacket.SerializedValue.ListValue -> this.values.map { it.deserialize() }
-    is BlockEntityStatePacket.SerializedValue.MapValue -> this.values.mapValues { it.value.deserialize() }
-    is BlockEntityStatePacket.SerializedValue.NullValue -> null
 }

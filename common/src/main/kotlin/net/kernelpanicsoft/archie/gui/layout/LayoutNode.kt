@@ -43,6 +43,8 @@ class LayoutNode(
     /** Mutable list of child [LayoutNode]s, managed by [AUINodeApplier]. */
     val children = mutableListOf<LayoutNode>()
 
+    fun findNode(name: String): LayoutNode? = children.find { it.nodeName == name } ?: children.map { it.findNode(name) }.firstOrNull()
+
     override var modifier: Modifier = Modifier
         set(value) {
             field = value
@@ -215,7 +217,7 @@ class LayoutNode(
 
         val drawChain = drawModifiers.reversed().fold(contentDrawer) { acc, mod ->
             {
-                val scope = object : net.kernelpanicsoft.archie.gui.modifiers.ContentDrawScope {
+                val scope = object : ContentDrawScope {
                     override val guiGraphics = guiGraphics
                     override val width  = this@LayoutNode.width
                     override val height = this@LayoutNode.height

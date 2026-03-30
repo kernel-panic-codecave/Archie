@@ -13,6 +13,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.OnGloballyPositionedModifier
 import net.kernelpanicsoft.archie.gui.modifiers.OnSizeChangedModifier
 import net.kernelpanicsoft.archie.gui.modifiers.height
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
+import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.size
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
@@ -185,7 +186,6 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
 @Composable
 fun PlayerSlots() {
     val data = LocalSlotData.current
-    val menu = LocalContainerMenu.current
 
     // Clear so re-layout starts fresh
     data.playerGroup.slots.clear()
@@ -204,10 +204,8 @@ fun PlayerSlots() {
                     }
                 }
             }
-            // 58px gap to match vanilla inventory layout
-            Spacer(modifier = Modifier.size(4))
             // Hotbar (1 row of 9)
-            Row {
+            Row(modifier = Modifier.padding(top = 4)) {
                 for (i in 0 until 9) {
                     PlayerSlot()
                 }

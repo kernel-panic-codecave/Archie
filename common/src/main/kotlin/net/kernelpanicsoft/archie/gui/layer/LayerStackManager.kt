@@ -4,14 +4,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateListOf
+import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
+import net.kernelpanicsoft.archie.gui.composables.modal.ConfirmDialog
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.Alignment
+import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
+import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.minecraft.network.chat.Component
 import java.util.*
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Provides the nearest [LayerStackManager] to composables inside a [net.kernelpanicsoft.archie.gui.ComposeScreen]
@@ -49,6 +56,41 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
 
     /** The ordered list of active layers. Layers are rendered bottom-to-top. */
     val layers = mutableStateListOf<Layer>()
+
+    /**
+     * Represents the total size of the screen, calculated based on the dimensions of all active layers.
+     *
+     * This property computes the maximum width and height among all the root container nodes
+     * from the layers managed by the containing class. It aggregates these dimensions by traversing
+     * the active layers and comparing their widths and heights.
+     *
+     * If a layer does not have a root container node, it is skipped in the calculation.
+     *
+     * @return A [Size] object representing the combined width and height required to encapsulate
+     * all visible layers.
+     */
+    val screenSize: Size
+        get() = layers.fold(Size(0, 0)) { acc, layer ->
+            val node = layer.rootContainerNode ?: return@fold acc
+            Size(max(node.width, acc.width), max(node.height, acc.height))
+        }
+
+    /**
+     * Represents the top-left position of the screen, calculated based on the root container
+     * nodes of all active layers within the layer stack.
+     *
+     * The result aggregates the minimum x and y coordinates across all layers. If no root
+     * container nodes are found, the default position is (0, 0).
+     *
+     * The position is determined by folding over all layers and comparing the x and y positions
+     * of their root container nodes, if present. The computation ensures that the resulting
+     * coordinates account for the smallest bounds of the visible layers in the stack.
+     */
+    val screenPos: IntCoordinates
+        get() = layers.fold(null) { acc, layer ->
+            val node = layer.rootContainerNode ?: return@fold acc
+            IntCoordinates(min(acc?.x ?: node.x,  node.x), min(acc?.y ?: node.y, node.y))
+        } ?: IntCoordinates(0, 0)
 
     /**
      * Pushes a new generic layer onto the stack.
@@ -100,6 +142,29 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         }
     }
 
+    fun confirmDialog(
+        title: Component = Component.literal("Confirm Dialog"),
+        confirmText: Component = Component.literal("Confirm"),
+        cancelText: Component = Component.literal("Cancel"),
+        onConfirm: () -> Unit = {},
+        onCancel: () -> Unit = {},
+        content: @Composable () -> Unit
+    ) {
+        modal(
+            dismissOnClickOutside = false
+        ) {
+
+            ConfirmDialog(
+                title = title,
+                confirmText = confirmText,
+                cancelText = cancelText,
+                onConfirm = onConfirm,
+                onCancel = onCancel,
+                content = content
+            )
+        }
+    }
+
     /**
      * Removes and disposes the topmost layer.
      */
@@ -139,7 +204,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
             }
         }
         Box(modifier = rootModifier, contentAlignment = alignment) {
-            Box(modifier = Modifier.onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event -> event.consume() }) {
+            RootContainer(modifier = Modifier.onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event -> event.consume() }) {
                 content()
             }
         }

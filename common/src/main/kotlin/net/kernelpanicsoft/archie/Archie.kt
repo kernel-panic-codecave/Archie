@@ -3,6 +3,7 @@ package net.kernelpanicsoft.archie
 import com.mojang.logging.LogUtils
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
+import dev.architectury.registry.ReloadListenerRegistry
 import kotlinx.serialization.Serializable
 import net.kernelpanicsoft.archie.config.CategorySpec
 import net.kernelpanicsoft.archie.config.ConfigSpec
@@ -15,6 +16,8 @@ import net.kernelpanicsoft.archie.data.internal.ArchieDatagen
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.gametest.internal.ArchieGameTest
+import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
+import net.kernelpanicsoft.archie.gui.theme.ThemeResourceListener
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.util.buildArray
@@ -23,6 +26,7 @@ import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.packs.PackType
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -60,6 +64,7 @@ object Archie
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
 		AEvents += MOD
 		ArchieNetworkChannel.init()
+		BlockEntityStateManager.init()
 
 		ABuiltinIngredients.init()
 		ABuiltinConditions.init()
@@ -76,9 +81,9 @@ object Archie
 	@JvmStatic
 	fun initClient()
 	{
-		dev.architectury.registry.ReloadListenerRegistry.register(
-			net.minecraft.server.packs.PackType.CLIENT_RESOURCES,
-			net.kernelpanicsoft.archie.gui.theme.ThemeResourceListener()
+		ReloadListenerRegistry.register(
+			PackType.CLIENT_RESOURCES,
+			ThemeResourceListener()
 		)
 	}
 

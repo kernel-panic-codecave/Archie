@@ -34,3 +34,7 @@ value class IntSize(val pair: Long) {
 
 	override fun toString(): String = "($width, $height)"
 }
+
+fun pos(x: Int, y: Int) = IntCoordinates(x, y)
+fun offset(x: Int = 0, y: Int = 0) = IntOffset(x, y)
+fun size(width: Int, height: Int) = IntSize(width, height)

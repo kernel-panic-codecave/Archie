@@ -7,6 +7,8 @@ import net.kernelpanicsoft.archie.gui.PlayerSlots
 import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.Column
+import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
+import net.kernelpanicsoft.archie.gui.layout.offset
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
@@ -40,7 +42,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.size
  */
 @Composable
 fun ContainerScreenLayout(
-    contentSpacing: Int = 14,
+    contentSpacing: Int = 0,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -61,10 +63,10 @@ fun ContainerScreenLayout(
             // Player inventory section
             Box(
                 modifier = Modifier
-                    .padding(top = contentSpacing)
+                    .padding(top = contentSpacing + 14)
                     .onGloballyPositioned { coords ->
-                    screen.inventoryLabelPos = coords
-                }
+                        screen.inventoryLabelPos = coords + offset(x = 1, y = 3)
+                    }
             ) {
                 // Player inventory slots (3×9 main inventory + 1×9 hotbar)
                 PlayerSlots()

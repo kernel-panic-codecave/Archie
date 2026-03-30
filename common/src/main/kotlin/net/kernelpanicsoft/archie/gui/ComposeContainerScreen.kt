@@ -8,13 +8,11 @@ import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
-import net.kernelpanicsoft.archie.gui.layout.Alignment
-import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
-import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import kotlinx.coroutines.*
+import net.kernelpanicsoft.archie.gui.blockentity.LocalBlockEntityState
+import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
@@ -101,9 +99,10 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
                 LocalContainerScreen provides this,
                 LocalContainerMenu provides menu,
                 LocalSlotData provides menu.slotData,
+                LocalBlockEntityState provides menu.blockEntityState,
                 LocalLayerManager provides layerManager,
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                RootContainer {
                     content()
                 }
             }
@@ -118,7 +117,7 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
      * In async mode the previous recompose job is joined before rendering, then a new
      * job is launched if there are pending frame waiters.
      */
-    open fun renderNodes(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+    open fun renderNodes(baseLayer: Boolean, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         if (asynchronous) {
             recomposeJob?.let { job ->
                 runBlocking {
@@ -131,12 +130,30 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
             clock.sendFrame(System.nanoTime())
         }
 
-        var zOffset = 0f
-        for (layer in layerManager.layers) {
+        var zOffset = if (baseLayer) 100f else 0f
+        val layers = if (!baseLayer && layerManager.layers.size > 1)
+            layerManager.layers.slice(1 until layerManager.layers.size)
+        else
+            layerManager.layers.firstOrNull()?.let { listOf(it) } ?: return
+
+        for (layer in layers) {
             val rootNode = layer.rootNode
             rootNode.measure(Constraints(maxWidth = width, maxHeight = height))
             rootNode.render(0, 0, guiGraphics, mouseX, mouseY, partialTick, zOffset)
             zOffset = rootNode.getMaxZ(zOffset) + 10.0f
+        }
+
+        layerManager.screenSize.let { (width, height) ->
+            imageWidth = width
+            imageHeight = height
+        }
+        layerManager.screenPos.let { (x, y) ->
+            if (x == 0 && y == 0)
+                return@let
+            leftPos = x
+            topPos = y
+            menu.screenLeftPos = leftPos
+            menu.screenTopPos = topPos
         }
 
         if (asynchronous and hasFrameWaiters) {
@@ -150,12 +167,27 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(guiGraphics, mouseX, mouseY, partialTick)
         renderTooltip(guiGraphics, mouseX, mouseY)
+        if (layerManager.layers.size > 1)
+        {
+            renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
+        }
+    }
+
+    override fun isHovering(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        mouseX: Double,
+        mouseY: Double
+    ): Boolean
+    {
+        if (layerManager.layers.size != 1) return false
+        return super.isHovering(x, y, width, height, mouseX, mouseY)
     }
 
     override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) {
-        menu.screenLeftPos = leftPos
-        menu.screenTopPos = topPos
-        renderNodes(guiGraphics, mouseX, mouseY, partialTick)
+        renderNodes(true, guiGraphics, mouseX, mouseY, partialTick)
     }
 
     override fun onClose() {
@@ -248,15 +280,12 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
         val topNode = getTopNode() ?: return super.keyPressed(keyCode, scanCode, modifiers)
-        val baseNode = layerManager.layers.firstOrNull()?.rootNode
-        if (baseNode != null) {
-            // CTRL + SHIFT
-            // CTRL is detected as modifier 3
-            // SHIFT is the detected key
-            if (keyCode == InputConstants.KEY_LSHIFT && modifiers == 3) baseNode.debug =
-                (!baseNode.debug)
-            if (baseNode.debug && keyCode == InputConstants.KEY_LSHIFT) baseNode.extraDebug = true
-        }
+        // CTRL + SHIFT
+        // CTRL is detected as modifier 3
+        // SHIFT is the detected key
+        if (keyCode == InputConstants.KEY_D && modifiers == 3) topNode.debug =
+            (!topNode.debug)
+        if (topNode.debug && keyCode == InputConstants.KEY_LSHIFT) topNode.extraDebug = true
 
         val event = processKeyEvent(topNode, keyCode, scanCode, modifiers)
         return event.bypassSuper || super.keyPressed(keyCode, scanCode, modifiers)

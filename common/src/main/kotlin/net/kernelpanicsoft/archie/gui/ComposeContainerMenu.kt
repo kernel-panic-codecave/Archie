@@ -4,12 +4,16 @@ import earth.terrarium.common_storage_lib.item.impl.vanilla.AbstractVanillaConta
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.CommonStorage
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
+import net.kernelpanicsoft.archie.gui.blockentity.ComposeBlockEntityState
+import net.kernelpanicsoft.archie.gui.blockentity.getOrCreateBlockEntityState
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.transfer.ArchieItemMenuSlot
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import net.kernelpanicsoft.archie.transfer.VanillaMenuSlot
 import net.kernelpanicsoft.archie.util.rem
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.Container
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
@@ -63,6 +67,11 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     var slotData: SlotData = SlotData()
         private set
 
+    var ready: Boolean = false
+        private set
+
+    val blockEntityState: ComposeBlockEntityState = getOrCreateBlockEntityState(tile.blockPos)
+
     /**
      * The screen's `leftPos` offset — set by [ComposeContainerScreen] so that absolute
      * Compose coordinates can be converted to slot-relative coordinates that vanilla's
@@ -88,6 +97,15 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
     /** The index range occupied by player-inventory slots in [slots]. */
     protected open val playerSlots: IntRange get() = slotData.slots.size until slots.size
+
+    init
+    {
+        BlockEntityStateManager.registerBlockEntity(tile)
+        if (!level.isClientSide)
+        {
+            BlockEntityStateManager.addTrackedPlayer(tile, player as ServerPlayer)
+        }
+    }
 
     // ── Slot registration ──────────────────────────────────────────────────
 
@@ -197,6 +215,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
                 }
             }
         }
+        ready = true
     }
 
     // ── Internal slot helpers ──────────────────────────────────────────────
@@ -297,6 +316,15 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     }
 
     override fun stillValid(player: Player): Boolean = true
+    override fun removed(player: Player)
+    {
+        super.removed(player)
+        BlockEntityStateManager.unregisterBlockEntity(tile)
+        if (!level.isClientSide)
+        {
+            BlockEntityStateManager.removeTrackedPlayer(tile, player as ServerPlayer)
+        }
+    }
 
     // ── Networking ─────────────────────────────────────────────────────────
 

@@ -1,6 +1,9 @@
 package net.kernelpanicsoft.archie.gui.blockentity
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SBlockPos
 import net.minecraft.core.BlockPos
 
@@ -49,13 +52,30 @@ data class BlockEntityStatePacket(
         @Serializable
         data class ByteValue(val value: Byte) : SerializedValue()
 
-        @Serializable
-        data class ListValue(val values: List<SerializedValue>) : SerializedValue()
+
+
+
 
         @Serializable
-        data class MapValue(val values: Map<String, SerializedValue>) : SerializedValue()
+        data class CBORValue(val value: ByteArray) : SerializedValue()
+        {
+	        override fun equals(other: Any?): Boolean
+	        {
+		        if (this === other) return true
+		        if (javaClass != other?.javaClass) return false
 
-        @Serializable
+		        other as CBORValue
+
+                return value.contentEquals(other.value)
+            }
+
+	        override fun hashCode(): Int
+	        {
+		        return value.contentHashCode()
+	        }
+        }
+
+	    @Serializable
         object NullValue : SerializedValue()
     }
 
@@ -79,23 +99,4 @@ data class BlockEntityStatePacket(
             timestamp = timestamp,
         )
     }
-}
-
-/**
- * Extension function to convert common Kotlin types to [BlockEntityStatePacket.SerializedValue].
- */
-fun Any?.toSerializedValue(): BlockEntityStatePacket.SerializedValue = when (this) {
-    null -> BlockEntityStatePacket.SerializedValue.NullValue
-    is Int -> BlockEntityStatePacket.SerializedValue.IntValue(this)
-    is String -> BlockEntityStatePacket.SerializedValue.StringValue(this)
-    is Boolean -> BlockEntityStatePacket.SerializedValue.BooleanValue(this)
-    is Float -> BlockEntityStatePacket.SerializedValue.FloatValue(this)
-    is Double -> BlockEntityStatePacket.SerializedValue.DoubleValue(this)
-    is Long -> BlockEntityStatePacket.SerializedValue.LongValue(this)
-    is Byte -> BlockEntityStatePacket.SerializedValue.ByteValue(this)
-    is List<*> -> BlockEntityStatePacket.SerializedValue.ListValue(this.map { it.toSerializedValue() })
-    is Map<*, *> -> BlockEntityStatePacket.SerializedValue.MapValue(
-        this.mapKeys { it.key.toString() }.mapValues { it.value.toSerializedValue() }
-    )
-    else -> BlockEntityStatePacket.SerializedValue.NullValue
 }

@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie.gui.util
 
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.Serializable
 
 /**
  * An immutable colour representation using the Hue-Saturation-Value model with an alpha channel.

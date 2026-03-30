@@ -7,6 +7,7 @@ import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.internal.AbstractPolymorphicSerializer
+import kotlinx.serialization.serializer
 import net.benwoodworth.knbt.*
 import net.minecraft.core.component.DataComponentPatch
 import net.minecraft.nbt.*
@@ -43,6 +44,15 @@ fun <T> Nbt.decodeFromNbtTagRootless(deserializer: DeserializationStrategy<T>, t
 	else
 		decodeFromNbtTag(deserializer, tag)
 }
+
+@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
+inline fun <reified T> Nbt.encodeToNbtTagRootless(value: T): NbtTag =
+	encodeToNbtTagRootless(serializersModule.serializer(), value)
+
+@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
+inline fun <reified T> Nbt.decodeFromNbtTagRootless(tag: NbtTag): T =
+	decodeFromNbtTagRootless(serializersModule.serializer(), tag)
+
 
 @OptIn(ExperimentalTypeInference::class, ExperimentalContracts::class)
 inline fun <T : NbtTag> buildListTag(

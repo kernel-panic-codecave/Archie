@@ -3,13 +3,18 @@ package net.kernelpanicsoft.archie.serialization
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import dev.architectury.fluid.FluidStack
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.item.ItemStack
+import kotlin.collections.listOf
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 /**
  * An interface for managing NBT-backed fields on block entities, item stacks, or fluid stacks.
@@ -34,6 +39,9 @@ interface NBTHolder
 {
 	fun <T> field(serializer: KSerializer<T>, default: () -> T): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 
+	fun <T> listField(serializer: KSerializer<T>, default: () -> List<T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>>
+	fun <T> mapField(serializer: KSerializer<T>, default: () -> Map<String, T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
+
 	fun itemField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 
 	fun booleanField(default: () -> Boolean = { false }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Boolean>> = field(Boolean.serializer(), default)
@@ -55,6 +63,7 @@ interface NBTHolder
 
 	fun getSyncTag(): CompoundTag
 
+	fun <T> updateProperty(propertyName: String, serializer: KSerializer<T>, value: T)
 
 	companion object
 	{
@@ -77,3 +86,5 @@ interface NBTHolder
 }
 
 inline fun <reified T> NBTHolder.field(noinline default: () -> T): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> = field(serializer<T>(), default)
+inline fun <reified T> NBTHolder.listField(noinline default: () -> List<T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>> = listField(serializer<T>(), default)
+inline fun <reified T> NBTHolder.mapField(noinline default: () -> Map<String, T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>> = mapField(serializer<T>(), default)

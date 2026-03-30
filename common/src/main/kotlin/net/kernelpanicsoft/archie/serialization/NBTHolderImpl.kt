@@ -3,7 +3,11 @@ package net.kernelpanicsoft.archie.serialization
 import net.kernelpanicsoft.archie.config.toSnakeCase
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import net.benwoodworth.knbt.NbtTag
+import net.kernelpanicsoft.archie.gui.blockentity.getStateContainer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.block.entity.BlockEntity
 import kotlin.properties.PropertyDelegateProvider
@@ -23,9 +27,17 @@ class NBTHolderImpl : NBTHolder
 		default: () -> T
 	): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 	{
+
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
+			{
 				sync += property.name.toSnakeCase()
+				if (thisRef is BlockEntity)
+				{
+					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), serializer)
+				}
+			}
+
 			val delegate = object : ReadWriteProperty<Any?, T>
 			{
 				override fun getValue(thisRef: Any?, property: KProperty<*>): T
@@ -44,6 +56,12 @@ class NBTHolderImpl : NBTHolder
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
 					data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(serializer, value)
+					if (thisRef is BlockEntity)
+					{
+						if (property.name.toSnakeCase() in sync)
+							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+						thisRef.setChanged()
+					}
 				}
 			}
 			if (property.name.toSnakeCase() !in data)
@@ -52,14 +70,116 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
+	override fun <T> listField(
+		serializer: KSerializer<T>,
+		default: () -> List<T>
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>>
+	{
+		return PropertyDelegateProvider { thisRef, property ->
+			if (property.hasAnnotation<Sync>())
+			{
+				sync += property.name.toSnakeCase()
+				if (thisRef is BlockEntity)
+				{
+					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), serializer)
+				}
+			}
+			val delegate = object : ReadWriteProperty<Any?, MutableList<T>>
+			{
+				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableList<T>
+				{
+					return ObservableList(runCatching {
+						NBT.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(property.name.toSnakeCase()) {
+							NBT.encodeToNbtTagRootless(ListSerializer(serializer), default())
+						})
+					}.recover {
+						val ret = default()
+						data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(ListSerializer(serializer), ret)
+						ret
+					}.getOrThrow().toMutableList()) { list -> setValue(thisRef, property, list) }
+				}
+
+				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableList<T>)
+				{
+					data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(ListSerializer(serializer), value)
+					if (thisRef is BlockEntity)
+					{
+						if (property.name.toSnakeCase() in sync)
+							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+						thisRef.setChanged()
+					}
+				}
+			}
+			if (property.name.toSnakeCase() !in data)
+				delegate.setValue(thisRef, property, default().toMutableList())
+			delegate
+		}
+	}
+
+	override fun <T> mapField(
+		serializer: KSerializer<T>,
+		default: () -> Map<String, T>
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
+	{
+		return PropertyDelegateProvider { thisRef, property ->
+			if (property.hasAnnotation<Sync>())
+			{
+				sync += property.name.toSnakeCase()
+				if (thisRef is BlockEntity)
+				{
+					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), serializer)
+				}
+			}
+			val delegate = object : ReadWriteProperty<Any?, MutableMap<String, T>>
+			{
+				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableMap<String, T>
+				{
+					return ObservableMap(runCatching {
+						NBT.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(property.name.toSnakeCase()) {
+							NBT.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), default())
+						})
+					}.recover {
+						val ret = default()
+						data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
+						ret
+					}.getOrThrow().toMutableMap()) { map -> setValue(thisRef, property, map) }
+				}
+
+				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableMap<String, T>)
+				{
+					data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
+					if (thisRef is BlockEntity)
+					{
+						if (property.name.toSnakeCase() in sync)
+							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+						thisRef.setChanged()
+					}
+				}
+			}
+			if (property.name.toSnakeCase() !in data)
+				delegate.setValue(thisRef, property, default().toMutableMap())
+			delegate
+		}
+	}
+
 	override fun itemField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
+			{
 				sync += property.name.toSnakeCase()
+				if (thisRef is BlockEntity)
+				{
+					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieItemStorage.serializer())
+				}
+			}
 			val onUpdate = when (thisRef)
 			{
-				is BlockEntity -> ({ thisRef.setChanged() })
+				is BlockEntity -> ({
+					if (property.name.toSnakeCase() in sync)
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), itemStorage[property.name.toSnakeCase()])
+					thisRef.setChanged()
+				})
 				else -> ({})
 			}
 			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size, onUpdate)
@@ -99,5 +219,10 @@ class NBTHolderImpl : NBTHolder
 					put(key, value)
 				}
 		}
+	}
+
+	override fun <T> updateProperty(propertyName: String, serializer: KSerializer<T>, value: T)
+	{
+		this.data[propertyName] = NBT.encodeToNbtTagRootless(serializer, value)
 	}
 }

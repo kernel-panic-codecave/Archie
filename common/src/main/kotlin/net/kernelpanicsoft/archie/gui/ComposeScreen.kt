@@ -17,6 +17,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
@@ -134,6 +135,7 @@ abstract class ComposeScreen(
             hasFrameWaiters = false
             recomposeJob = composeScope.launch { clock.sendFrame(System.nanoTime()) }
         }
+        setInitialFocus()
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {

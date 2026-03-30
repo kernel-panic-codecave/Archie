@@ -147,7 +147,7 @@ fun TextFieldCore(
                     else -> { val after = handleMovementKey(event, value, singleLine, readOnly); if (after == value) handled = false; after }
                 }
                 if (result != value) onValueChangeAndScroll(result)
-                if (handled) event.consume(true)
+                if (handled || Minecraft.getInstance().options.keyInventory.matches(event.keyCode, 0)) event.consume(true)
             }
             .onCharTyped { _, event ->
                 if (enabled && !readOnly && state.isFocused && StringUtil.isAllowedChatCharacter(event.codePoint)) {

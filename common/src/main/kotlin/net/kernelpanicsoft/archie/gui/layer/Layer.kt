@@ -27,6 +27,13 @@ class Layer(
     content: @Composable () -> Unit,
 ) {
     val rootNode = LayoutNode("Root")
+
+    val rootContainerNode by lazy { rootNode.findNode("RootContainer") }
+
+    fun findNode(name: String): LayoutNode? = rootNode.findNode(name)
+
+
+
     val composition = Composition(AUINodeApplier(rootNode), parentComposition)
 
     init {
