@@ -3,6 +3,7 @@ architectury {
 }
 
 loom {
+	log4jConfigs.from(rootProject.file("log4j-dev.xml"))
 	accessWidenerPath = file("src/main/resources/${project.properties["mod_id"]}.accesswidener")
 }
 
@@ -22,6 +23,13 @@ dependencies {
 	compileOnly(libs.kotlinx.serialization)
 	compileOnly(libs.kotlinx.serialization.json)
 	compileOnly(kotlin("reflect"))
+	implementation(libs.junit.jupiter.api)
+	testImplementation(libs.junit.jupiter.api)
+	testImplementation(libs.kotlinx.serialization)
+	testImplementation(kotlin("reflect"))
+	testRuntimeOnly(libs.junit.jupiter.engine)
+	testRuntimeOnly(libs.kotlinx.serialization)
+	testRuntimeOnly(libs.kotlinx.serialization.json)
 	api(libs.kotlinx.serialization.nbt) { isTransitive = false }
 	api(libs.kotlinx.serialization.toml) { isTransitive = false }
 	api(libs.kotlinx.serialization.json5) { isTransitive = false }
@@ -32,8 +40,9 @@ dependencies {
 	modImplementation(libs.fabric.loader)
 
     modApi(libs.rei.common)
-	modApi(libs.catalogue.common)
-	modApi(libs.clothConfig.common)
+	modCompileOnly(libs.catalogue.common)
+	modCompileOnly(libs.clothConfig.common)
+	modCompileOnly(libs.yacl.common)
 	modApi(libs.architectury.common)
 	modApi(libs.storage.common)
 	modApi(libs.storage.resources.common)
@@ -41,6 +50,52 @@ dependencies {
 
 tasks {
 	base.archivesName.set(base.archivesName.get() + "-common")
+
+	val verifyGuiSpriteAssets by registering {
+		group = "verification"
+		description = "Verifies GUI sprite metadata files have matching PNG assets."
+
+		doLast {
+			val spritesDir = file("src/main/resources/assets/archie/textures/gui/sprites")
+			if (!spritesDir.exists()) return@doLast
+
+			val missingPng = spritesDir
+				.walkTopDown()
+				.filter { it.isFile && it.name.endsWith(".png.mcmeta") }
+				.map { it to file(it.path.removeSuffix(".mcmeta")) }
+				.filter { (_, png) -> !png.exists() }
+				.map { (meta, _) -> meta.relativeTo(projectDir).invariantSeparatorsPath }
+				.toList()
+
+			if (missingPng.isNotEmpty()) {
+				val details = missingPng.joinToString(separator = "\n") { " - $it" }
+				throw GradleException(
+					"Found GUI sprite metadata files without matching PNGs:\n$details"
+				)
+			}
+		}
+	}
+
+	named("check") {
+		dependsOn(verifyGuiSpriteAssets)
+	}
+
+	jar {
+		from(sourceSets.main.get().output)
+	}
+
+	test {
+		testClassesDirs = sourceSets.test.get().output.classesDirs
+		classpath = sourceSets.test.get().runtimeClasspath
+		useJUnitPlatform()
+		filter {
+			includeTestsMatching("net.kernelpanicsoft.archie.testing.*")
+		}
+		systemProperty("archie.junit.gametest", "true")
+		systemProperty("archie.junit.gametest.matrix", "fabric:server,fabric:client,neoforge:server,neoforge:client")
+		systemProperty("archie.junit.gametest.timeoutMinutes", "20")
+		systemProperty("archie.junit.gametest.root", rootProject.rootDir.absolutePath)
+	}
 }
 
 //publishing {

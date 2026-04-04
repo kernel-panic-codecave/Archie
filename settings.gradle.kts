@@ -15,6 +15,6 @@ pluginManagement {
 //	includeBuild("plugins")
 }
 
-include("common", "fabric", "neoforge")
+include("common", "archie-test", "fabric", "neoforge")
 
 rootProject.name = "Archie"

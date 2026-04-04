@@ -23,24 +23,30 @@ configurations {
 }
 
 loom {
+	log4jConfigs.from(project(":common").loom.log4jConfigs)
 	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(project.sourceSets.main.get())
-//			sourceSet(project(":common").sourceSets.main.get())
 		}
 		create("test") {
 			sourceSet(project.sourceSets.test.get())
-//			sourceSet(project(":common").sourceSets.test.get())
 		}
 	}
 
 	runs {
 		getByName("client") {
+			name = "Minecraft Client"
 			source(sourceSets.main.get())
 			source(sourceSets.test.get())
 			vmArg("-XX:+AllowEnhancedClassRedefinition")
+		}
+		getByName("server") {
+			name = "Minecraft Server"
+			source(sourceSets.main.get())
+			source(sourceSets.test.get())
+			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		// This adds a new gradle task that runs the datagen API: "gradlew runDatagen"
 		create("datagen") {
@@ -59,6 +65,13 @@ loom {
 			server()
 			name = "Minecraft GameTest"
 			property("fabric-api.gametest")
+			property("archie.gametest.side", "server")
+		}
+		create("gametestClient") {
+			client()
+			name = "Minecraft GameTest Client"
+			property("fabric-api.gametest")
+			property("archie.gametest.side", "client")
 		}
 	}
 }
@@ -93,12 +106,19 @@ dependencies {
 	bundleRuntimeLibrary(compose.runtime)
 	modLocalRuntime(libs.rei.fabric)
 	modCompileOnlyApi(libs.modmenu)
-	modImplementation(libs.catalogue.fabric)
+	modCompileOnlyApi(libs.catalogue.fabric)
+	modLocalRuntime(libs.catalogue.fabric)
 	modLocalRuntime(libs.menulogue.fabric)
-	bundleMod(libs.clothConfig.fabric)
+	modCompileOnlyApi(libs.clothConfig.fabric)
+	modLocalRuntime(libs.clothConfig.fabric)
+	modCompileOnlyApi(libs.yacl.fabric)
+	modLocalRuntime(libs.yacl.fabric)
 	bundleMod(libs.storage.fabric)
 
-	testImplementation(project.project(":common").sourceSets.test.get().output)
+	testImplementation(project.project(":archie-test").sourceSets.main.get().output)
+	implementation(libs.junit.jupiter.api)
+	testImplementation(libs.junit.jupiter.api)
+	testRuntimeOnly(libs.junit.jupiter.engine)
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
@@ -112,15 +132,21 @@ modResources {
 tasks {
 	base.archivesName.set(base.archivesName.get() + "-fabric")
 
+	test {
+		useJUnitPlatform()
+	}
+
 	processResources {
 		from(project(":common").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}/**")
+			include("data/${project.properties["mod_id"]}/**")
+			include("archie-common.mixins.json")
 		}
 		dependsOn(processTestResources)
 	}
 
 	processTestResources {
-		from(project(":common").sourceSets.test.get().resources) {
+		from(project(":archie-test").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}_test/**")
 		}
 	}

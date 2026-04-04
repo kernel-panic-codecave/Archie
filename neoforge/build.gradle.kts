@@ -18,6 +18,11 @@ architectury {
 configurations {
 	create("common")
 	create("shadowCommon")
+	configureEach {
+		// Keep NeoForge Kotlin runtime provided by KotlinLangForge only.
+		exclude(group = "thedarkcolour", module = "kotlinforforge-neoforge")
+		exclude(group = "remapped.thedarkcolour", module = "kotlinforforge-neoforge-1d1bcbf2")
+	}
 	compileClasspath.get().extendsFrom(configurations["common"])
 	runtimeClasspath.get().extendsFrom(configurations["common"])
 	testCompileClasspath.get().extendsFrom(compileClasspath.get())
@@ -26,6 +31,7 @@ configurations {
 }
 
 loom {
+	log4jConfigs.from(project(":common").loom.log4jConfigs)
 	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
 
 	mods {
@@ -41,12 +47,20 @@ loom {
 
 	runs {
 		getByName("client") {
+			name = "Minecraft Client"
+			source(sourceSets.main.get())
+			source(sourceSets.test.get())
+			vmArgs("-XX:+AllowEnhancedClassRedefinition")
+		}
+		getByName("server") {
+			name = "Minecraft Server"
 			source(sourceSets.main.get())
 			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		create("datagen") {
 			data()
+			name = "Minecraft Datagen"
 			property("archie.datagen", "true")
 			property("archie.datagen.client", project.properties["client_datagen"] as String)
 			property("archie.datagen.server", project.properties["server_datagen"] as String)
@@ -59,6 +73,15 @@ loom {
 			name = "Minecraft GameTest"
 			property("neoforge.enableGameTest", "true")
 			property("neoforge.gameTestServer", "true")
+			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
+		}
+
+		create("gametestClient") {
+			client()
+			name = "Minecraft GameTest Client"
+			property("neoforge.enableGameTest", "true")
+			property("archie.gametest.side", "client")
+			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
 	}
 
@@ -85,25 +108,33 @@ sourceSets {
 //}
 
 dependencies {
-	compileOnly(libs.kotlin.stdlib)
 	neoForge(libs.neoforge)
 	modApi(libs.architectury.neoforge)
-	implementation(libs.kotlin.neoforge) {
-		exclude(group = "net.neoforged.fancymodloader", module = "loader")
-	}
+	implementation(libs.kotlin.neoforge)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
 	modRuntimeOnly(libs.rei.neoforge)
-	modImplementation(libs.catalogue.neoforge)
-	bundleMod(libs.clothConfig.neoforge)
+	modCompileOnlyApi(libs.catalogue.neoforge)
+	modRuntimeOnly(libs.catalogue.neoforge)
+	modCompileOnlyApi(libs.clothConfig.neoforge)
+	modRuntimeOnly(libs.clothConfig.neoforge)
+	modCompileOnlyApi(libs.yacl.neoforge)
+//	modRuntimeOnly(libs.yacl.neoforge)
+//	modRuntimeOnly(libs.quilt.parsers.json)
+//	modRuntimeOnly(libs.quilt.parsers.gson)
+//	runtimeOnly(libs.quilt.parsers.json)
+//	runtimeOnly(libs.quilt.parsers.gson)
 	bundleMod(libs.storage.neoforge) {
 		exclude(group = "curse.maven")
 	}
 
-	testImplementation(project.project(":common").sourceSets.test.get().output)
+	testImplementation(project.project(":archie-test").sourceSets.main.get().output)
+	implementation(libs.junit.jupiter.api)
+	testImplementation(libs.junit.jupiter.api)
+	testRuntimeOnly(libs.junit.jupiter.engine)
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
@@ -125,15 +156,21 @@ modResources {
 tasks {
 	base.archivesName.set(base.archivesName.get() + "-neoforge")
 
+	test {
+		useJUnitPlatform()
+	}
+
 	processResources {
 		from(project(":common").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}/**")
+			include("data/${project.properties["mod_id"]}/**")
+			include("archie-common.mixins.json")
 		}
 		dependsOn(processTestResources)
 	}
 
 	processTestResources {
-		from(project(":common").sourceSets.test.get().resources) {
+		from(project(":archie-test").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}_test/**")
 		}
 	}
@@ -156,6 +193,11 @@ tasks {
 	}
 
 	jar.get().archiveClassifier.set("dev")
+
+	jar {
+		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+		from(project(":common").sourceSets.main.get().output)
+	}
 
 	sourcesJar {
 		val commonSources = project(":common").tasks.sourcesJar
