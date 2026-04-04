@@ -7,9 +7,11 @@ import java.util.concurrent.atomic.AtomicReference
 
 object ADedicatedServerPlatformInternal {
     private val bootstrapFutureRef = AtomicReference<CompletableFuture<DedicatedServer>?>(null)
+    private val latestCapturedServerRef = AtomicReference<DedicatedServer?>(null)
 
     fun beginBootstrap(): CompletableFuture<DedicatedServer> {
         val future = CompletableFuture<DedicatedServer>()
+        latestCapturedServerRef.set(null)
         check(bootstrapFutureRef.compareAndSet(null, future)) { "Dedicated server bootstrap already in progress" }
         return future
     }
@@ -22,9 +24,12 @@ object ADedicatedServerPlatformInternal {
         bootstrapFutureRef.set(null)
     }
 
+    fun latestCapturedServer(): DedicatedServer? = latestCapturedServerRef.get()
+
     @JvmStatic
     fun captureRunningServer(server: MinecraftServer) {
         if (server is DedicatedServer) {
+            latestCapturedServerRef.set(server)
             bootstrapFutureRef.getAndSet(null)?.complete(server)
         }
     }

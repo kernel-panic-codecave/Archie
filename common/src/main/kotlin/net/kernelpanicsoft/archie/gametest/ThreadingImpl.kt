@@ -53,6 +53,10 @@ object ThreadingImpl {
     var testFailureException: Throwable? = null
         private set
 
+    @Volatile
+    private var gameCrashed: Boolean = false
+
+    @JvmStatic
     fun runTestThread(testRunner: () -> Unit) {
         check(testThread == null) { "There is already a test thread running" }
         testFailureException = null
@@ -95,12 +99,77 @@ object ThreadingImpl {
         thread.start()
     }
 
+    @JvmStatic
     fun checkOnGametestThread(methodName: String) {
         check(Thread.currentThread() === testThread) {
             "$methodName can only be called from the client gametest thread"
         }
     }
 
+    @JvmStatic
+    fun isOnGametestThread(): Boolean = Thread.currentThread() === testThread
+
+    @JvmStatic
+    fun onClientRunStart() {
+        gameCrashed = false
+        if (!clientRegistered) {
+            synchronized(this) {
+                if (!clientRegistered) {
+                    phaser.register()
+                    clientRegistered = true
+                }
+            }
+        }
+    }
+
+    @JvmStatic
+    fun onClientRunStop() {
+        clientCanAcceptTasks = false
+        serverCanAcceptTasks = false
+
+        synchronized(this) {
+            if (clientRegistered) {
+                clientRegistered = false
+                phaser.arriveAndDeregister()
+            }
+            if (serverRegistered) {
+                serverRegistered = false
+                phaser.arriveAndDeregister()
+            }
+        }
+    }
+
+    @JvmStatic
+    fun onServerRunStart() {
+        if (!serverRegistered) {
+            synchronized(this) {
+                if (!serverRegistered) {
+                    phaser.register()
+                    serverRegistered = true
+                }
+            }
+        }
+    }
+
+    @JvmStatic
+    fun onServerRunStop() {
+        serverCanAcceptTasks = false
+
+        synchronized(this) {
+            if (serverRegistered) {
+                serverRegistered = false
+                phaser.arriveAndDeregister()
+            }
+        }
+    }
+
+    @JvmStatic
+    fun setGameCrashed() {
+        gameCrashed = true
+        onClientRunStop()
+    }
+
+    @JvmStatic
     fun onClientTick() {
         if (testThread == null && !testRegistered) return
 
@@ -124,6 +193,24 @@ object ThreadingImpl {
         }
     }
 
+    @JvmStatic
+    fun preRunTasks() {
+        if (!isThreadingActive()) return
+    }
+
+    @JvmStatic
+    fun postRunTasks() {
+        if (!isThreadingActive()) return
+
+        clientCanAcceptTasks = true
+
+        while (clientSemaphore.tryAcquire()) {
+            val task = taskToRun ?: break
+            task.run()
+        }
+    }
+
+    @JvmStatic
     fun onServerTick() {
         if (testThread == null && !testRegistered) return
 
@@ -148,17 +235,26 @@ object ThreadingImpl {
     }
 
     @Suppress("unused")
+    @JvmStatic
     fun runOnClient(action: () -> Unit) {
         checkOnGametestThread("runOnClient")
+        ensureDispatchPhase()
         check(clientCanAcceptTasks) { "runOnClient called when no client is running" }
         runTaskOnOtherThread(action)
     }
 
     @Suppress("unused")
+    @JvmStatic
     fun runOnServer(action: () -> Unit) {
         checkOnGametestThread("runOnServer")
+        ensureDispatchPhase()
         check(serverCanAcceptTasks) { "runOnServer called when no server is running" }
         runTaskOnOtherThread(action, serverSemaphore)
+    }
+
+    private fun ensureDispatchPhase() {
+        // Intentionally no-op for the current client harness bridge.
+        // Dispatch relies on non-blocking client/server loop integration.
     }
 
     private fun runTaskOnOtherThread(action: () -> Unit) {
@@ -172,7 +268,14 @@ object ThreadingImpl {
         targetSemaphore.release()
 
         try {
-            testSemaphore.acquire()
+            val acquired = testSemaphore.tryAcquire(10, TimeUnit.SECONDS)
+            check(acquired) {
+                "Timed out waiting for cross-thread task completion " +
+                    "(phase=${getCurrentPhase()}, nextPhase=${getNextPhase()}, " +
+                    "clientCanAcceptTasks=$clientCanAcceptTasks, serverCanAcceptTasks=$serverCanAcceptTasks, " +
+                    "target=${if (targetSemaphore === clientSemaphore) "client" else "server"}, " +
+                    "taskPending=${taskToRun != null}, testThreadAlive=${testThread?.isAlive == true})"
+            }
         } catch (e: InterruptedException) {
             throw RuntimeException(e)
         }
@@ -244,7 +347,9 @@ object ThreadingImpl {
         error.stackTrace = joinedStackTrace as Array<StackTraceElement>
     }
 
+    @JvmStatic
     fun awaitTicks(ticks: Int, timeoutMillis: Long): Boolean {
+        if (gameCrashed) return false
         if (ticks <= 0) return true
 
         if (!testRegistered) {
@@ -286,11 +391,18 @@ object ThreadingImpl {
         while (getNextPhase() != phase) {
             phaser.arriveAndAwaitAdvance()
         }
+
+        // After aligning to the requested next phase, participate in that
+        // phase barrier as well. Without this, callers can observe the phase
+        // but not synchronize with peer threads at the same boundary.
+        phaser.arriveAndAwaitAdvance()
     }
 
     private fun advanceToNextTickPhase(): Int {
         check(PHASE_TICK == 0 && PHASE_CLIENT_TASKS == 1 && PHASE_SERVER_TASKS == 2 && PHASE_TEST == 3)
         return phaser.arrive()
     }
+
+    private fun isThreadingActive(): Boolean = testThread != null || testRegistered
 }
 

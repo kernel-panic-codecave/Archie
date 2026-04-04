@@ -1,7 +1,8 @@
-package net.kernelpanicsoft.archie.gametest.runner
+package net.kernelpanicsoft.archie.gametest.junit
 
 import java.nio.file.Path
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.appendText
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -63,7 +64,7 @@ internal object GameTestGradleExecutor {
 			start()
 		}
 
-		val finished = process.waitFor(timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS)
+		val finished = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)
 		val exitCode = if (finished) process.exitValue() else {
 			process.destroyForcibly()
 			process.waitFor()
@@ -94,7 +95,7 @@ internal object GameTestGradleExecutor {
 		val results = mutableMapOf<String, TestResult>()
 		val lines = logFile.readLines()
 		val testPattern = when (side) {
-			Side.SERVER -> Regex("""\[(GameTest|.*?)] (PASS|FAIL) (.+)""")
+			Side.SERVER -> Regex("""\[GameTest] (PASS|FAIL) (.+)""")
 			Side.CLIENT -> Regex("""\[ClientGameTest] (PASS|FAIL) (.+)""")
 		}
 
@@ -102,7 +103,7 @@ internal object GameTestGradleExecutor {
 			val match = testPattern.find(line)
 			if (match != null) {
 				val (passFailGroup, testIdGroup) = when (side) {
-					Side.SERVER -> match.groupValues[2] to match.groupValues[3]
+					Side.SERVER -> match.groupValues[1] to match.groupValues[2]
 					Side.CLIENT -> match.groupValues[1] to match.groupValues[2]
 				}
 				val testId = testIdGroup.trim()

@@ -2,7 +2,10 @@ package net.kernelpanicsoft.archie.gui.composables.containers
 
 import androidx.compose.runtime.*
 import com.mojang.math.Axis
-import kotlinx.coroutines.delay
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.Easings
+import net.kernelpanicsoft.archie.gui.animation.animateFloat
+import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.layout.*
@@ -11,10 +14,9 @@ import net.kernelpanicsoft.archie.gui.modifiers.appearance.BackgroundModifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxHeight
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
-import net.kernelpanicsoft.archie.gui.modifiers.position.MarginModifier
-import net.kernelpanicsoft.archie.gui.modifiers.position.MarginValues
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
+import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.modifiers.size
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.util.KColor
@@ -22,7 +24,9 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
-import kotlin.math.abs
+import kotlin.math.roundToInt
+
+private const val COLLAPSIBLE_VISIBILITY_EPSILON = 0.01f
 
 /**
  * A container that can be expanded or collapsed by clicking its header.
@@ -53,6 +57,10 @@ fun Collapsible(
     content: @Composable () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(initiallyExpanded) }
+    val expandProgress = animateFloat(
+        targetValue = if (expanded) 1f else 0f,
+        spec = AnimationSpec(durationMillis = 220, easing = Easings.OutCubic),
+    )
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4)) {
         Row(
@@ -68,17 +76,60 @@ fun Collapsible(
             Text(text = title.copy().withStyle(Style.EMPTY.withUnderlined(true)))
         }
 
-        if (expanded) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5)) {
-                Spacer(
-                    modifier = Modifier
-                        .then(PaddingModifier(PaddingValues(left = 5)))
-                        .size(1, 0)
-                        .fillMaxHeight()
-                        .then(BackgroundModifier(KColor.GRAY.argb, KColor.GRAY.argb))
-                )
-                Box(modifier = Modifier.then(PaddingModifier(PaddingValues(left = 5)))) {
-                    content()
+        if (expanded || expandProgress > COLLAPSIBLE_VISIBILITY_EPSILON) {
+            Layout(
+                name = "CollapsibleContent",
+                measurePolicy = { _, measurables, constraints ->
+                    if (measurables.isEmpty()) return@Layout MeasureResult(0, 0) {}
+
+                    val placeable = measurables.first().measure(
+                        constraints.copy(minHeight = 0, maxHeight = Int.MAX_VALUE),
+                    )
+                    val visibleHeight = (placeable.height * expandProgress)
+                        .roundToInt()
+                        .coerceAtLeast(0)
+
+                    MeasureResult(placeable.width, visibleHeight) {
+                        placeable.placeAt(0, 0)
+                    }
+                },
+                renderer = object : Renderer {
+                    override fun render(
+                        node: AUINode,
+                        x: Int,
+                        y: Int,
+                        guiGraphics: GuiGraphics,
+                        mouseX: Int,
+                        mouseY: Int,
+                        partialTick: Float,
+                    ) {
+                        guiGraphics.enableScissor(x, y, x + node.width, y + node.height)
+                    }
+
+                    override fun renderAfterChildren(
+                        node: AUINode,
+                        x: Int,
+                        y: Int,
+                        guiGraphics: GuiGraphics,
+                        mouseX: Int,
+                        mouseY: Int,
+                        partialTick: Float,
+                    ) {
+                        guiGraphics.disableScissor()
+                    }
+                },
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(5)) {
+                    Spacer(
+                        modifier = Modifier
+                            .then(PaddingModifier(PaddingValues(left = 5)))
+                            .size(1, 0)
+                            .fillMaxHeight()
+                            .then(BackgroundModifier(KColor.GRAY.argb, KColor.GRAY.argb))
+                    )
+                    Box(modifier = Modifier.then(PaddingModifier(PaddingValues(left = 5)))) {
+                        content()
+                    }
                 }
             }
         }
@@ -88,16 +139,10 @@ fun Collapsible(
 /** Animated arrow icon that rotates when the collapsible section opens or closes. */
 @Composable
 private fun CollapsibleArrow(isExpanded: Boolean) {
-    var rotation by remember { mutableStateOf(if (isExpanded) 90f else 0f) }
-    val target = if (isExpanded) 90f else 0f
-
-    LaunchedEffect(target) {
-        while (abs(target - rotation) > 0.1f) {
-            rotation += (target - rotation) * 0.25f
-            delay(16)
-        }
-        rotation = target
-    }
+    val rotation = animateFloat(
+        targetValue = if (isExpanded) 90f else 0f,
+        spec = AnimationSpec(durationMillis = 260, easing = Easings.OutBack),
+    )
 
     Layout(
         name = "CollapsibleArrow",

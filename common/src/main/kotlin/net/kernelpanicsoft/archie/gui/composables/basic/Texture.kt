@@ -11,29 +11,18 @@ import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.resources.ResourceLocation
 
 /**
- * Renders a sprite region from a texture atlas using UV coordinates.
+ * Renders a sprite or texture region using UV coordinates.
  *
  * The composable sizes itself to the minimum constraints provided by its parent and blits
- * the specified region from the texture at [loc] scaled to fill the node's bounds.
+ * the specified source region from [loc] into the node's bounds.
  *
- * ### Example
- * ```kotlin
- * Texture(
- *     loc = Archie["textures/gui/widgets.png"],
- *     uOffset = 0f, vOffset = 0f,
- *     u = 16, v = 16,
- *     textureWidth = 256, textureHeight = 256,
- *     modifier = Modifier.size(16, 16),
- * )
- * ```
- *
- * @param loc           Resource location of the texture file.
- * @param uOffset       Horizontal UV start offset within the texture (in texture pixels).
- * @param vOffset       Vertical UV start offset within the texture (in texture pixels).
+ * @param loc           Resource location of the texture or atlas sprite.
+ * @param uOffset       Horizontal UV start offset within the source image (in texture pixels).
+ * @param vOffset       Vertical UV start offset within the source image (in texture pixels).
  * @param u             Width of the source region in texture pixels.
  * @param v             Height of the source region in texture pixels.
- * @param textureWidth  Total width of the texture atlas in pixels.
- * @param textureHeight Total height of the texture atlas in pixels.
+ * @param textureWidth  Total width of the source image in pixels.
+ * @param textureHeight Total height of the source image in pixels.
  * @param modifier      Additional modifiers applied to the layout node.
  */
 @Composable

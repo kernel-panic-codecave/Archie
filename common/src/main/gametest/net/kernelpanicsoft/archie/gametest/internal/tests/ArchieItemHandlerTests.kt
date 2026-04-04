@@ -8,6 +8,7 @@ import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
+@Suppress("unused")
 class ArchieItemHandlerTests
 {
 	@GameTest(template = EMPTY)
@@ -40,34 +41,31 @@ class ArchieItemHandlerTests
 	}
 
 	@GameTest(template = EMPTY)
-	fun testReadSnapshotMergesByMinSlotCount(helper: GameTestHelper)
+	fun testSimulatedInsertDoesNotMutateStorage(helper: GameTestHelper)
 	{
-		val source = ArchieItemStorage(2)
-		source.get(0).set(ItemStack(Items.STONE, 4))
-		source.get(1).set(ItemStack(Items.DIAMOND, 2))
+		val storage = ArchieItemStorage(1)
+		val diamond = ItemResource.of(ItemStack(Items.DIAMOND, 1))
 
-		val target = ArchieItemStorage(1)
-		target.readSnapshot(source.createSnapshot())
+		val inserted = storage.insert(diamond, 16, true)
 
-		assertEquals(helper, Items.STONE, target.get(0).getItem().item)
-		assertEquals(helper, 4, target.get(0).getItem().count)
+		assertEquals(helper, 16L, inserted)
+		assertTrue(helper, storage.get(0).getItem().isEmpty) {
+			"Simulated insert should not mutate slot contents"
+		}
 		helper.succeed()
 	}
 
 	@GameTest(template = EMPTY)
-	fun testCreateSnapshotReadSnapshotRoundTrip(helper: GameTestHelper)
+	fun testSimulatedExtractDoesNotMutateStorage(helper: GameTestHelper)
 	{
-		val source = ArchieItemStorage(2)
-		source.get(0).set(ItemStack(Items.GOLD_INGOT, 3))
-		source.get(1).set(ItemStack(Items.IRON_INGOT, 5))
+		val storage = ArchieItemStorage(1)
+		val iron = ItemResource.of(ItemStack(Items.IRON_INGOT, 1))
+		storage.insert(iron, 7, false)
 
-		val target = ArchieItemStorage(2)
-		target.readSnapshot(source.createSnapshot())
+		val extracted = storage.extract(iron, 4, true)
 
-		assertEquals(helper, Items.GOLD_INGOT, target.get(0).getItem().item)
-		assertEquals(helper, 3, target.get(0).getItem().count)
-		assertEquals(helper, Items.IRON_INGOT, target.get(1).getItem().item)
-		assertEquals(helper, 5, target.get(1).getItem().count)
+		assertEquals(helper, 4L, extracted)
+		assertEquals(helper, 7, storage.get(0).getItem().count)
 		helper.succeed()
 	}
 }

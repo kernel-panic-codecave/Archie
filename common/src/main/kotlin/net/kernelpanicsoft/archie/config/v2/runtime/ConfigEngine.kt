@@ -1,11 +1,13 @@
 package net.kernelpanicsoft.archie.config.v2.runtime
 
+import dev.architectury.platform.Mod
 import net.kernelpanicsoft.archie.APlatform
+import net.kernelpanicsoft.archie.config.AConfigPlatform
 import net.kernelpanicsoft.archie.config.v2.builder.ConfigDocObject
 import net.kernelpanicsoft.archie.config.v2.model.ConfigDocument
-import net.kernelpanicsoft.archie.config.v2.serializer.IConfigV2Serializer
-import net.kernelpanicsoft.archie.config.v2.serializer.Json5ConfigV2Serializer
-import net.kernelpanicsoft.archie.config.v2.serializer.TomlConfigV2Serializer
+import net.kernelpanicsoft.archie.config.v2.serializer.IConfigSerializer
+import net.kernelpanicsoft.archie.config.v2.serializer.Json5ConfigSerializer
+import net.kernelpanicsoft.archie.config.v2.serializer.TomlConfigSerializer
 import net.kernelpanicsoft.archie.config.v2.ui.ConfigUiAdapterIds
 import net.kernelpanicsoft.archie.config.v2.ui.ConfigUiAdapters
 import net.minecraft.client.gui.screens.Screen
@@ -13,12 +15,12 @@ import net.minecraft.client.gui.screens.Screen
 /**
  * Runtime helper that binds a [ConfigDocument] to state and optional UI adapters.
  */
-class ConfigV2Engine(val document: ConfigDocument) {
+class ConfigEngine(val document: ConfigDocument) {
     val state: ConfigState = ConfigState(document)
 
-    val serializer: IConfigV2Serializer = when (APlatform.platform) {
-        "fabric" -> Json5ConfigV2Serializer
-        "neoforge" -> TomlConfigV2Serializer
+    val serializer: IConfigSerializer = when (APlatform.platform) {
+        "fabric" -> Json5ConfigSerializer
+        "neoforge" -> TomlConfigSerializer
         else -> throw UnsupportedOperationException("Unsupported platform: ${APlatform.platform}")
     }
 
@@ -33,13 +35,20 @@ class ConfigV2Engine(val document: ConfigDocument) {
     }
 
     companion object {
-        fun fromDsl(dsl: ConfigDocObject, load: Boolean = true): ConfigV2Engine {
-            val engine = ConfigV2Engine(dsl.document)
+        fun fromDsl(dsl: ConfigDocObject, load: Boolean = true): ConfigEngine {
+            val engine = ConfigEngine(dsl.document)
             dsl.bind(engine.state)
             if (load) {
                 engine.load()
             }
             return engine
+        }
+    }
+
+    fun registerScreenHandler(mod: Mod)
+    {
+        AConfigPlatform.registerScreenHandler(mod) {
+            buildPreferredScreen(preferred = ConfigUiAdapterIds.YACL) ?: { it }
         }
     }
 

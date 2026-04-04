@@ -7,6 +7,8 @@ import net.kernelpanicsoft.archie.gametest.AGameTestPlatform;
 import net.fabricmc.fabric.impl.gametest.FabricGameTestModInitializer;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatformInternal;
+import net.kernelpanicsoft.archie.gametest.VerboseTestReporter;
+import net.minecraft.gametest.framework.GlobalTestReporter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,13 +20,13 @@ import java.util.List;
 @Mixin(FabricGameTestModInitializer.class)
 class FabricGameTestModInitializerMixin
 {
-	@SuppressWarnings("UnresolvedLocalCapture")
 	@Inject(method = "onInitialize()V", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/fabricmc/loader/api/FabricLoader;getEntrypointContainers(Ljava/lang/String;Ljava/lang/Class;)Ljava/util/List;"), remap = false)
-	public void onInitialize(CallbackInfo ci, @Local LocalRef<List<EntrypointContainer<Object>>> entrypointContainers)
+	public void onInitialize(CallbackInfo ci, @Local(name = "entrypointContainers") LocalRef<List<EntrypointContainer<Object>>> entrypointContainers)
 	{
 		if (AGameTestPlatform.INSTANCE.isGameTest())
 		{
 			Archie.LOGGER.info("Registering GameTests");
+			GlobalTestReporter.replaceWith(VerboseTestReporter.INSTANCE);
 			AGameTestPlatformInternal.addEntrypoints(entrypointContainers);
 		}
 	}

@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.gametest.runner
+package net.kernelpanicsoft.archie.gametest.junit
 
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.ClientGameTest
@@ -8,7 +8,6 @@ import org.junit.jupiter.api.DynamicContainer
 import org.junit.jupiter.api.DynamicTest
 import java.nio.file.Path
 import java.time.Duration
-import java.util.*
 import kotlin.collections.forEach
 
 object GameTestRunner
@@ -20,7 +19,7 @@ object GameTestRunner
 
 	const val DEFAULT_MATRIX = "fabric:server,fabric:client,neoforge:server,neoforge:client"
 
-	fun tests(tests: AEvents.ArchieGameTestBuilder.() -> Unit): Collection<DynamicContainer>
+	fun tests(modID: String, tests: AEvents.ArchieGameTestBuilder.() -> Unit): Collection<DynamicContainer>
 	{
 		val enabled = System.getProperty(PROP_ENABLED)?.toBooleanStrictOrNull() == true
 		if (!enabled) {
@@ -76,19 +75,20 @@ object GameTestRunner
 				}
 				add(invocationTest)
 				AEvents.ArchieGameTestBuilder(true).apply(tests).classes.forEach { clazz ->
-					clazz.declaredMethods.forEach { method ->
+					add(DynamicContainer.dynamicContainer(clazz.simpleName, clazz.declaredMethods.flatMap { method ->
 						val hasGameTest = method.getAnnotationsByType(GameTest::class.java).isNotEmpty()
 						val hasClientGameTest = method.getAnnotationsByType(ClientGameTest::class.java).isNotEmpty()
-
+						val tests = mutableListOf<DynamicTest>()
 						if ((hasGameTest && invocation.side == Side.SERVER) || (hasClientGameTest && invocation.side == Side.CLIENT)) {
-							val displayName = "${clazz.simpleName}.${method.name}"
+							val id = "$modID:${clazz.simpleName.lowercase()}.${method.name.lowercase()}"
+							val displayName = "${method.name}"
 							val testName = "$displayName [${invocation.id}]"
 							val test = DynamicTest.dynamicTest(testName) {
 								val result = invocationResults[invocation]
 									?: error("No result recorded for invocation ${invocation.id}")
 
 								// Check if the individual test passed based on log output
-								val testResult = result.testResults[displayName]
+								val testResult = result.testResults[id]
 								if (testResult != null && !testResult.passed) {
 									val message = buildString {
 										append("GameTest failed: $testName\n")
@@ -116,9 +116,10 @@ object GameTestRunner
 									// Otherwise treat as passed if test ID wasn't found (test might not have run)
 								}
 							}
-							add(test)
+							tests.add(test)
 						}
-					}
+						tests
+					}))
 				}
 			}))
 		}

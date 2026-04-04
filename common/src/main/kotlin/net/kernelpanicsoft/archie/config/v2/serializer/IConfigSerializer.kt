@@ -5,7 +5,7 @@ import java.nio.file.Path
 import net.kernelpanicsoft.archie.config.v2.model.ConfigDocument
 import net.kernelpanicsoft.archie.config.v2.runtime.ConfigState
 
-interface IConfigV2Serializer {
+interface IConfigSerializer {
     fun configPath(document: ConfigDocument): Path
 
     fun load(document: ConfigDocument, state: ConfigState) {

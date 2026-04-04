@@ -8,7 +8,6 @@ import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
 import net.kernelpanicsoft.archie.gui.modifiers.debug
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
@@ -16,6 +15,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 
@@ -24,6 +24,7 @@ fun Checkbox(
     checked: Boolean = false,
     modifier: Modifier = Modifier,
     texture: String = "checkbox",
+    variant: String = ThemeVariants.DEFAULT,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     val theme = LocalTheme.current
@@ -31,11 +32,13 @@ fun Checkbox(
 
     CheckboxCore(
         checked,
-        (if (!composableTheme.isNinepatch) with(composableTheme.states["default"] as SimpleThemeState) {
-            Modifier.sizeIn(
-                minWidth = width,
-                minHeight = height
-            )
+        (if (!composableTheme.isNineslice) {
+            with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
+                Modifier.sizeIn(
+                    minWidth = width,
+                    minHeight = height
+                )
+            }
         } else Modifier).then(modifier),
         onCheckedChange
     ) { isHovered ->
@@ -60,7 +63,7 @@ fun Checkbox(
                             checked -> TextureStates.CLICKED
                             else -> TextureStates.DEFAULT
                         },
-                        theme.mode
+                        variant
                     )
 
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)

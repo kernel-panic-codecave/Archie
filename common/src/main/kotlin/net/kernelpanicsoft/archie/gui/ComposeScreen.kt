@@ -17,7 +17,6 @@ import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
@@ -139,19 +138,20 @@ abstract class ComposeScreen(
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        renderNodes(guiGraphics, mouseX, mouseY, partialTick)
         super.render(guiGraphics, mouseX, mouseY, partialTick)
+        renderNodes(guiGraphics, mouseX, mouseY, partialTick)
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
 
     override fun onClose() {
-        GLFW.glfwSetCursor(minecraft!!.window.window, GLFW.glfwCreateStandardCursor(GLFW.GLFW_ARROW_CURSOR))
+        GLFW.glfwSetCursor(minecraft!!.window.window, 0L)
         super.onClose()
         recomposeJob?.cancel("GUI closing")
         recomposer.close()
         snapshotHandle.dispose()
         layerManager.layers.forEach { it.dispose() }
+        AUIScopeManager.scopes -= composeScope
         composeScope.cancel()
     }
 
@@ -188,6 +188,7 @@ abstract class ComposeScreen(
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
         val top = topNode() ?: return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
+        processScrollEvent(top, mouseX, mouseY, scrollX, scrollY, PointerEventType.GLOBAL_SCROLL, global = true)
         val event = processScrollEvent(top, mouseX, mouseY, scrollX, scrollY, PointerEventType.SCROLL)
         return event.bypassSuper || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
     }

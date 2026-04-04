@@ -1,16 +1,19 @@
 package net.kernelpanicsoft.archie.gui.composables.containers
 
 import androidx.compose.runtime.*
+import net.kernelpanicsoft.archie.gui.LocalSlotClipBounds
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
+import net.kernelpanicsoft.archie.gui.modifiers.onSizeChanged
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.util.Mth
-import org.joml.Vector4f
 import org.lwjgl.glfw.GLFW
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -18,6 +21,7 @@ private const val SCROLLBAR_THICKNESS    = 4
 private const val SCROLL_SENSITIVITY     = 15.0
 private const val SCROLLBAR_FADE_DURATION_MS = 1000L
 private const val MIN_SCROLLBAR_THUMB_SIZE   = 10
+private const val SCROLL_SNAP_EPSILON = 0.1
 
 /**
  * The axis along which a [Scrollable] container scrolls its content.
@@ -104,6 +108,13 @@ fun Scrollable(
     state: ScrollableState = rememberScrollableState(),
     content: @Composable () -> Unit,
 ) {
+    var clipOrigin by remember { mutableStateOf(IntCoordinates(0, 0)) }
+    var clipSize by remember { mutableStateOf(Size(0, 0)) }
+    val clipBounds = remember(clipOrigin, clipSize) {
+        if (clipSize.width <= 0 || clipSize.height <= 0) null
+        else IntRect.fromPositionAndSize(clipOrigin, clipSize)
+    }
+
     val measurePolicy = remember(direction) {
         object : MeasurePolicy {
             override fun measure(
@@ -119,12 +130,25 @@ fun Scrollable(
                     constraints.copy(minWidth = 0, maxWidth = Int.MAX_VALUE)
 
                 val placeable = measurables.first().measure(contentConstraints)
+
+                val resolvedWidth = if (direction == ScrollDirection.HORIZONTAL) {
+                    resolveScrollableViewportAxis(placeable.width, constraints.minWidth, constraints.maxWidth)
+                } else {
+                    resolveScrollableContentAxis(placeable.width, constraints.minWidth, constraints.maxWidth)
+                }
+
+                val resolvedHeight = if (direction == ScrollDirection.VERTICAL) {
+                    resolveScrollableViewportAxis(placeable.height, constraints.minHeight, constraints.maxHeight)
+                } else {
+                    resolveScrollableContentAxis(placeable.height, constraints.minHeight, constraints.maxHeight)
+                }
+
                 state.childSize = direction.choose(placeable.width.toDouble(), placeable.height.toDouble()).toInt()
-                state.containerSize = direction.choose(constraints.maxWidth.toDouble(), constraints.maxHeight.toDouble()).toInt()
+                state.containerSize = direction.choose(resolvedWidth.toDouble(), resolvedHeight.toDouble()).toInt()
                 state.maxScroll = max(0, state.childSize - state.containerSize)
                 state.scrollOffset = state.scrollOffset.coerceIn(0.0, state.maxScroll.toDouble())
 
-                return MeasureResult(constraints.maxWidth, constraints.maxHeight) {
+                return MeasureResult(resolvedWidth, resolvedHeight) {
                     val scrollPos = state.currentScrollPosition.roundToInt()
                     if (direction == ScrollDirection.VERTICAL) placeable.placeAt(0, -scrollPos)
                     else placeable.placeAt(-scrollPos, 0)
@@ -133,16 +157,19 @@ fun Scrollable(
         }
     }
 
-    Layout(
-        name = "Scrollable",
-        measurePolicy = measurePolicy,
-        renderer = object : Renderer {
+    CompositionLocalProvider(LocalSlotClipBounds provides clipBounds) {
+        Layout(
+            name = "Scrollable",
+            measurePolicy = measurePolicy,
+            renderer = object : Renderer {
             override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                 guiGraphics.enableScissor(x, y, x + node.width, y + node.height)
             }
 
             override fun renderAfterChildren(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-                state.currentScrollPosition += (state.scrollOffset - state.currentScrollPosition) * 0.4 * partialTick
+                val lerpFactor = (0.4f * partialTick).coerceIn(0.05f, 1f).toDouble()
+                val next = state.currentScrollPosition + (state.scrollOffset - state.currentScrollPosition) * lerpFactor
+                state.currentScrollPosition = if (abs(state.scrollOffset - next) <= SCROLL_SNAP_EPSILON) state.scrollOffset else next
 
                 if (state.maxScroll > 0) {
                     val timeSinceInteract = System.currentTimeMillis() - state.lastInteractTime
@@ -170,20 +197,25 @@ fun Scrollable(
                 }
                 guiGraphics.disableScissor()
             }
-        },
-        modifier = modifier
+            },
+            modifier = modifier
+            .onGloballyPositioned { coords ->
+                clipOrigin = coords
+            }
+            .onSizeChanged { size ->
+                clipSize = size
+            }
             .onScroll<AUINode> { _, event ->
                 state.scrollBy(-event.scrollY * SCROLL_SENSITIVITY)
                 event.consume()
             }
             .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, event ->
-                val scrollbarBounds = if (direction == ScrollDirection.VERTICAL)
-                    Vector4f((node.x + node.width - SCROLLBAR_THICKNESS).toFloat(), node.y.toFloat(), (node.x + node.width).toFloat(), (node.y + node.height).toFloat())
-                else
-                    Vector4f(node.x.toFloat(), (node.y + node.height - SCROLLBAR_THICKNESS).toFloat(), (node.x + node.width).toFloat(), (node.y + node.height).toFloat())
+                val minX = if (direction == ScrollDirection.VERTICAL) node.x + node.width - SCROLLBAR_THICKNESS else node.x
+                val minY = if (direction == ScrollDirection.VERTICAL) node.y else node.y + node.height - SCROLLBAR_THICKNESS
+                val maxX = node.x + node.width
+                val maxY = node.y + node.height
 
-                if (event.mouseX >= scrollbarBounds.x && event.mouseX <= scrollbarBounds.z
-                    && event.mouseY >= scrollbarBounds.y && event.mouseY <= scrollbarBounds.w) {
+                if (event.mouseX >= minX && event.mouseX <= maxX && event.mouseY >= minY && event.mouseY <= maxY) {
                     state.isDraggingScrollbar = true
                     state.onInteraction()
                     event.consume()
@@ -197,6 +229,8 @@ fun Scrollable(
                 val thumbSize = max(MIN_SCROLLBAR_THUMB_SIZE, (trackSize.toFloat() / state.childSize * trackSize).toInt())
                 if (trackSize > thumbSize) {
                     state.scrollBy(pixelDelta * (state.maxScroll.toFloat() / (trackSize - thumbSize)))
+                    // Keep drag feedback immediate while preserving smoothing for wheel/key input.
+                    state.currentScrollPosition = state.scrollOffset
                 }
                 event.consume()
             }
@@ -213,6 +247,19 @@ fun Scrollable(
                 }
                 event.consume()
             },
-        content = content,
-    )
+            content = content,
+        )
+    }
 }
+
+internal fun resolveScrollableViewportAxis(childSize: Int, min: Int, max: Int): Int {
+    // For the scrolling axis, fill the available finite viewport so overflow can scroll.
+    if (max == Int.MAX_VALUE) return childSize.coerceAtLeast(min)
+    return max.coerceAtLeast(min)
+}
+
+internal fun resolveScrollableContentAxis(childSize: Int, min: Int, max: Int): Int {
+    if (max == Int.MAX_VALUE) return childSize.coerceAtLeast(min)
+    return childSize.coerceIn(min, max)
+}
+

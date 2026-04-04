@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.config.builder
+package net.kernelpanicsoft.archie.config.v2.builder
 
 import me.shedaniel.clothconfig2.gui.entries.DropdownBoxEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder

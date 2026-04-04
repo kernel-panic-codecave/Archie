@@ -1,23 +1,24 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.*
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.Easings
+import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
-import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
-import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
-import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
+import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
-import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
-import org.lwjgl.glfw.GLFW
 
 @Composable
 fun Button(
@@ -25,20 +26,27 @@ fun Button(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     texture: String = "button",
+    variant: String = ThemeVariants.DEFAULT,
     content: @Composable () -> Unit = {}
 ) {
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
+    val measurePolicy = remember { BoxMeasurePolicy(Alignment.Center) }
 
     ButtonCore(
         onClick,
         modifier,
         enabled
     ) { isHovered, isPressed ->
+        val pressOffset = animateInt(
+            targetValue = if (isPressed) 1 else 0,
+            spec = AnimationSpec(durationMillis = 90, easing = Easings.OutCubic),
+        )
+
         Layout(
             name = "Button",
             content = content,
-            measurePolicy = BoxMeasurePolicy(Alignment.Center),
+            measurePolicy = measurePolicy,
             renderer = object : Renderer
             {
                 override fun render(
@@ -55,13 +63,13 @@ fun Button(
                             !enabled -> TextureStates.DISABLED
                             isPressed && composableTheme.hasState(
                                 TextureStates.CLICKED,
-                                theme.mode
+                                variant
                             ) -> TextureStates.CLICKED
 
                             isHovered -> TextureStates.HOVERED
                             else -> TextureStates.DEFAULT
                         },
-                        theme.mode
+                        variant
                     )
 
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)
@@ -78,13 +86,15 @@ fun Button(
                 }
             },
             modifier = modifier.apply {
-                if (!composableTheme.isNinepatch) with(composableTheme.states["default"]!!) {
-                    sizeIn(
-                        minWidth = textureSize.width,
-                        minHeight = textureSize.height
-                    )
+                if (!composableTheme.isNineslice) {
+                    with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
+                        sizeIn(
+                            minWidth = width,
+                            minHeight = height
+                        )
+                    }
                 }
-            }
+            }.offset(x = 0, y = pressOffset)
         )
     }
 }
@@ -113,7 +123,7 @@ fun Button(
  * ```
  *
  * @param onClick  Invoked with the receiving [AUINode] when the button is pressed.
- * @param modifier Additional modifiers applied to the outer [Box].
+ * @param modifier Additional modifiers applied to the outer clickable container.
  * @param enabled  When `false`, pointer events are ignored and no cursor change occurs.
  * @param content  The button's visual content, receiving `isHovered` and `isPressed` booleans.
  */
@@ -124,33 +134,11 @@ fun ButtonCore(
     enabled: Boolean = true,
     content: @Composable (isHovered: Boolean, isPressed: Boolean) -> Unit,
 ) {
-    var hovered by remember { mutableStateOf(false) }
-    var pressed  by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .then(DebugModifier(strs = listOf("Hovered: $hovered", "Clicked: $pressed", "Enabled: $enabled")))
-            .onPointerEvent<AUINode>(PointerEventType.ENTER) { _, e ->
-                if (!enabled) return@onPointerEvent
-                hovered = true
-                GLFW.glfwSetCursor(Minecraft.getInstance().window.window, GLFW.glfwCreateStandardCursor(GLFW.GLFW_HAND_CURSOR))
-                e.consume()
-            }
-            .onPointerEvent<AUINode>(PointerEventType.EXIT) { _, e ->
-                if (!enabled) return@onPointerEvent
-                hovered = false
-                GLFW.glfwSetCursor(Minecraft.getInstance().window.window, GLFW.glfwCreateStandardCursor(GLFW.GLFW_ARROW_CURSOR))
-                e.consume()
-            }
-            .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, e ->
-                if (enabled) { pressed = true; onClick(node); e.consume(true) }
-            }
-            .onPointerEvent<AUINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
-                if (enabled) pressed = false
-            }
-            .then(modifier),
-        contentAlignment = Alignment.Center,
-    ) {
-        content(hovered, pressed)
+    Clickable(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.then(DebugModifier(strs = listOf("Enabled: $enabled"))).then(modifier),
+    ) { isHovered, isPressed ->
+        content(isHovered, isPressed)
     }
 }

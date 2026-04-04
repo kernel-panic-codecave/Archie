@@ -8,6 +8,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.SizeModifier
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
@@ -55,7 +56,7 @@ fun Text(
     text: Component,
     fontScale: Float = 1f,
     font: Font = Minecraft.getInstance().font,
-    color: Int = LocalTheme.current.lightTextColor,
+    color: KColor = LocalTheme.current.lightTextColor,
     dropShadow: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
@@ -79,10 +80,10 @@ fun Text(
                         scale(fontScale, fontScale, fontScale)
                         translate(x / fontScale, y / fontScale, 0f)
                     }
-                    guiGraphics.drawString(font, text, 0, 0, color, dropShadow)
+                    guiGraphics.drawString(font, text, 0, 0, color.rgb, dropShadow)
                     guiGraphics.pose().popPose()
                 } else {
-                    guiGraphics.drawString(font, text, x, y, color, dropShadow)
+                    guiGraphics.drawString(font, text, x, y, color.rgb, dropShadow)
                 }
                 super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }

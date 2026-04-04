@@ -29,8 +29,7 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
 
     @ModifyArgs(method = "renderSlot", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V"))
     private void archie$adjustSlotLayer(Args args, GuiGraphics guiGraphics, Slot slot) {
-        float originalZ = args.<Float>get(2);
-        float adjustedZ = originalZ;
+        float adjustedZ = args.<Float>get(2);
         archie$slotDepthOverride = null;
         if (this instanceof SlotLayerDepthProvider provider) {
             Float custom = provider.slotRenderLayerOffset(slot);

@@ -5,11 +5,16 @@
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
-    "ModMenuMixin"
+    "ModMenuMixin",
+    "lifecycle.MinecraftClientMixin",
+    "threading.MinecraftClientMixin"
   ],
   "mixins": [
     "FabricDataGenHelperMixin",
     "FabricGameTestModInitializerMixin"
+  ],
+  "server": [
+    "threading.ServerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

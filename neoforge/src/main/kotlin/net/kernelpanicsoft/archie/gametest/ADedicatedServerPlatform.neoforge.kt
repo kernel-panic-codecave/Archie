@@ -7,14 +7,10 @@ import net.minecraft.server.dedicated.DedicatedServer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Properties
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicReference
 
 actual object ADedicatedServerPlatform {
-    private val bootstrapFutureRef = AtomicReference<CompletableFuture<DedicatedServer>?>(null)
-
     private val defaultProperties: Properties = Util.make(Properties()) { props ->
         props.setProperty("online-mode", "false")
         props.setProperty("sync-chunk-writes", (Util.getPlatform() == Util.OS.WINDOWS).toString())
@@ -26,14 +22,13 @@ actual object ADedicatedServerPlatform {
         Files.createDirectories(serverDirectory)
         writeServerFiles(serverDirectory, serverProperties)
 
-        val future = CompletableFuture<DedicatedServer>()
-        check(bootstrapFutureRef.compareAndSet(null, future)) { "Dedicated server bootstrap already in progress" }
+        val future = ADedicatedServerPlatformInternal.beginBootstrap()
 
         Thread({
             try {
                 Main.main(arrayOf("--nogui", "--universe", serverDirectory.toAbsolutePath().toString(), "--world", "world"))
             } catch (t: Throwable) {
-                bootstrapFutureRef.getAndSet(null)?.completeExceptionally(t)
+                ADedicatedServerPlatformInternal.failBootstrap(t)
             }
         }, "Archie Dedicated GameTest Server Bootstrap").apply {
             isDaemon = true
@@ -43,8 +38,13 @@ actual object ADedicatedServerPlatform {
         val server = try {
             future.get(timeoutSeconds, TimeUnit.SECONDS)
         } catch (e: TimeoutException) {
-            bootstrapFutureRef.set(null)
-            throw IllegalStateException("Timed out waiting for dedicated server bootstrap", e)
+            ADedicatedServerPlatformInternal.clearBootstrap()
+            val fallbackServer = ADedicatedServerPlatformInternal.latestCapturedServer()
+            if (fallbackServer != null && fallbackServer.isRunning && fallbackServer.serverPort > 0) {
+                fallbackServer
+            } else {
+                throw IllegalStateException("Timed out waiting for dedicated server bootstrap", e)
+            }
         }
 
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
@@ -71,13 +71,6 @@ actual object ADedicatedServerPlatform {
 
         val thread = runCatching { threadMethod.invoke(serverInstance) as? Thread }.getOrNull()
         return thread?.isAlive ?: true
-    }
-
-    @JvmStatic
-    fun captureRunningServer(server: MinecraftServer) {
-        if (server is DedicatedServer) {
-            bootstrapFutureRef.getAndSet(null)?.complete(server)
-        }
     }
 
     private fun writeServerFiles(serverDirectory: Path, customProperties: Properties) {

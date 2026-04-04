@@ -13,7 +13,7 @@
   "variants": {
     "inset": {
       "default": {
-        "texture": "archie:java/surface_inset"
+        "texture": "archie:java/surface_inset_dark"
       }
     }
   }

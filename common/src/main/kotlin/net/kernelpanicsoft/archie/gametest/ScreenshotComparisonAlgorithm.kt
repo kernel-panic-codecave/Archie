@@ -1,7 +1,5 @@
 package net.kernelpanicsoft.archie.gametest
 
-import java.nio.file.Path
-
 /**
  * Comparison algorithm interface for screenshot matching.
  * Supports both exact and fuzzy matching with configurable thresholds.
@@ -209,4 +207,5 @@ data class RawImageImpl<DATA>(val width: Int, val height: Int, val data: DATA) :
     override fun height() = height
     override fun data() = data
 }
+
 

@@ -8,7 +8,7 @@ import net.neoforged.neoforge.event.RegisterGameTestsEvent
 internal object AGameTestPlatformInternal
 {
 	@JvmField
-	internal val testClasses: MutableMap<Mod, MutableList<Class<*>>> = mutableMapOf()
+	internal val testClasses: MutableMap<Mod, MutableSet<Class<*>>> = mutableMapOf()
 
 	@JvmStatic
 	@get:JvmName("getTestClassToMod")
@@ -30,7 +30,7 @@ internal object AGameTestPlatformInternal
 			ModList.get().getModContainerById(mod.modId).ifPresent {
 				it.eventBus?.addListener<RegisterGameTestsEvent> { event ->
 					AEvents.REGISTER_GAME_TEST.invoker()(mod)
-					for (clazz in testClasses.getOrPut(mod, ::mutableListOf))
+					for (clazz in testClasses.getOrPut(mod, ::mutableSetOf))
 					{
 						event.register(clazz)
 					}

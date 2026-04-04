@@ -24,7 +24,7 @@ modpublisher = "2.1.4"
 archie = "1.0.1"
 
 fabric-loader = "0.16.9"
-fabric-api = "0.110.0+1.21.1"
+fabric-api = "0.116.6+1.21.1"
 
 neoforge = "21.1.80"
 neoforge-range = "21.1.80"
@@ -37,6 +37,12 @@ cloth-config = "15.0.140"
 common-storage-lib = "0.0.5"
 cloth-config-range = "10.0"
 
+yacl-common = "3.6.1+1.21-fabric"
+yacl-neofoege = "3.6.1+1.21-neoforge"
+yacl-fabric = "3.6.1+1.21-fabric"
+quilt-parsers = "0.2.1"
+
+
 # other non-Minecraft dependencies
 knbt = "0.11.4"
 tomlkt = "0.3.7"
@@ -44,6 +50,8 @@ json5k = "0.3.0"
 shadow = "8.1.1"
 compose = "1.7.1"
 dokka-mkdocs = "0.6.1"
+junit = "5.11.4"
+junit-platform = "1.11.4"
 
 [bundles]
 # must contain all transitive deps, so they can be included in the production jar
@@ -80,6 +88,12 @@ clothConfig-common = { module = "me.shedaniel.cloth:cloth-config", version.ref =
 clothConfig-neoforge = { module = "me.shedaniel.cloth:cloth-config-neoforge", version.ref = "cloth-config"}
 clothConfig-fabric = { module = "me.shedaniel.cloth:cloth-config-fabric", version.ref = "cloth-config"}
 
+yacl-common = { module = "dev.isxander:yet-another-config-lib", version.ref = "yacl-common" }
+yacl-neoforge = { module = "dev.isxander:yet-another-config-lib", version.ref = "yacl-neofoege" }
+yacl-fabric = { module = "dev.isxander:yet-another-config-lib", version.ref = "yacl-fabric" }
+quilt-parsers-json = { module = "org.quiltmc.parsers:json", version.ref = "quilt-parsers" }
+quilt-parsers-gson = { module = "org.quiltmc.parsers:gson", version.ref = "quilt-parsers" }
+
 storage-common = { module = "earth.terrarium.common_storage_lib:common-storage-lib-common-1.21", version.ref = "common-storage-lib"}
 storage-resources-common = { module = "earth.terrarium.common_storage_lib:common-storage-lib-resources-common-1.21", version.ref = "common-storage-lib"}
 storage-neoforge = { module = "earth.terrarium.common_storage_lib:common-storage-lib-neoforge-1.21", version.ref = "common-storage-lib"}
@@ -91,6 +105,9 @@ fabric-api = { module = "net.fabricmc.fabric-api:fabric-api", version.ref = "fab
 neoforge = { module = "net.neoforged:neoforge", version.ref = "neoforge" }
 
 modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

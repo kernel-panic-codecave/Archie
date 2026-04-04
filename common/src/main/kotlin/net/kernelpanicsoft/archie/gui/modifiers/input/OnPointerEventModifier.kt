@@ -25,6 +25,8 @@ enum class PointerEventType {
     EXIT,
     /** The mouse wheel was scrolled over the node. */
     SCROLL,
+    /** The mouse wheel was scrolled anywhere on the screen. */
+    GLOBAL_SCROLL,
     /** The mouse was dragged (button held + moved) over the node. */
     DRAG,
     /** The mouse was dragged anywhere on the screen. */
@@ -81,7 +83,7 @@ fun <T : AUINode> Modifier.onScroll(
     global: Boolean = false,
     onScrollEvent: (T, ScrollEvent) -> Unit,
 ): Modifier = this then OnPointerEventModifier(
-    if (global) PointerEventType.GLOBAL_PRESS else PointerEventType.SCROLL,
+    if (global) PointerEventType.GLOBAL_SCROLL else PointerEventType.SCROLL,
     onScrollEvent as (T, PointerEvent) -> Unit,
 )
 

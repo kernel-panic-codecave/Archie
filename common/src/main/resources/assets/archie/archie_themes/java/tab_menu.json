@@ -1,16 +1,25 @@
 {
   "states": {
     "default": {
-      "texture": "archie:textures/gui/java/tab.png",
-      "texture_size": { "width": 130, "height": 96 },
-      "repeat": false,
-      "corners_size": { "width": 2, "height": 2 },
-      "center_size": { "width": 126, "height": 22 }
+      "texture": "archie:java/tab_menu",
+      "texture_size": {
+        "width": 130,
+        "height": 24
+      },
+      "width": 130,
+      "height": 24
     },
-    "hovered": { "v": 24 },
-    "clicked": { "v": 48 },
-    "clicked_and_hovered": { "v": 72 },
-    "disabled": { "v": 0 }
+    "hovered": {
+      "texture": "archie:java/tab_menu_hovered"
+    },
+    "clicked": {
+      "texture": "archie:java/tab_menu_selected"
+    },
+    "clicked_and_hovered": {
+      "texture": "archie:java/tab_menu_selected_highlighted"
+    },
+    "disabled": {
+      "texture": "archie:java/tab_menu_disabled"
+    }
   }
 }
-

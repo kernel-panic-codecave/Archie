@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.gui.layout
 
+import net.kernelpanicsoft.archie.gui.ComposeContainerScreen
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
@@ -40,13 +41,21 @@ class LayoutNode(
     override var measurePolicy: MeasurePolicy = ChildMeasurePolicy
     override var renderer: Renderer = EmptyRenderer
 
-    /** Mutable list of child [LayoutNode]s, managed by [AUINodeApplier]. */
+    /** Mutable list of child LayoutNodes managed by the Compose applier. */
     val children = mutableListOf<LayoutNode>()
+
+    var layer: Int = 0
+        get() = parent?.layer ?: field
+        set(value) = parent?.let { it.layer = value } ?: run { field = value }
+
+    private var childrenAscendingZCache: List<LayoutNode>? = null
+    private var childrenDescendingZCache: List<LayoutNode>? = null
 
     fun findNode(name: String): LayoutNode? = children.find { it.nodeName == name } ?: children.map { it.findNode(name) }.firstOrNull()
 
     override var modifier: Modifier = Modifier
         set(value) {
+            val previousZ = zIndex
             field = value
             // Rebuild processed-modifier map (merged by type)
             processedModifier = modifier.foldIn(mutableMapOf()) { acc, element ->
@@ -61,6 +70,10 @@ class LayoutNode(
             layoutChangingModifiers = modifier.foldIn(mutableListOf()) { acc, element ->
                 if (element is LayoutChangingModifier) acc.add(element)
                 acc
+            }
+
+            if (previousZ != zIndex) {
+                parent?.invalidateChildrenZCache()
             }
         }
 
@@ -90,10 +103,32 @@ class LayoutNode(
     /** The effective z-index for this node, used for draw and input ordering. */
     val zIndex: Float get() = get<ZIndexModifier>()?.zIndex ?: 0f
 
+    val effectiveZ: Float get() = effectiveZ(ComposeContainerScreen.layerBaseZ(layer))
+
     /** Computes the maximum effective z-depth in this subtree, adding [layerOffset]. */
     fun getMaxZ(layerOffset: Float): Float {
         val myZ = effectiveZ(layerOffset)
         return maxOf(myZ, children.maxOfOrNull { it.getMaxZ(layerOffset) } ?: myZ)
+    }
+
+    internal fun invalidateChildrenZCache() {
+        childrenAscendingZCache = null
+        childrenDescendingZCache = null
+    }
+
+    internal fun childrenAscendingZ(): List<LayoutNode> {
+        val cached = childrenAscendingZCache
+        if (cached != null) return cached
+        return children.sortedBy { it.zIndex }.also { sorted ->
+            childrenAscendingZCache = sorted
+            childrenDescendingZCache = sorted.asReversed()
+        }
+    }
+
+    internal fun childrenDescendingZ(): List<LayoutNode> {
+        val cached = childrenDescendingZCache
+        if (cached != null) return cached
+        return children.sortedByDescending { it.zIndex }.also { childrenDescendingZCache = it }
     }
 
     private fun effectiveZ(layerOffset: Float): Float =
@@ -188,6 +223,7 @@ class LayoutNode(
     fun render(x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float, zOffset: Float) {
         if (parent == null) {
             guiGraphics.pose().pushPose()
+            guiGraphics.pose().translate(0.0, 0.0, zOffset.toDouble())
             renderRecursive(x, y, guiGraphics, mouseX, mouseY, partialTick, zOffset)
 
             if (rootNode.debug) {
@@ -211,7 +247,7 @@ class LayoutNode(
         // Build the draw chain from innermost (content) outward through DrawModifiers
         val contentDrawer: () -> Unit = {
             renderer.render(this, dx, dy, guiGraphics, mouseX, mouseY, partialTick)
-            children.sortedBy { it.zIndex }.forEach { it.renderRecursive(dx, dy, guiGraphics, mouseX, mouseY, partialTick, zOffset) }
+            childrenAscendingZ().forEach { it.renderRecursive(dx, dy, guiGraphics, mouseX, mouseY, partialTick, zOffset) }
             renderer.renderAfterChildren(this, dx, dy, guiGraphics, mouseX, mouseY, partialTick)
         }
 
@@ -275,8 +311,8 @@ class LayoutNode(
         val debugLines: List<List<Component>> = buildList {
             add(listOf(Component.literal(nodeName)))
             add(listOf(
-                Component.literal("X:").apply { append(Component.literal("$dx").withColor(0x00FFFF)); append(", Y:"); append(Component.literal("$dy").withColor(0x32CD32)) },
-                Component.literal("W:").apply { append(Component.literal("$width").withColor(0xFFA500)); append(", H:"); append(Component.literal("$height").withColor(0x87CEEB)) },
+                Component.literal("X:").apply { append(Component.literal("$dx").withColor(0x00FFFF)); append(", Y:"); append(Component.literal("$dy").withColor(0x32CD32)); append(", Z:"); append(Component.literal("$effectiveZ").withColor(0xFF66FF)) },
+                Component.literal("W:").apply { append(Component.literal("$width").withColor(0xFFA500)); append(", H:"); append(Component.literal("$height").withColor(0x87CEEB)); append(", L:"); append(Component.literal("$layer").withColor(0x87CEEB)) },
             ))
             if (extraDebug) {
                 val mods = mutableListOf<Component>()

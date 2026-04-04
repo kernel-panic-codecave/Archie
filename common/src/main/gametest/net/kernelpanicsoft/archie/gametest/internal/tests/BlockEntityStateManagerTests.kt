@@ -9,6 +9,7 @@ import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.ChestBlockEntity
 
+@Suppress("unused")
 class BlockEntityStateManagerTests
 {
 	@GameTest(template = EMPTY)

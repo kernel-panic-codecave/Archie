@@ -18,8 +18,6 @@ displayURL = "${mod_url}"
 [[mixins]]
 config = "archie.mixins.json"
 
-#[[mixins]]
-#config = "archie-common.mixins.json"
 
 [[dependencies."${mod_id}"]]
 modId = "neoforge"
@@ -44,8 +42,15 @@ side = "BOTH"
 
 [[dependencies."${mod_id}"]]
 modId = "cloth_config"
-type = "required"
+type = "optional"
 versionRange = "[${versions.cloth_config_range},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "yet_another_config_lib_v3"
+type = "optional"
+versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
 

@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.config.builder
+package net.kernelpanicsoft.archie.config.v2.builder
 
 import net.kernelpanicsoft.archie.util.MutableEntry
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder

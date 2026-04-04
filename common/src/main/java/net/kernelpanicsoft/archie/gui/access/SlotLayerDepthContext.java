@@ -1,36 +1,52 @@
 package net.kernelpanicsoft.archie.gui.access;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import net.kernelpanicsoft.archie.Archie;
+
 /**
  * Tracks when slot rendering overrides the default GUI depth so downstream
  * render calls (like GuiGraphics#renderItem) can adjust their transforms.
  */
 public final class SlotLayerDepthContext
 {
-    private static final ThreadLocal<Integer> ACTIVE = ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Deque<Float>> DEPTHS = ThreadLocal.withInitial(ArrayDeque::new);
 
     private SlotLayerDepthContext()
     {
     }
 
-    public static void push()
+    public static void push(float depth)
     {
-        ACTIVE.set(ACTIVE.get() + 1);
+        Deque<Float> depths = DEPTHS.get();
+        depths.push(depth);
+        Archie.LOGGER.debug("Slot depth push -> {} (stack size={})", depth, depths.size());
     }
 
     public static void pop()
     {
-        int current = ACTIVE.get();
-        if (current <= 1)
+        Deque<Float> depths = DEPTHS.get();
+        if (depths.isEmpty())
         {
-            ACTIVE.remove();
+            DEPTHS.remove();
             return;
         }
-        ACTIVE.set(current - 1);
+        Float removed = depths.pop();
+        Archie.LOGGER.debug("Slot depth pop -> {} (remaining={})", removed, depths.size());
+        if (depths.isEmpty())
+        {
+            DEPTHS.remove();
+        }
     }
 
     public static boolean isActive()
     {
-        return ACTIVE.get() > 0;
+        Deque<Float> depths = DEPTHS.get();
+        return !depths.isEmpty();
+    }
+
+    public static Float currentDepth()
+    {
+        return DEPTHS.get().peek();
     }
 }
-

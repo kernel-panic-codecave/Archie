@@ -56,15 +56,24 @@ private data class RowMeasurePolicy(
     private val verticalAlignment: Alignment.Vertical,
 ) : RowColumnMeasurePolicy(sumWidth = true, arrangementSpacing = horizontalArrangement.spacing) {
     override fun placeChildren(scope: MeasureScope, measurables: List<Measurable>, placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
-        val positions = IntArray(placeables.size)
-        horizontalArrangement.arrange(totalSize = width, sizes = placeables.map { it.width }.toIntArray(), layoutDirection = LayoutDirection.Ltr, outPositions = positions)
+		val childCount = placeables.size
+		val positions = IntArray(childCount)
+		val sizes = IntArray(childCount)
+		for (index in 0 until childCount) {
+			sizes[index] = placeables[index].width
+		}
+
+		horizontalArrangement.arrange(totalSize = width, sizes = sizes, layoutDirection = LayoutDirection.Ltr, outPositions = positions)
+
         return MeasureResult(width, height) {
             val inset = (scope as? LayoutNode)?.get<PaddingModifier>()?.padding
                 ?: PaddingValues()
             var accumulatedOutset = 0
-            placeables.forEachIndexed { i, child ->
-                child.placeAt(positions[i] + accumulatedOutset + inset.left, verticalAlignment.align(child.height, height) + inset.top)
-                (measurables[i] as? LayoutNode)?.get<MarginModifier>()?.let { accumulatedOutset += it.horizontal }
+
+			for (index in 0 until childCount) {
+				val child = placeables[index]
+				child.placeAt(positions[index] + accumulatedOutset + inset.left, verticalAlignment.align(child.height, height) + inset.top)
+				(measurables[index] as? LayoutNode)?.get<MarginModifier>()?.let { accumulatedOutset += it.horizontal }
             }
         }
     }

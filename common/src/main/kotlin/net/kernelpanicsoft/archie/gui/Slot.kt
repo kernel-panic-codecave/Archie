@@ -2,42 +2,36 @@ package net.kernelpanicsoft.archie.gui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import kotlinx.serialization.Serializable
-import net.kernelpanicsoft.archie.Archie
-import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.layer.LocalLayerDepth
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.OnGloballyPositionedModifier
-import net.kernelpanicsoft.archie.gui.modifiers.OnSizeChangedModifier
-import net.kernelpanicsoft.archie.gui.modifiers.height
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
-import net.kernelpanicsoft.archie.gui.modifiers.size
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.NinePatchThemeState
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
-import net.kernelpanicsoft.archie.gui.util.extension.ninePatchTexture
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.resources.ResourceLocation
 
 /**
  * Per-slot-group layout data reported back from the Compose layout to [ComposeContainerMenu].
  *
- * @property x      Absolute screen x of the group's top-left corner (set by [Slots]).
- * @property y      Absolute screen y of the group's top-left corner (set by [Slots]).
- * @property width  Number of slot columns in this group.
- * @property height Number of slot rows in this group.
- * @property slots  Absolute screen coordinates of each rendered [Slot] within this group.
+ * Stores the group's absolute screen position, dimensions, slot positions, and clip bounds.
  */
 @Serializable
 data class SlotGroup(
     var pos: IntCoordinates = IntCoordinates(0, 0),
     var size: IntSize = IntSize(0, 0),
+    var enabled: Boolean = true,
+    var layerDepth: Int = 0,
     var slots: MutableSet<IntCoordinates> = mutableSetOf(),
+    var clip: IntRect? = null,
 )
 
 /**
@@ -52,7 +46,7 @@ data class SlotData(
     val playerGroup: SlotGroup = SlotGroup(size = IntSize(9, 3)),
 ) {
     /** All slot coordinates across all groups (does not include [playerGroup]). */
-    val slots: Set<IntCoordinates> get() = groups.values.flatMap { it.slots }.toSet()
+    val slots: Set<IntCoordinates> get() = groups.values.filter { it.enabled }.flatMap { it.slots }.toSet()
 }
 
 /** Provides the [SlotData] to all composables within a [ComposeContainerScreen]. */
@@ -60,6 +54,9 @@ val LocalSlotData = compositionLocalOf { SlotData() }
 
 /** Provides the current [SlotGroup] to [Slot] composables inside a [Slots] container. */
 val LocalSlotGroup = compositionLocalOf { SlotGroup() }
+
+/** Provides the active clip bounds (if any) applied by ancestor scroll/clip containers. */
+val LocalSlotClipBounds = compositionLocalOf<IntRect?> { null }
 
 /**
  * Defines a named region of inventory slots within a [ComposeContainerScreen].
@@ -81,11 +78,9 @@ fun Slots(
     height: Int,
     content: @Composable () -> Unit = {
         Column {
-            for (i in 0 until height)
-            {
+            repeat(height) {
                 Row {
-                    for (j in 0 until width)
-                    {
+                    repeat(width) {
                         Slot()
                     }
                 }
@@ -93,9 +88,22 @@ fun Slots(
         }
     },
 ): SlotGroup {
-    val group = SlotGroup(size = IntSize(width = width, height = height))
+    val layerDepth = LocalLayerDepth.current
+    val clipBounds = LocalSlotClipBounds.current
+    val group = remember(id) { SlotGroup(size = IntSize(width = width, height = height)) }
+    group.size = IntSize(width = width, height = height)
+    group.layerDepth = layerDepth
     val data = LocalSlotData.current
     data.groups[id] = group
+    group.clip = clipBounds
+
+    DisposableEffect(data, id, group) {
+        data.groups[id] = group
+        group.enabled = true
+        onDispose {
+            group.enabled = false
+        }
+    }
 
     // Clear slots so re-layout starts fresh each composition pass
     group.slots.clear()
@@ -103,6 +111,8 @@ fun Slots(
     Box(
         modifier = Modifier.onGloballyPositioned { coords ->
             group.pos = coords
+            group.layerDepth = layerDepth
+            group.clip = clipBounds
             data.groups[id] = group
         }
     ) {
@@ -128,7 +138,7 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
     val menu  = LocalContainerMenu.current
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
-    val state = composableTheme.getState(TextureStates.DEFAULT, theme.mode)
+    val state = composableTheme.getState(TextureStates.DEFAULT, ThemeVariants.DEFAULT)
 
     Layout(
         name = "Slot",
@@ -136,33 +146,11 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },
         renderer = object : Renderer {
-//            private val SLOT = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, "textures/gui/slot.png")
             override fun render(
                 node: AUINode, x: Int, y: Int,
                 guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
-//                guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
-                if (composableTheme.isNinepatch) return guiGraphics.ninePatchTexture(
-                    x,
-                    y,
-                    node.width,
-                    node.height,
-                    state as NinePatchThemeState
-                )
-
-                guiGraphics.blit(
-                    (state as SimpleThemeState).texture,
-                    x,
-                    y,
-                    state.width,
-                    state.height,
-                    state.u.toFloat(),
-                    state.v.toFloat(),
-                    state.textureSize.width,
-                    state.textureSize.height,
-                    state.uWidth,
-                    state.vHeight
-                )
+                guiGraphics.drawThemeState(state, x, y, node.width, node.height)
 
                 super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }
@@ -186,6 +174,10 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
 @Composable
 fun PlayerSlots() {
     val data = LocalSlotData.current
+    val layerDepth = LocalLayerDepth.current
+    val clipBounds = LocalSlotClipBounds.current
+    data.playerGroup.layerDepth = layerDepth
+    data.playerGroup.clip = clipBounds
 
     // Clear so re-layout starts fresh
     data.playerGroup.slots.clear()
@@ -193,22 +185,22 @@ fun PlayerSlots() {
     Box(
         modifier = Modifier.onGloballyPositioned { coords ->
             data.playerGroup.pos = coords
+            data.playerGroup.layerDepth = layerDepth
+            data.playerGroup.clip = clipBounds
         }
     ) {
         Column {
             // 3 rows of 9 (main inventory)
-            for (i in 0 until 3) {
+            repeat(3) {
                 Row {
-                    for (j in 0 until 9) {
+                    repeat(9) {
                         PlayerSlot()
                     }
                 }
             }
             // Hotbar (1 row of 9)
             Row(modifier = Modifier.padding(top = 4)) {
-                for (i in 0 until 9) {
-                    PlayerSlot()
-                }
+                repeat(9) { PlayerSlot() }
             }
         }
     }
@@ -221,40 +213,18 @@ private fun PlayerSlot(texture: String = "slot", modifier: Modifier = Modifier) 
     val menu = LocalContainerMenu.current
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
-    val state = composableTheme.getState(TextureStates.DEFAULT, theme.mode)
+    val state = composableTheme.getState(TextureStates.DEFAULT, ThemeVariants.DEFAULT)
     Layout(
         name = "PlayerSlot",
         measurePolicy = { _, _, constraints ->
             MeasureResult(constraints.minWidth, constraints.minHeight) {}
         },
         renderer = object : Renderer {
-//            private val SLOT = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, "textures/gui/slot.png")
             override fun render(
                 node: AUINode, x: Int, y: Int,
                 guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
-//                guiGraphics.blit(SLOT, x, y, 18, 18, 0f, 0f, 18, 18, 18, 18)
-                if (composableTheme.isNinepatch) return guiGraphics.ninePatchTexture(
-                    x,
-                    y,
-                    node.width,
-                    node.height,
-                    state as NinePatchThemeState
-                )
-
-                guiGraphics.blit(
-                    (state as SimpleThemeState).texture,
-                    x,
-                    y,
-                    state.width,
-                    state.height,
-                    state.u.toFloat(),
-                    state.v.toFloat(),
-                    state.textureSize.width,
-                    state.textureSize.height,
-                    state.uWidth,
-                    state.vHeight
-                )
+                guiGraphics.drawThemeState(state, x, y, node.width, node.height)
 
                 super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }

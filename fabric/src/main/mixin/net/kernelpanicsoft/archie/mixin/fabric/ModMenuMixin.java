@@ -24,6 +24,6 @@ public class ModMenuMixin
 	public void onInitializeClient(CallbackInfo ci)
 	{
 		AConfigPlatformInternal.screenHandlers.forEach((key, value) ->
-				configScreenFactories.put(key.getModId(), (screen) -> value.invoke().setParentScreen(screen).build()));
+				configScreenFactories.put(key.getModId(), (screen) -> value.invoke().invoke(screen)));
 	}
 }

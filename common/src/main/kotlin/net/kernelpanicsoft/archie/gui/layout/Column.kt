@@ -39,17 +39,26 @@ private data class ColumnMeasurePolicy(
 	arrangementSpacing = verticalArrangement.spacing
 ) {
 	override fun placeChildren(scope: MeasureScope, measurables: List<Measurable>, placeables: List<Placeable>, width: Int, height: Int): MeasureResult {
-		val positions = IntArray(placeables.size)
+		val childCount = placeables.size
+		val positions = IntArray(childCount)
+		val sizes = IntArray(childCount)
+		for (index in 0 until childCount) {
+			sizes[index] = placeables[index].height
+		}
+
 		verticalArrangement.arrange(
 			totalSize = height,
-			sizes = placeables.map { it.height }.toIntArray(),
+			sizes = sizes,
 			outPositions = positions
 		)
+
 		return MeasureResult(width, height) {
 			val inset = (scope as? LayoutNode)?.get<PaddingModifier>()?.padding
 				?: PaddingValues()
 			var accumulatedOutset = 0
-			placeables.forEachIndexed { index, child ->
+
+			for (index in 0 until childCount) {
+				val child = placeables[index]
 				child.placeAt(horizontalAlignment.align(child.width, width, LayoutDirection.Ltr) + inset.left, positions[index] + accumulatedOutset + inset.top)
 				(measurables[index] as? LayoutNode)?.get<MarginModifier>()?.let { accumulatedOutset += it.vertical }
 			}

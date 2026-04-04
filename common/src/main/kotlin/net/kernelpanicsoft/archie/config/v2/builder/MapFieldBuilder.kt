@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.config.builder
+package net.kernelpanicsoft.archie.config.v2.builder
 
 import net.kernelpanicsoft.archie.util.MutableEntry
 import net.kernelpanicsoft.archie.util.toMutableEntry
@@ -16,8 +16,6 @@ import me.shedaniel.clothconfig2.impl.builders.KeyCodeBuilder
 import net.minecraft.network.chat.Component
 import java.util.*
 import java.util.function.Consumer
-import java.util.function.Function
-import java.util.function.Supplier
 import kotlin.jvm.optionals.getOrNull
 
 abstract class MapFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : MapFieldBuilder<T, A, SELF>>(
@@ -30,6 +28,17 @@ abstract class MapFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : MapFiel
 		fieldNameKey
 	)
 {
+	@Suppress("UNCHECKED_CAST")
+	private fun valueFactoryAsModifierKeyCode(): ModifierKeyCode = valueFactory() as ModifierKeyCode
+
+	@Suppress("UNCHECKED_CAST")
+	private fun applyModifierValue(entryNullable: MutableEntry<String, T>?, entry: MutableEntry<String, T>, value: ModifierKeyCode)
+	{
+		val typedValue = value as T
+		entryNullable?.value = typedValue
+		entry.value = typedValue
+	}
+
 
 	open var keyErrorSupplier: ((String) -> Optional<Component>)? = null
 	open var valueErrorSupplier: ((T) -> Optional<Component>)? = null
@@ -130,9 +139,7 @@ abstract class MapFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : MapFiel
 							is KeyCodeBuilder ->
 							{
 								setModifierSaveConsumer { value ->
-									@Suppress("UNCHECKED_CAST")
-									entryNullable?.value = value as T
-									entry.value = value as T
+									applyModifierValue(entryNullable, entry, value)
 								}
 								setModifierErrorSupplier { entryValue ->
 									@Suppress("UNCHECKED_CAST")
@@ -143,7 +150,7 @@ abstract class MapFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : MapFiel
 									Optional.ofNullable(valueTooltipSupplier?.invoke(entryValue as T)?.getOrNull())
 								}
 								setModifierDefaultValue {
-									valueFactory() as ModifierKeyCode
+												valueFactoryAsModifierKeyCode()
 								}
 							}
 						}

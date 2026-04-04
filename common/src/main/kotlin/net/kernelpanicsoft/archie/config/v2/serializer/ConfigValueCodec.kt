@@ -5,6 +5,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import net.kernelpanicsoft.archie.config.CommonKeyCode
 import net.kernelpanicsoft.archie.config.v2.model.BooleanField
 import net.kernelpanicsoft.archie.config.v2.model.ChoiceField
@@ -44,12 +45,12 @@ import net.kernelpanicsoft.archie.config.v2.model.StringMapField
 import net.kernelpanicsoft.archie.gui.util.KColor
 
 @Serializable
-internal data class PersistedConfigV2(
+internal data class PersistedConfig(
     val version: Int = 1,
     val values: Map<String, String> = mapOf()
 )
 
-internal object ConfigV2ValueCodec {
+internal object ConfigValueCodec {
     private val json = Json {
         prettyPrint = false
         encodeDefaults = true
@@ -116,6 +117,53 @@ internal object ConfigV2ValueCodec {
         }
     }
 
+    fun encodeJsonElement(field: ConfigField<*>, value: Any): JsonElement {
+        @Suppress("UNCHECKED_CAST")
+        return when (field) {
+            is BooleanField -> json.encodeToJsonElement(Boolean.serializer(), value as Boolean)
+            is IntField -> json.encodeToJsonElement(Int.serializer(), value as Int)
+            is LongField -> json.encodeToJsonElement(Long.serializer(), value as Long)
+            is FloatField -> json.encodeToJsonElement(Float.serializer(), value as Float)
+            is DoubleField -> json.encodeToJsonElement(Double.serializer(), value as Double)
+            is IntSliderField -> json.encodeToJsonElement(Int.serializer(), value as Int)
+            is LongSliderField -> json.encodeToJsonElement(Long.serializer(), value as Long)
+            is StringField -> json.encodeToJsonElement(String.serializer(), value as String)
+            is RegistryField -> json.encodeToJsonElement(String.serializer(), value as String)
+            is KeyCodeField -> json.encodeToJsonElement(CommonKeyCode.serializer(), value as CommonKeyCode)
+            is SpecField -> json.encodeToJsonElement(MapSerializer(String.serializer(), String.serializer()), value as Map<String, String>)
+            is ChoiceField -> json.encodeToJsonElement(String.serializer(), value as String)
+            is ChoiceListField -> json.encodeToJsonElement(ListSerializer(String.serializer()), value as List<String>)
+            is ChoiceMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), String.serializer()), value as Map<String, String>)
+            is ColorField -> json.encodeToJsonElement(KColor.serializer(), value as KColor)
+            is IntListField -> json.encodeToJsonElement(ListSerializer(Int.serializer()), value as List<Int>)
+            is LongListField -> json.encodeToJsonElement(ListSerializer(Long.serializer()), value as List<Long>)
+            is FloatListField -> json.encodeToJsonElement(ListSerializer(Float.serializer()), value as List<Float>)
+            is DoubleListField -> json.encodeToJsonElement(ListSerializer(Double.serializer()), value as List<Double>)
+            is StringListField -> json.encodeToJsonElement(ListSerializer(String.serializer()), value as List<String>)
+            is RegistryListField -> json.encodeToJsonElement(ListSerializer(String.serializer()), value as List<String>)
+            is KeyCodeListField -> json.encodeToJsonElement(ListSerializer(CommonKeyCode.serializer()), value as List<CommonKeyCode>)
+            is SpecListField -> json.encodeToJsonElement(
+                ListSerializer(MapSerializer(String.serializer(), String.serializer())),
+                value as List<Map<String, String>>
+            )
+            is ColorListField -> json.encodeToJsonElement(ListSerializer(KColor.serializer()), value as List<KColor>)
+            is IntMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), Int.serializer()), value as Map<String, Int>)
+            is LongMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), Long.serializer()), value as Map<String, Long>)
+            is FloatMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), Float.serializer()), value as Map<String, Float>)
+            is DoubleMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), Double.serializer()), value as Map<String, Double>)
+            is StringMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), String.serializer()), value as Map<String, String>)
+            is RegistryMapField -> json.encodeToJsonElement(MapSerializer(String.serializer(), String.serializer()), value as Map<String, String>)
+            is KeyCodeMapField -> json.encodeToJsonElement(
+                MapSerializer(String.serializer(), CommonKeyCode.serializer()),
+                value as Map<String, CommonKeyCode>
+            )
+            is SpecMapField -> json.encodeToJsonElement(
+                MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer())),
+                value as Map<String, Map<String, String>>
+            )
+        }
+    }
+
     fun decode(field: ConfigField<*>, encoded: String): Any? {
         return runCatching {
             when (field) {
@@ -157,6 +205,54 @@ internal object ConfigV2ValueCodec {
                     encoded
                 )
                 is SpecMapField -> json.decodeFromString(
+                    MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer())),
+                    encoded
+                )
+            }
+        }.getOrNull()
+    }
+
+    fun decodeJsonElement(field: ConfigField<*>, encoded: JsonElement): Any? {
+        return runCatching {
+            when (field) {
+                is BooleanField -> json.decodeFromJsonElement(Boolean.serializer(), encoded)
+                is IntField -> json.decodeFromJsonElement(Int.serializer(), encoded)
+                is LongField -> json.decodeFromJsonElement(Long.serializer(), encoded)
+                is FloatField -> json.decodeFromJsonElement(Float.serializer(), encoded)
+                is DoubleField -> json.decodeFromJsonElement(Double.serializer(), encoded)
+                is IntSliderField -> json.decodeFromJsonElement(Int.serializer(), encoded)
+                is LongSliderField -> json.decodeFromJsonElement(Long.serializer(), encoded)
+                is StringField -> json.decodeFromJsonElement(String.serializer(), encoded)
+                is RegistryField -> json.decodeFromJsonElement(String.serializer(), encoded)
+                is KeyCodeField -> json.decodeFromJsonElement(CommonKeyCode.serializer(), encoded)
+                is SpecField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), String.serializer()), encoded)
+                is ChoiceField -> json.decodeFromJsonElement(String.serializer(), encoded)
+                is ChoiceListField -> json.decodeFromJsonElement(ListSerializer(String.serializer()), encoded)
+                is ChoiceMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), String.serializer()), encoded)
+                is ColorField -> json.decodeFromJsonElement(KColor.serializer(), encoded)
+                is IntListField -> json.decodeFromJsonElement(ListSerializer(Int.serializer()), encoded)
+                is LongListField -> json.decodeFromJsonElement(ListSerializer(Long.serializer()), encoded)
+                is FloatListField -> json.decodeFromJsonElement(ListSerializer(Float.serializer()), encoded)
+                is DoubleListField -> json.decodeFromJsonElement(ListSerializer(Double.serializer()), encoded)
+                is StringListField -> json.decodeFromJsonElement(ListSerializer(String.serializer()), encoded)
+                is RegistryListField -> json.decodeFromJsonElement(ListSerializer(String.serializer()), encoded)
+                is KeyCodeListField -> json.decodeFromJsonElement(ListSerializer(CommonKeyCode.serializer()), encoded)
+                is SpecListField -> json.decodeFromJsonElement(
+                    ListSerializer(MapSerializer(String.serializer(), String.serializer())),
+                    encoded
+                )
+                is ColorListField -> json.decodeFromJsonElement(ListSerializer(KColor.serializer()), encoded)
+                is IntMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), Int.serializer()), encoded)
+                is LongMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), Long.serializer()), encoded)
+                is FloatMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), Float.serializer()), encoded)
+                is DoubleMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), Double.serializer()), encoded)
+                is StringMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), String.serializer()), encoded)
+                is RegistryMapField -> json.decodeFromJsonElement(MapSerializer(String.serializer(), String.serializer()), encoded)
+                is KeyCodeMapField -> json.decodeFromJsonElement(
+                    MapSerializer(String.serializer(), CommonKeyCode.serializer()),
+                    encoded
+                )
+                is SpecMapField -> json.decodeFromJsonElement(
                     MapSerializer(String.serializer(), MapSerializer(String.serializer(), String.serializer())),
                     encoded
                 )

@@ -1,12 +1,10 @@
-package net.kernelpanicsoft.archie.config.builder
+package net.kernelpanicsoft.archie.config.v2.builder
 
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
-import me.shedaniel.clothconfig2.api.Modifier
 import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import me.shedaniel.clothconfig2.gui.entries.KeyCodeEntry
 import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.FieldBuilder
-import me.shedaniel.clothconfig2.impl.builders.KeyCodeBuilder
 import net.minecraft.network.chat.Component
 
 class KeycodeListBuilder(

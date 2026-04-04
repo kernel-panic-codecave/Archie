@@ -1,33 +1,27 @@
 package net.kernelpanicsoft.archie.gui.theme
 
-import com.google.gson.Gson
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import dev.architectury.registry.ReloadListenerRegistry
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Size
+import net.kernelpanicsoft.archie.resourcepacks.SerializationReloadListener
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.packs.PackType
 import net.minecraft.server.packs.resources.PreparableReloadListener
 import net.minecraft.server.packs.resources.ResourceManager
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
 import net.minecraft.util.profiling.ProfilerFiller
 
 /* ─────────────────────── Theme state data classes ─────────────────────── */
 
-/**
- * Sealed base for the two kinds of composable theme state: [SimpleThemeState] (fixed-size
- * sprite) and [NinePatchThemeState] (stretchable nine-patch).
- */
+/** Sealed base for composable theme states rendered as sprites. */
 @Serializable
 sealed interface ThemeState {
-    /** Resource location of the texture atlas. */
+    /** Resource location of the sprite atlas or source image. */
     val texture: SResourceLocation
-    /** Full pixel size of the texture atlas. */
+    /** Full pixel size of the source image when UV rendering is used. */
     @SerialName("texture_size") val textureSize: Size
     /** Horizontal UV offset within the atlas. */
     val u: Int
@@ -36,7 +30,7 @@ sealed interface ThemeState {
 }
 
 /**
- * A fixed-size sprite slice within a texture atlas.
+ * A fixed-size sprite slice within a sprite atlas or source image.
  *
  * @property width   Rendered width in pixels.
  * @property height  Rendered height in pixels.
@@ -55,41 +49,56 @@ data class SimpleThemeState(
     @SerialName("v_height") val vHeight: Int,
 ) : ThemeState
 
-/**
- * A nine-patch stretchable texture state.
- *
- * @property cornersSize Size of each fixed corner patch.
- * @property centerSize  Size of the stretchable centre patch.
- * @property repeat      When `true`, the centre is tiled; otherwise it is stretched.
- */
-@Serializable
-data class NinePatchThemeState(
-    override val texture: SResourceLocation,
-    @SerialName("texture_size") override val textureSize: Size,
-    override val u: Int = 0,
-    override val v: Int = 0,
-    val repeat: Boolean = false,
-    @SerialName("corners_size") val cornersSize: Size,
-    @SerialName("center_size")  val centerSize: Size,
-) : ThemeState
-
 /** A map of state-name → [ThemeState] for a single variant of a composable. */
 @Serializable
 data class StatefulTheme(val states: Map<String, ThemeState>)
 
+@Serializable
+data class RawComposableTheme(
+    val states: Map<String, RawThemeState> = emptyMap(),
+    val variants: Map<String, Map<String, RawThemeState>> = emptyMap(),
+)
+
+@Serializable
+data class RawThemeState(
+    val texture: String? = null,
+    @SerialName("texture_size") val textureSize: Size? = null,
+    val u: Int? = null,
+    val v: Int? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    @SerialName("u_width") val uWidthSnake: Int? = null,
+    @SerialName("v_height") val vHeightSnake: Int? = null,
+    val uWidth: Int? = null,
+    val vHeight: Int? = null,
+)
+
+@Serializable
+private data class GuiTextureMetadata(
+    val gui: GuiMetadataSection? = null,
+)
+
+@Serializable
+private data class GuiMetadataSection(
+    val scaling: GuiScalingMetadata? = null,
+)
+
+@Serializable
+private data class GuiScalingMetadata(
+    val type: String? = null,
+)
+
 /**
  * The full theme definition for a single composable type (e.g. `button`, `slot`).
  *
- * Contains base [states], optional named [variants] (e.g. `"dark"`), and a flag
- * indicating whether the composable uses nine-patch rendering.
+ * Contains base [states] and optional named [variants] (e.g. `"dark"`).
  *
- * @property isNinepatch When `true`, all states use [NinePatchThemeState].
  * @property states      Base state map (always contains at least `"default"`).
  * @property variants    Named variant overrides (e.g. `"dark"` → its own state map).
  */
 @Serializable
 data class ComposableTheme(
-    @SerialName("ninepatch") val isNinepatch: Boolean = true,
+    val isNineslice: Boolean = false,
     val states: Map<String, ThemeState>,
     val variants: Map<String, StatefulTheme> = emptyMap(),
 ) {
@@ -134,21 +143,25 @@ data class ComposableTheme(
  * ### File format
  * ```json
  * {
- *   "ninepatch": true,
  *   "states": {
  *     "default": {
- *       "texture": "archie:textures/gui/java/button.png",
- *       "texture_size": { "width": 64, "height": 192 },
- *       "corners_size": { "width": 3, "height": 3 },
- *       "center_size":  { "width": 58, "height": 58 }
+ *       "texture": "archie:java/button",
+ *       "texture_size": { "width": 64, "height": 64 },
+ *       "width": 64,
+ *       "height": 20
  *     },
- *     "hovered": { "v": 64 }
+ *     "hovered": { "texture": "archie:java/button_highlighted" }
  *   }
  * }
  * ```
  */
 class ThemeResourceListener :
-    SimpleJsonResourceReloadListener(Gson(), "archie_themes"),
+    SerializationReloadListener<RawComposableTheme>(
+        format = SerializationManager.json,
+        serializer = RawComposableTheme.serializer(),
+        directory = "archie_themes",
+        fileExtension = ".json",
+    ),
     PreparableReloadListener {
 
     companion object {
@@ -156,54 +169,46 @@ class ThemeResourceListener :
         internal val COMPOSABLES = mutableMapOf<ResourceLocation, ComposableTheme>()
     }
 
+    override fun shouldLoadResource(fileLocation: ResourceLocation): Boolean =
+        !fileLocation.path.endsWith(".theme.json")
+
     override fun apply(
-        objs: Map<ResourceLocation?, JsonElement?>,
+        objs: Map<ResourceLocation, RawComposableTheme>,
         resourceManager: ResourceManager,
         profiler: ProfilerFiller,
     ) {
         COMPOSABLES.clear()
-        for ((location, el) in objs) {
-            if (location == null || el !is JsonObject) continue
+        for ((location, root) in objs) {
+            if (location.path.endsWith(".theme")) continue
             try {
-                val isNinepatch = el["ninepatch"]?.asBoolean != false
-                val statesObj = el["states"]?.asJsonObject
-                    ?: throw IllegalStateException("Theme must have a valid states object: $location")
-                val defaultObj = statesObj["default"]?.asJsonObject
+                val statesObj = root.states
+                if (statesObj.isEmpty()) {
+                    throw IllegalStateException("Theme must have a valid states object: $location")
+                }
+                val defaultObj = statesObj[TextureStates.DEFAULT]
                     ?: throw IllegalStateException("Theme must have a \"default\" state: $location")
 
-                val defaultState = if (isNinepatch)
-                    parseNinePatch(location, "default", defaultObj)
-                else
-                    parseSimple(location, "default", defaultObj)
+                val defaultState = parseSimple(location, "default", defaultObj)
 
                 val states = mutableMapOf<String, ThemeState>()
-                for ((name, stateEl) in statesObj.entrySet()) {
-                    if (stateEl !is JsonObject) continue
-                    states[name] = if (isNinepatch)
-                        parseNinePatch(location, name, stateEl, defaultState as? NinePatchThemeState)
-                    else
-                        parseSimple(location, name, stateEl, defaultState as? SimpleThemeState)
+                for ((name, stateEl) in statesObj) {
+                    states[name] = parseSimple(location, name, stateEl, defaultState)
                 }
 
                 val variants = mutableMapOf<String, StatefulTheme>()
-                el["variants"]?.asJsonObject?.entrySet()?.forEach { (variantName, variantEl) ->
-                    if (variantEl !is JsonObject) return@forEach
+                root.variants.forEach { (variantName, variantEl) ->
                     val vs = mutableMapOf<String, ThemeState>()
-                    variantEl.entrySet().forEach { (sName, sEl) ->
-                        if (sEl !is JsonObject) return@forEach
-                        vs[sName] = if (isNinepatch)
-                            parseNinePatch(location, sName, sEl, defaultState as? NinePatchThemeState)
-                        else
-                            parseSimple(location, sName, sEl, defaultState as? SimpleThemeState)
+                    variantEl.forEach { (sName, sEl) ->
+                        vs[sName] = parseSimple(location, sName, sEl, defaultState)
                     }
                     variants[variantName] = StatefulTheme(vs)
                 }
 
-                COMPOSABLES[location] = ComposableTheme(isNinepatch, states, variants)
+                val isNineslice = resourceManager.isNineSliceTexture(defaultState.texture)
+                COMPOSABLES[location] = ComposableTheme(isNineslice, states, variants)
                 Archie.LOGGER.info(
-                    "Theme \"{}\" loaded ({} states, {} variants{})",
-                    location, states.size, variants.size,
-                    if (isNinepatch) ", nine-patch" else "",
+                    "Theme \"{}\" loaded ({} states, {} variants, nineslice={})",
+                    location, states.size, variants.size, isNineslice,
                 )
             } catch (e: Exception) {
                 Archie.LOGGER.warn("Error processing theme at {}: {}", location, e.message, e)
@@ -211,57 +216,66 @@ class ThemeResourceListener :
         }
     }
 
-    private fun baseFields(loc: ResourceLocation, name: String, el: JsonObject, default: ThemeState?): Map<String, Any> {
+    private data class BaseFields(
+        val texture: ResourceLocation,
+        val textureSize: Size,
+        val u: Int,
+        val v: Int,
+    )
+
+    private fun baseFields(loc: ResourceLocation, name: String, el: RawThemeState, default: ThemeState?): BaseFields {
         val texture = default?.texture
-            ?: el["texture"]?.asString?.let { ResourceLocation.parse(it) }
+            ?: el.texture?.let { ResourceLocation.parse(it) }
             ?: throw IllegalStateException("Missing texture for state \"$name\" in: $loc")
-        val textureSize = el.parseSize("texture_size")
+        val textureSize = el.textureSize
             ?: default?.textureSize
             ?: throw IllegalStateException("Missing texture_size for state \"$name\" in: $loc")
-        return mapOf(
-            "texture" to texture,
-            "textureSize" to textureSize,
-            "u" to (el["u"]?.asInt ?: default?.u ?: 0),
-            "v" to (el["v"]?.asInt ?: default?.v ?: 0),
+        return BaseFields(
+            texture = texture,
+            textureSize = textureSize,
+            u = el.u ?: default?.u ?: 0,
+            v = el.v ?: default?.v ?: 0,
         )
     }
 
-    private fun parseNinePatch(loc: ResourceLocation, name: String, el: JsonObject, default: NinePatchThemeState? = null): NinePatchThemeState {
-        val base = baseFields(loc, name, el, default)
-        val repeat = el["repeat"]?.asBoolean ?: default?.repeat ?: false
-        val patchSize = el.parseSize("patch_size")
-        val corners = el.parseSize("corners_size") ?: default?.cornersSize ?: patchSize
-            ?: throw IllegalStateException("Missing corners_size for state \"$name\" in: $loc")
-        val center = el.parseSize("center_size") ?: default?.centerSize ?: patchSize
-            ?: throw IllegalStateException("Missing center_size for state \"$name\" in: $loc")
-        return NinePatchThemeState(
-            base["texture"] as ResourceLocation,
-            base["textureSize"] as Size,
-            base["u"] as Int,
-            base["v"] as Int,
-            repeat, corners, center,
-        )
-    }
 
-    private fun parseSimple(loc: ResourceLocation, name: String, el: JsonObject, default: SimpleThemeState? = null): SimpleThemeState {
+    private fun parseSimple(loc: ResourceLocation, name: String, el: RawThemeState, default: SimpleThemeState? = null): SimpleThemeState {
         val base = baseFields(loc, name, el, default)
-        val width  = el["width"]?.asInt  ?: default?.width  ?: throw IllegalStateException("Missing width for state \"$name\" in: $loc")
-        val height = el["height"]?.asInt ?: default?.height ?: throw IllegalStateException("Missing height for state \"$name\" in: $loc")
+        val width  = el.width  ?: default?.width  ?: throw IllegalStateException("Missing width for state \"$name\" in: $loc")
+        val height = el.height ?: default?.height ?: throw IllegalStateException("Missing height for state \"$name\" in: $loc")
         return SimpleThemeState(
-            base["texture"] as ResourceLocation,
-            base["textureSize"] as Size,
-            base["u"] as Int,
-            base["v"] as Int,
+            base.texture,
+            base.textureSize,
+            base.u,
+            base.v,
             width, height,
-            el["uWidth"]?.asInt  ?: default?.uWidth  ?: width,
-            el["vHeight"]?.asInt ?: default?.vHeight ?: height,
+            el.uWidthSnake ?: el.uWidth ?: default?.uWidth ?: width,
+            el.vHeightSnake ?: el.vHeight ?: default?.vHeight ?: height,
         )
     }
 
-    private fun JsonObject.parseSize(key: String): Size? {
-        val obj = this[key]?.asJsonObject ?: return null
-        val w = obj["width"]?.asInt  ?: return null
-        val h = obj["height"]?.asInt ?: return null
-        return Size(w, h)
+    private fun ResourceManager.isNineSliceTexture(texture: ResourceLocation): Boolean {
+        val candidates = if (texture.path.startsWith("textures/") && texture.path.endsWith(".png")) {
+            listOf(ResourceLocation.fromNamespaceAndPath(texture.namespace, "${texture.path}.mcmeta"))
+        } else {
+            listOf(
+                ResourceLocation.fromNamespaceAndPath(texture.namespace, "textures/gui/sprites/${texture.path}.png.mcmeta"),
+                ResourceLocation.fromNamespaceAndPath(texture.namespace, "textures/${texture.path}.png.mcmeta"),
+            )
+        }
+
+        for (candidate in candidates) {
+            val resource = getResource(candidate).orElse(null) ?: continue
+            try {
+                resource.openAsReader().use { reader ->
+                    val metadata = SerializationManager.json.decodeFromString<GuiTextureMetadata>(reader.readText())
+                    val type = metadata.gui?.scaling?.type
+                    if (type == "nine_slice") return true
+                }
+            } catch (_: Exception) {
+                // Ignore malformed metadata and continue trying other candidates.
+            }
+        }
+        return false
     }
 }

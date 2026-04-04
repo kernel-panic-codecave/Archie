@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public class MinecraftClientMixin {
     @Unique
-    private boolean startedClientGametests = false;
+    private boolean archie$startedClientGametests = false;
 
     @Shadow
     @Nullable
@@ -22,9 +22,9 @@ public class MinecraftClientMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void onTick(CallbackInfo ci) {
-        if (!startedClientGametests && overlay == null) {
-            startedClientGametests = true;
-            AGameTestClientHarnessInternal.runIfNeeded(null);
+        if (!archie$startedClientGametests && overlay == null) {
+            archie$startedClientGametests = true;
+            AGameTestClientHarnessInternal.runIfNeeded();
         }
     }
 }

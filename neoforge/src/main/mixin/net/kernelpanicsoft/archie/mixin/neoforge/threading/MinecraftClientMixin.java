@@ -19,9 +19,26 @@ public class MinecraftClientMixin {
         ThreadingImpl.onClientRunStop();
     }
 
-    @Inject(method = "cleanUpAfterCrash", at = @At("HEAD"))
-    private void archie$onCrashCleanup(CallbackInfo ci) {
+    @Inject(method = "runTick(Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;runAllTasks()V"))
+    private void archie$preRunTasks(CallbackInfo ci) {
+        ThreadingImpl.preRunTasks();
+    }
+
+    @Inject(method = "runTick(Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;runAllTasks()V", shift = At.Shift.AFTER))
+    private void archie$postRunTasks(CallbackInfo ci) {
+        ThreadingImpl.postRunTasks();
+    }
+
+    @Inject(method = "delayCrashRaw", at = @At("HEAD"))
+    private void archie$onDelayCrashRaw(CallbackInfo ci) {
+        ThreadingImpl.setGameCrashed();
+    }
+
+    @Inject(method = "emergencySaveAndCrash", at = @At("HEAD"))
+    private void archie$onEmergencySaveAndCrash(CallbackInfo ci) {
         ThreadingImpl.setGameCrashed();
     }
 }
+
+
 

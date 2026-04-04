@@ -1,7 +1,10 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
@@ -12,12 +15,18 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.onDrag
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.math.roundToInt
 
 private const val SLIDER_MIN_WIDTH = 96
-private const val SLIDER_MIN_HEIGHT = 16
-private const val SLIDER_THUMB_SIZE = 8
+private const val SLIDER_MIN_HEIGHT = 20
+private const val SLIDER_THUMB_WIDTH = 8
+private const val SLIDER_THUMB_HEIGHT = 20
+private const val SLIDER_TRACK_HEIGHT = 2
 
 internal fun normalizeSliderValue(value: Float): Float = value.coerceIn(0f, 1f)
 
@@ -26,6 +35,19 @@ internal fun snapSliderValue(value: Float, steps: Int): Float {
     val clamped = normalizeSliderValue(value)
     val stepSize = 1f / steps.toFloat()
     return (clamped / stepSize).roundToInt() * stepSize
+}
+
+internal fun resolveSliderThumbX(rawThumbX: Int, sliderX: Int, sliderWidth: Int, thumbWidth: Int = SLIDER_THUMB_WIDTH): Int {
+    val minThumbX = sliderX
+    val maxThumbX = (sliderX + sliderWidth - thumbWidth).coerceAtLeast(minThumbX)
+    return rawThumbX.coerceIn(minThumbX, maxThumbX)
+}
+
+private fun resolveSliderStateName(enabled: Boolean, hovered: Boolean, dragging: Boolean): String = when {
+    !enabled -> TextureStates.DISABLED
+    dragging -> TextureStates.CLICKED
+    hovered -> TextureStates.HOVERED
+    else -> TextureStates.DEFAULT
 }
 
 @Composable
@@ -40,11 +62,11 @@ fun SliderCore(
 ) {
     val normalizedValue = snapSliderValue(value, steps)
 
-    var hovered = false
-    var dragging = false
+    var hovered by remember { mutableStateOf(false) }
+    var dragging by remember { mutableStateOf(false) }
 
     fun updateFromPointer(node: AUINode, mouseX: Double) {
-        val localX = (mouseX - node.absoluteCoords.x).toFloat()
+        val localX = (mouseX - node.x).toFloat()
         val fraction = if (node.width <= 1) 0f else localX / node.width.toFloat()
         onValueChange(snapSliderValue(fraction, steps))
     }
@@ -91,10 +113,14 @@ fun Slider(
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    variant: String = ThemeVariants.DEFAULT,
     steps: Int = 0,
     onValueChangeFinished: () -> Unit = {},
 ) {
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.CenterStart) }
+    val theme = LocalTheme.current
+    val trackTheme = theme.getComposableTheme("slider")
+    val thumbTheme = theme.getComposableTheme("slider_handle")
     SliderCore(
         value = value,
         onValueChange = onValueChange,
@@ -104,7 +130,7 @@ fun Slider(
         modifier = Modifier
             .sizeIn(minWidth = SLIDER_MIN_WIDTH, minHeight = SLIDER_MIN_HEIGHT)
             .then(modifier),
-    ) { hovered, _, normalizedValue ->
+    ) { hovered, dragging, normalizedValue ->
         Layout(
             name = "Slider",
             measurePolicy = measurePolicy,
@@ -118,29 +144,34 @@ fun Slider(
                     mouseY: Int,
                     partialTick: Float,
                 ) {
-                    val trackY = y + (node.height / 2) - 1
-                    val trackStart = x + (SLIDER_THUMB_SIZE / 2)
-                    val trackEnd = x + node.width - (SLIDER_THUMB_SIZE / 2)
+                    val trackY = y + (node.height - SLIDER_TRACK_HEIGHT) / 2
+                    val trackStart = x + (SLIDER_THUMB_WIDTH / 2)
+                    val trackEnd = x + node.width - (SLIDER_THUMB_WIDTH / 2)
                     val availableTrack = (trackEnd - trackStart).coerceAtLeast(1)
                     val fillEnd = trackStart + (availableTrack * normalizedValue).roundToInt()
-                    val thumbX = (fillEnd - (SLIDER_THUMB_SIZE / 2)).coerceIn(x, x + node.width - SLIDER_THUMB_SIZE)
-                    val thumbY = y + (node.height - SLIDER_THUMB_SIZE) / 2
+                    val thumbX = resolveSliderThumbX(
+                        rawThumbX = fillEnd - (SLIDER_THUMB_WIDTH / 2),
+                        sliderX = x,
+                        sliderWidth = node.width,
+                        thumbWidth = SLIDER_THUMB_WIDTH,
+                    )
+                    val thumbY = y + (node.height - SLIDER_THUMB_HEIGHT) / 2
 
-                    val baseTrackColor = if (enabled) 0xFF5A5A5A.toInt() else 0xFF404040.toInt()
+                    val stateName = resolveSliderStateName(enabled, hovered, dragging)
+                    val trackState = trackTheme.getState(stateName, variant)
+                    val thumbState = thumbTheme.getState(stateName, variant)
+
                     val fillColor = if (enabled) 0xFF6BA8FF.toInt() else 0xFF5A5A5A.toInt()
-                    val thumbColor = when {
-                        !enabled -> 0xFF8A8A8A.toInt()
-                        hovered -> 0xFFFFFFFF.toInt()
-                        else -> 0xFFE0E0E0.toInt()
-                    }
 
-                    guiGraphics.fill(trackStart, trackY, trackEnd, trackY + 2, baseTrackColor)
-                    guiGraphics.fill(trackStart, trackY, fillEnd, trackY + 2, fillColor)
-                    guiGraphics.fill(thumbX, thumbY, thumbX + SLIDER_THUMB_SIZE, thumbY + SLIDER_THUMB_SIZE, thumbColor)
+                    guiGraphics.drawThemeState(trackState, x, y, node.width, node.height)
+                    guiGraphics.fill(trackStart, trackY, fillEnd, trackY + SLIDER_TRACK_HEIGHT, fillColor)
+                    guiGraphics.drawThemeState(thumbState, thumbX, thumbY, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT)
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }
             },
         )
     }
 }
+
+
 

@@ -3,7 +3,9 @@ package net.kernelpanicsoft.archie.mixin.neoforge;
 import net.kernelpanicsoft.archie.Archie;
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform;
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatformInternal;
+import net.kernelpanicsoft.archie.gametest.VerboseTestReporter;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GlobalTestReporter;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.gametest.GameTestHooks;
 import org.spongepowered.asm.mixin.Mixin;
@@ -55,6 +57,7 @@ public abstract class GameTestHooksMixin {
         if (AGameTestPlatform.INSTANCE.isGameTest())
         {
             Archie.LOGGER.info("Registering GameTests");
+            GlobalTestReporter.replaceWith(VerboseTestReporter.INSTANCE);
             AGameTestPlatformInternal.addEventHandlers();
         }
     }

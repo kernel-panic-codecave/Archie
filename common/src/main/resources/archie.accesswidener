@@ -36,6 +36,8 @@ accessible  method  net/minecraft/client/gui/screens/MenuScreens register (Lnet/
 extendable  class   net/minecraft/client/renderer/block/model/BlockElementFace
 mutable     field   net/minecraft/world/inventory/Slot x I
 mutable     field   net/minecraft/world/inventory/Slot y I
+accessible  field   net/minecraft/world/inventory/AbstractContainerMenu remoteSlots Lnet/minecraft/core/NonNullList;
+accessible  field   net/minecraft/world/inventory/AbstractContainerMenu lastSlots Lnet/minecraft/core/NonNullList;
 transitive-accessible	method	net/minecraft/data/BlockFamilies	familyBuilder	(Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/data/BlockFamily$Builder;
 transitive-accessible	field	net/minecraft/data/models/BlockModelGenerators	blockStateOutput	Ljava/util/function/Consumer;
 transitive-accessible	field	net/minecraft/data/models/BlockModelGenerators	modelOutput	Ljava/util/function/BiConsumer;
@@ -329,3 +331,5 @@ transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   FOOD
 transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   INGREDIENTS Lnet/minecraft/resources/ResourceKey;
 transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   SPAWN_EGGS  Lnet/minecraft/resources/ResourceKey;
 transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   OP_BLOCKS   Lnet/minecraft/resources/ResourceKey;
+# GameTest support: access wideners removed (methods validated at runtime via reflection)
+

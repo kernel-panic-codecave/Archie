@@ -6,6 +6,9 @@ import dev.architectury.event.Event
 import dev.architectury.event.EventFactory
 import dev.architectury.event.EventResult
 import dev.architectury.platform.Mod
+import dev.architectury.platform.Platform
+import dev.architectury.utils.Env
+import net.kernelpanicsoft.archie.gametest.AGameTestSide
 
 object AEvents
 {
@@ -63,19 +66,41 @@ object AEvents
 		}
 	}
 
-	@ConsistentCopyVisibility
-	data class ArchieGameTestBuilder internal constructor(
-		private val mod: Mod
-	)
+	class ArchieGameTestBuilder(private val all: Boolean = false)
 	{
-		fun <T> register(clazz: Class<T>)
+		val classes: MutableList<Class<*>> = mutableListOf()
+		fun server(block: Environment.Server.() -> Unit)
 		{
-			AGameTestPlatform.register(clazz, mod)
+			Environment.Server(all).apply(block).also { classes.addAll(it.classes) }
 		}
 
-		inline fun <reified T> register()
+		fun client(block: Environment.Client.() -> Unit)
 		{
-			register(T::class.java)
+			Environment.Client(all).apply(block).also { classes.addAll(it.classes) }
+		}
+
+		fun common(block: Environment.Common.() -> Unit)
+		{
+			Environment.Common().apply(block).also { classes.addAll(it.classes) }
+		}
+
+		sealed class Environment(private val predicate: () -> Boolean)
+		{
+			val classes: MutableList<Class<*>> = mutableListOf()
+			class Server(all: Boolean) : Environment({ all || AGameTestPlatform.side == AGameTestSide.SERVER })
+			class Client(all: Boolean) : Environment({ all || AGameTestPlatform.side == AGameTestSide.CLIENT })
+			class Common : Environment({ true })
+
+			fun <T> register(clazz: Class<T>)
+			{
+				if (!predicate()) return
+				classes.add(clazz)
+			}
+
+			inline fun <reified T> register()
+			{
+				register(T::class.java)
+			}
 		}
 	}
 
@@ -103,8 +128,9 @@ object AEvents
 					if (this.mod != mod)
 						return EventResult.pass()
 
-					ArchieGameTestBuilder(mod).registerGameTests()
-
+					ArchieGameTestBuilder().apply(registerGameTests).classes.forEach { clazz ->
+						AGameTestPlatform.register(clazz, mod)
+					}
 					return EventResult.interruptDefault()
 				}
 

@@ -1,4 +1,6 @@
 package net.kernelpanicsoft.archie.gui.composables.theme
+import net.kernelpanicsoft.archie.gui.theme.ComposableTheme
+import net.kernelpanicsoft.archie.gui.theme.ThemeState
 
 /**
  * Constant keys used to look up [ThemeState] entries within a [ComposableTheme]'s state map.

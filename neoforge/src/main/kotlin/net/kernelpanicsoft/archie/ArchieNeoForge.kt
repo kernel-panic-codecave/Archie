@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie
 
+import dev.architectury.event.events.client.ClientTickEvent
 import dev.nyon.klf.MOD_BUS
+import net.kernelpanicsoft.archie.gametest.ThreadingImpl
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
@@ -17,6 +19,10 @@ object ArchieNeoForge {
         }
         MOD_BUS.addListener<FMLClientSetupEvent> {
             Archie.initClient()
+
+            ClientTickEvent.CLIENT_POST.register {
+                ThreadingImpl.onClientTick()
+            }
         }
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             Archie.initCommon()

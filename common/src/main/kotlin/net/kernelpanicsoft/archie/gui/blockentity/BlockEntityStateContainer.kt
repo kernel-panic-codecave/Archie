@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.safeCast
 import kotlin.reflect.jvm.isAccessible
 
 /**
@@ -30,6 +31,13 @@ class BlockEntityStateContainer(
     private val propertyValues = mutableMapOf<String, Any?>()
 
     internal val propertySerializers = mutableMapOf<String, KSerializer<out Any>>()
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> anySerializer(serializer: KSerializer<T>): KSerializer<out Any> = serializer as KSerializer<out Any>
+
+    @Suppress("UNCHECKED_CAST")
+    private fun packetSerializer(propertyName: String): KSerializer<Any> =
+        propertySerializers[propertyName] as KSerializer<Any>
 
     init {
         blockEntity::class.memberProperties.forEach { property ->
@@ -71,7 +79,7 @@ class BlockEntityStateContainer(
     }
 
     fun <T> setPropertySerializer(propertyName: String, serializer: KSerializer<T>) {
-        propertySerializers.putIfAbsent(propertyName, serializer as KSerializer<out Any>)
+        propertySerializers.putIfAbsent(propertyName, anySerializer(serializer))
     }
 
     /**
@@ -90,7 +98,7 @@ class BlockEntityStateContainer(
      * @return The property value cast to type T, or null if not found/wrong type.
      */
     fun <T : Any> getProperty(propertyName: String, type: KClass<T>): T? =
-        propertyValues[propertyName] as? T
+        type.safeCast(propertyValues[propertyName])
 
     /**
      * Generates a state packet containing all dirty properties.
@@ -102,7 +110,7 @@ class BlockEntityStateContainer(
         if (dirtyProperties.isEmpty()) return null
 
         val updates = dirtyProperties.associateWith { propertyName ->
-            propertyValues[propertyName].toSerializedValue(propertySerializers[propertyName] as KSerializer<Any>)
+            propertyValues[propertyName].toSerializedValue(packetSerializer(propertyName))
         }
 
         return BlockEntityStatePacket(

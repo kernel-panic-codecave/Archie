@@ -14,7 +14,7 @@ object ArchieCatalogue
 			.mapKeys { (key, _) -> key.modId }
 			.mapValues { (_, value) ->
 				BiFunction { parent, _ ->
-					value.invoke().setParentScreen(parent).build()
+					value()(parent)
 				}
 			}
 	}

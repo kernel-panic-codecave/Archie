@@ -13,6 +13,7 @@ import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
+import net.kernelpanicsoft.archie.gui.layout.Column
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Row
@@ -21,18 +22,26 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
+import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
+import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
-import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.client.gui.GuiGraphics
 
-private const val DEFAULT_TAB_TEXTURE = "tab"
+object TabTextures
+{
+    const val GAME = "tab_game"
+    const val MENU = "tab_menu"
+}
+
 private const val SELECTED_ELEVATION_PX = 2
 private const val DEFAULT_ICON_SPACING = 4
+private const val DEFAULT_CONTENT_SPACING = 6
+private const val DEFAULT_CONTENT_WIDTH = 9 * 18
 
 /**
  * Declarative tab bar modeled after the vanilla Create World screen tabs.
@@ -44,6 +53,7 @@ private const val DEFAULT_ICON_SPACING = 4
  * @param tabSpacing  Horizontal spacing between neighboring tabs, in pixels.
  * @param scrollable  When true, wraps the tab row in a horizontal [Scrollable] viewport.
  * @param scrollState Optional externally managed [ScrollableState] (only used when [scrollable]).
+ * @param contentSpacing Vertical spacing between the tab row and the selected tab content, in pixels.
  */
 @Composable
 fun TabContainer(
@@ -54,6 +64,9 @@ fun TabContainer(
     tabSpacing: Int = 2,
     scrollable: Boolean = true,
     scrollState: ScrollableState? = null,
+    contentSpacing: Int = DEFAULT_CONTENT_SPACING,
+    elevateSelected: Boolean = false,
+    tabTexture: String = TabTextures.GAME,
 ) {
     state.ensureSelection(tabs)
 
@@ -78,6 +91,8 @@ fun TabContainer(
                 Tab(
                     spec = tab,
                     selected = state.isSelected(tab.id),
+                    texture = tabTexture,
+                    elevateSelected = elevateSelected,
                     onClick = {
                         if (!tab.enabled) return@Tab
                         state.select(tab.id)
@@ -88,17 +103,124 @@ fun TabContainer(
         }
     }
 
-    if (scrollable) {
-        Scrollable(
-            direction = ScrollDirection.HORIZONTAL,
-            modifier = modifier,
-            state = scrollState ?: rememberScrollableState(),
-        ) {
-            rowContent(Modifier.padding(horizontal = 4, vertical = 2))
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(contentSpacing.dp),
+    ) {
+        if (scrollable) {
+            Scrollable(
+                direction = ScrollDirection.HORIZONTAL,
+                state = scrollState ?: rememberScrollableState(),
+            ) {
+                rowContent(Modifier.padding(horizontal = 4, vertical = 2))
+            }
+        } else {
+            rowContent(Modifier)
         }
-    } else {
-        rowContent(modifier)
+
+        state.selectedTab(tabs)?.content?.let { content ->
+            content()
+        }
     }
+}
+
+/** DSL overload allowing tabs to be declared inline without manually building a list. */
+@Composable
+fun TabContainer(
+    modifier: Modifier = Modifier,
+    state: TabContainerState? = null,
+    onTabSelected: (TabSpec) -> Unit = {},
+    tabSpacing: Int = 2,
+    scrollable: Boolean = true,
+    scrollState: ScrollableState? = null,
+    contentSpacing: Int = DEFAULT_CONTENT_SPACING,
+    contentWrapper: @Composable ((@Composable (() -> Unit)) -> Unit)? = null,
+    tabTexture: String = TabTextures.GAME,
+    builder: TabContainerScope.() -> Unit,
+) {
+    val scope = remember { TabContainerScope(contentWrapper = contentWrapper ?: { content -> content()}) }
+    scope.reset()
+    scope.builder()
+    val tabs = scope.build()
+    val resolvedState = state ?: rememberTabContainerState(tabs)
+
+    TabContainer(
+        tabs = tabs,
+        state = resolvedState,
+        modifier = modifier,
+        onTabSelected = onTabSelected,
+        tabSpacing = tabSpacing,
+        scrollable = scrollable,
+        scrollState = scrollState,
+        contentSpacing = contentSpacing,
+        tabTexture = tabTexture,
+    )
+}
+
+@Composable
+fun TabPanel(
+    modifier: Modifier = Modifier,
+    state: TabContainerState? = null,
+    onTabSelected: (TabSpec) -> Unit = {},
+    tabSpacing: Int = 2,
+    scrollable: Boolean = true,
+    scrollState: ScrollableState? = null,
+    contentWrapper: @Composable ((@Composable (() -> Unit)) -> Unit)? = null,
+    builder: TabContainerScope.() -> Unit,
+) {
+    val scope = remember { TabContainerScope(contentWrapper = contentWrapper ?: { content ->
+        Panel(modifier = Modifier.offset(y = -12)) {
+            content()
+        }
+    }) }
+    scope.reset()
+    scope.builder()
+    val tabs = scope.build()
+    val resolvedState = state ?: rememberTabContainerState(tabs)
+
+    TabContainer(
+        tabs = tabs,
+        state = resolvedState,
+        modifier = modifier,
+        onTabSelected = onTabSelected,
+        tabSpacing = tabSpacing,
+        scrollable = scrollable,
+        scrollState = scrollState,
+        tabTexture = TabTextures.GAME,
+        elevateSelected = true,
+    )
+}
+
+@DslMarker
+annotation class TabContainerDsl
+
+@TabContainerDsl
+class TabContainerScope internal constructor(val contentWrapper: @Composable (@Composable () -> Unit) -> Unit = {it()}) {
+    private val specs = mutableListOf<TabSpec>()
+
+    fun tab(
+        id: String,
+        title: Component,
+        icon: TabIcon? = null,
+        enabled: Boolean = true,
+        content: @Composable (() -> Unit),
+    ) {
+        specs += TabSpec(
+            id = id,
+            title = title,
+            icon = icon,
+            enabled = enabled,
+            content = { contentWrapper(content) },
+        )
+    }
+
+    fun tab(spec: TabSpec) {
+        specs += spec
+    }
+
+    internal fun reset() = specs.clear()
+
+    internal fun build(): List<TabSpec> = specs.toList()
 }
 
 /** Data describing a single Create World style tab. */
@@ -107,6 +229,7 @@ data class TabSpec(
     val title: Component,
     val icon: TabIcon? = null,
     val enabled: Boolean = true,
+    val content: @Composable (() -> Unit),
 )
 
 /** Sprite descriptor used for optional tab icons. */
@@ -163,9 +286,10 @@ fun Tab(
     spec: TabSpec,
     selected: Boolean,
     modifier: Modifier = Modifier,
+    elevateSelected: Boolean = false,
     enabled: Boolean = spec.enabled,
-    texture: String = DEFAULT_TAB_TEXTURE,
-    indicatorColor: KColor = KColor.ofRgb(0xFCD472),
+    texture: String = TabTextures.GAME,
+    variant: String = net.kernelpanicsoft.archie.gui.theme.ThemeVariants.DEFAULT,
     iconSpacing: Int = DEFAULT_ICON_SPACING,
     onClick: (TabSpec) -> Unit,
 ) {
@@ -185,13 +309,14 @@ fun Tab(
             isHovered -> TextureStates.HOVERED
             else -> TextureStates.DEFAULT
         }
-        val state = composableTheme.getState(stateKey, theme.mode)
+        val state = composableTheme.getState(stateKey, variant)
         val offsetModifier = Modifier
-            .offset(x = 0, y = if (selected) -SELECTED_ELEVATION_PX else 0)
+            .zIndex(if (selected && elevateSelected) 1f else 0f)
+            .offset(x = 0, y = if (selected && !elevateSelected) -SELECTED_ELEVATION_PX else 0)
             .padding(horizontal = 10, vertical = 6)
-        val sizeModifier = if (!composableTheme.isNinepatch) {
-            val defaultState = composableTheme.states[TextureStates.DEFAULT] as? SimpleThemeState
-            if (defaultState != null) Modifier.sizeIn(minWidth = defaultState.width, minHeight = defaultState.height) else Modifier
+        val sizeModifier = if (!composableTheme.isNineslice) {
+            val defaultState = composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState
+            Modifier.sizeIn(minWidth = defaultState.width, minHeight = defaultState.height)
         } else Modifier
 
         Layout(
@@ -208,15 +333,6 @@ fun Tab(
                     partialTick: Float,
                 ) {
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)
-                    if (selected) {
-                        guiGraphics.fill(
-                            x,
-                            y,
-                            x + node.width,
-                            y + SELECTED_ELEVATION_PX,
-                            indicatorColor.argb,
-                        )
-                    }
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }
             },
@@ -244,7 +360,8 @@ fun Tab(
                 }
                 Text(
                     text = spec.title,
-                    color = if (selected) theme.lightTextColor else theme.darkTextColor,
+                    color = if (selected) theme.darkTextColor else theme.lightTextColor,
+                    dropShadow = !selected
                 )
             }
         }

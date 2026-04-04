@@ -1,24 +1,46 @@
 package net.kernelpanicsoft.archie.gui.layer
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.Easing
+import net.kernelpanicsoft.archie.gui.animation.Easings
+import net.kernelpanicsoft.archie.gui.animation.animateFloat
+import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
+import net.kernelpanicsoft.archie.gui.composables.modal.AlertDialog
+import net.kernelpanicsoft.archie.gui.composables.modal.ChoiceDialog
 import net.kernelpanicsoft.archie.gui.composables.modal.ConfirmDialog
+import net.kernelpanicsoft.archie.gui.composables.modal.ModalChoice
+import net.kernelpanicsoft.archie.gui.composables.modal.PromptDialog
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
 import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.appearance.background
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
+import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.minecraft.network.chat.Component
 import java.util.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Provides the nearest [LayerStackManager] to composables inside a [net.kernelpanicsoft.archie.gui.ComposeScreen]
@@ -30,6 +52,9 @@ val LocalLayerManager = compositionLocalOf<LayerStackManager> {
     error("No LayerManager provided. Are you inside a ComposeScreen?")
 }
 
+/** The depth index of the currently composed layer (base layer is `0`). */
+val LocalLayerDepth = compositionLocalOf { 0 }
+
 /**
  * Receiver scope for modal layer content, exposing a way to close the modal.
  */
@@ -39,6 +64,14 @@ interface ModalScope {
      */
     fun dismiss()
 }
+
+/** Transition defaults applied to every modal pushed through [LayerStackManager.modal]. */
+data class ModalTransitionSpec(
+    val durationMillis: Int = 180,
+    val easing: Easing = Easings.OutCubic,
+    val enterOffsetY: Int = 8,
+    val maxBackdropAlpha: Int = 132,
+)
 
 /**
  * Manages an ordered stack of [Layer]s for a single screen.
@@ -104,8 +137,11 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
      */
     fun push(layerContent: @Composable (dismiss: () -> Unit) -> Unit): () -> Unit {
         val layerId = UUID.randomUUID()
-        val layer = Layer(id = layerId, parentComposition = parentComposition) {
-            layerContent { popById(layerId) }
+        val layerDepth = layers.size
+        val layer = Layer(id = layerId, parentComposition = parentComposition, depth = layerDepth) {
+            CompositionLocalProvider(LocalLayerDepth provides layerDepth) {
+                layerContent { popById(layerId) }
+            }
         }
         layers.add(layer)
         return { popById(layerId) }
@@ -126,17 +162,44 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
     fun modal(
         alignment: Alignment = Alignment.Center,
         dismissOnClickOutside: Boolean = true,
+        transitionSpec: ModalTransitionSpec = ModalTransitionSpec(),
         onDismissRequest: () -> Unit = {},
         content: @Composable ModalScope.() -> Unit,
     ) {
-        push { dismiss ->
-            val scope = object : ModalScope {
-                override fun dismiss() { onDismissRequest(); dismiss() }
+        push { popLayer ->
+            var entered by remember { mutableStateOf(false) }
+            var closing by remember { mutableStateOf(false) }
+            val closeScope = rememberCoroutineScope()
+            val progress = animateFloat(
+                targetValue = if (entered) 1f else 0f,
+                spec = AnimationSpec(durationMillis = transitionSpec.durationMillis, easing = transitionSpec.easing),
+            )
+
+            fun requestDismiss() {
+                if (closing) return
+                closing = true
+                entered = false
+                onDismissRequest()
+                closeScope.launch {
+                    delay(transitionSpec.durationMillis.toLong())
+                    popLayer()
+                }
             }
+
+            val scope = object : ModalScope {
+                override fun dismiss() = requestDismiss()
+            }
+
+            LaunchedEffect(Unit) {
+                entered = true
+            }
+
             ModalLayout(
                 alignment = alignment,
                 dismissOnClickOutside = dismissOnClickOutside,
-                onDismissRequest = { scope.dismiss() },
+                onDismissRequest = ::requestDismiss,
+                transitionSpec = transitionSpec,
+                transitionProgress = progress,
                 content = { scope.content() },
             )
         }
@@ -161,6 +224,66 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
                 onConfirm = onConfirm,
                 onCancel = onCancel,
                 content = content
+            )
+        }
+    }
+
+    fun alertDialog(
+        title: Component = Component.literal("Alert"),
+        message: Component,
+        confirmText: Component = Component.literal("OK"),
+        onConfirm: () -> Unit = {},
+    ) {
+        modal(dismissOnClickOutside = false) {
+            AlertDialog(
+                title = title,
+                message = message,
+                confirmText = confirmText,
+                onConfirm = onConfirm,
+            )
+        }
+    }
+
+    fun promptDialog(
+        title: Component = Component.literal("Enter Value"),
+        initialValue: String = "",
+        prompt: Component = Component.literal("Enter a value:"),
+        confirmText: Component = Component.literal("Confirm"),
+        cancelText: Component = Component.literal("Cancel"),
+        validator: (String) -> Boolean = { true },
+        onConfirm: (String) -> Unit,
+        onCancel: () -> Unit = {},
+    ) {
+        modal(dismissOnClickOutside = false) {
+            PromptDialog(
+                title = title,
+                initialValue = initialValue,
+                prompt = prompt,
+                confirmText = confirmText,
+                cancelText = cancelText,
+                validator = validator,
+                onConfirm = onConfirm,
+                onCancel = onCancel,
+            )
+        }
+    }
+
+    fun <T> choiceDialog(
+        title: Component = Component.literal("Choose an Option"),
+        message: Component? = null,
+        choices: List<ModalChoice<T>>,
+        cancelText: Component = Component.literal("Cancel"),
+        onSelected: (T) -> Unit,
+        onCancel: () -> Unit = {},
+    ) {
+        modal(dismissOnClickOutside = false) {
+            ChoiceDialog(
+                title = title,
+                message = message,
+                choices = choices,
+                cancelText = cancelText,
+                onSelected = onSelected,
+                onCancel = onCancel,
             )
         }
     }
@@ -194,9 +317,20 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         alignment: Alignment,
         onDismissRequest: () -> Unit,
         dismissOnClickOutside: Boolean,
+        transitionSpec: ModalTransitionSpec,
+        transitionProgress: Float,
         content: @Composable () -> Unit,
     ) {
+        val alpha = animateInt(
+            targetValue = (transitionSpec.maxBackdropAlpha * transitionProgress.coerceIn(0f, 1f)).roundToInt(),
+            spec = AnimationSpec(durationMillis = transitionSpec.durationMillis, easing = transitionSpec.easing),
+        )
+        val offsetY = animateInt(
+            targetValue = ((1f - transitionProgress.coerceIn(0f, 1f)) * transitionSpec.enterOffsetY).roundToInt(),
+            spec = AnimationSpec(durationMillis = transitionSpec.durationMillis, easing = transitionSpec.easing),
+        )
         var rootModifier = Modifier.fillMaxSize()
+            .background((alpha.coerceIn(0, 255) shl 24))
         if (dismissOnClickOutside) {
             rootModifier = rootModifier.onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event ->
                 onDismissRequest()
@@ -204,7 +338,11 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
             }
         }
         Box(modifier = rootModifier, contentAlignment = alignment) {
-            RootContainer(modifier = Modifier.onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event -> event.consume() }) {
+            RootContainer(
+                modifier = Modifier
+                    .offset(x = 0, y = offsetY)
+                    .onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event -> event.consume() }
+            ) {
                 content()
             }
         }

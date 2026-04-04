@@ -29,4 +29,3 @@ data class IntRect(
             IntRect(position.x, position.y, position.x + size.width, position.y + size.height)
     }
 }
-

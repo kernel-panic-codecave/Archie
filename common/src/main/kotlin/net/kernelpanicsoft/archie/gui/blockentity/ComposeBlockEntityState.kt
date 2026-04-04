@@ -22,6 +22,19 @@ class ComposeBlockEntityState(
     val propertyStates = mutableMapOf<String, MutableState<Any?>>()
     val propertySerializers = mutableMapOf<String, KSerializer<out Any>>()
 
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> anySerializer(serializer: KSerializer<T>): KSerializer<out Any> = serializer as KSerializer<out Any>
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> typedSerializer(propertyName: String): KSerializer<T>? = propertySerializers[propertyName] as? KSerializer<T>
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> getOrCreateState(propertyName: String, initialValue: T?): MutableState<T?> {
+        return propertyStates.computeIfAbsent(propertyName) {
+            PropertyState(this, propertyName, mutableStateOf(initialValue)) as MutableState<Any?>
+        } as MutableState<T?>
+    }
+
     /**
      * Gets or creates a Compose state for a property with a specific type.
      *
@@ -30,16 +43,13 @@ class ComposeBlockEntityState(
      * @param T The expected type of the property.
      * @return A [MutableState] of type T that can be observed in composables.
      */
-    @Suppress("UNCHECKED_CAST")
     fun <T> observeProperty(
         propertyName: String,
         serializer: KSerializer<T>,
         initialValue: T? = null,
     ): MutableState<T?> {
-        propertySerializers[propertyName] = serializer as KSerializer<out Any>
-        return propertyStates.computeIfAbsent(propertyName) {
-            PropertyState(this,propertyName, mutableStateOf(initialValue as Any?))
-        } as MutableState<T?>
+        propertySerializers[propertyName] = anySerializer(serializer)
+        return getOrCreateState(propertyName, initialValue)
     }
 
     class PropertyState<T>(private val state: ComposeBlockEntityState, private val propertyName: String, internal val mutableState: MutableState<T>) : MutableState<T> by mutableState
@@ -80,12 +90,12 @@ class ComposeBlockEntityState(
      */
     @OptIn(ExperimentalSerializationApi::class)
     fun <T> sendUpdatedProperty(propertyName: String, value: T) {
-        val serializer = propertySerializers[propertyName] ?: run {
+        val serializer = typedSerializer<T>(propertyName) ?: run {
             println("No serializer found for property $propertyName. Cannot send update to server.")
             return
         }
 
-        val serializedValue = value.toSerializedValue(serializer as KSerializer<T>)
+        val serializedValue = value.toSerializedValue(serializer)
         val packet = BlockEntityUpdatePacket.singleUpdate(pos, propertyName, serializedValue)
         ArchieNetworkChannel.toServer(packet)
     }

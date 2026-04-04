@@ -201,6 +201,14 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 
 	companion object
 	{
+		@Suppress("UNCHECKED_CAST")
+		private fun propertyValueName(key: Property<*>, value: Comparable<*>): String
+		{
+			val typedKey = key as Property<Comparable<Any?>>
+			val typedValue = value as Comparable<Any?>
+			return typedKey.getName(typedValue)
+		}
+
 		private fun toJson(conditions: List<PartBuilder.ConditionGroup>, useOr: Boolean): JsonObject
 		{
 			val groupJson = JsonObject()
@@ -222,7 +230,7 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 				for (`val` in value)
 				{
 					if (activeString.isNotEmpty()) activeString.append("|")
-					activeString.append((key as Property<Comparable<Any?>>).getName(`val` as Comparable<Any?>))
+					activeString.append(propertyValueName(key, `val`))
 				}
 				groupJson.addProperty(key.name, activeString.toString())
 			}

@@ -1,20 +1,19 @@
 {
-  "ninepatch": false,
   "states": {
     "default": {
-      "texture": "minecraft:widget/slider_handle",
-      "texture_size": { "width": 8, "height": 20 },
+      "texture": "archie:java/slider_handle",
+      "texture_size": {
+        "width": 8,
+        "height": 20
+      },
       "width": 8,
-      "height": 20,
-      "uWidth": 8,
-      "vHeight": 20
+      "height": 20
     },
     "hovered": {
-      "texture": "minecraft:widget/slider_handle_highlighted"
+      "texture": "archie:java/slider_handle_highlighted"
     },
     "clicked": {
-      "texture": "minecraft:widget/slider_handle_highlighted"
+      "texture": "archie:java/slider_handle_highlighted"
     }
   }
 }
-

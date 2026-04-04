@@ -10,6 +10,7 @@ class AUINodeApplier(root: LayoutNode) : AbstractApplier<LayoutNode>(root) {
 
 	override fun insertBottomUp(index: Int, instance: LayoutNode) {
 		current.children.add(index, instance)
+		current.invalidateChildrenZCache()
 		check(instance.parent == null) {
 			"$instance must not have a parent when being inserted."
 		}
@@ -17,14 +18,20 @@ class AUINodeApplier(root: LayoutNode) : AbstractApplier<LayoutNode>(root) {
 	}
 
 	override fun remove(index: Int, count: Int) {
-		current.children.remove(index, count)
+		repeat(count) {
+			current.children.removeAt(index).parent = null
+		}
+		current.invalidateChildrenZCache()
 	}
 
 	override fun move(from: Int, to: Int, count: Int) {
 		current.children.move(from, to, count)
+		current.invalidateChildrenZCache()
 	}
 
 	override fun onClear() {
+		current.children.forEach { it.parent = null }
 		current.children.clear()
+		current.invalidateChildrenZCache()
 	}
 }

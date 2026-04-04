@@ -12,9 +12,9 @@ import net.kernelpanicsoft.archie.gui.modifiers.debug
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.NinePatchThemeState
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
-import net.kernelpanicsoft.archie.gui.util.extension.ninePatchTexture
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 
 
@@ -23,12 +23,13 @@ fun Surface(
 	contentAlignment: Alignment = Alignment.TopStart,
 	modifier: Modifier = Modifier,
 	texture: String = "surface",
+	variant: String = ThemeVariants.DEFAULT,
 	content: @Composable () -> Unit
 ) {
 	val measurePolicy = remember(contentAlignment) { BoxMeasurePolicy(contentAlignment) }
 	val theme = LocalTheme.current
 	val composableTheme = theme.getComposableTheme(texture)
-	val state = composableTheme.getState(TextureStates.DEFAULT, theme.mode)
+	val state = composableTheme.getState(TextureStates.DEFAULT, variant)
 
 	Layout(
 		name = "Surface",
@@ -44,37 +45,19 @@ fun Surface(
 				mouseY: Int,
 				partialTick: Float
 			) {
-				if (composableTheme.isNinepatch) return guiGraphics.ninePatchTexture(
-					x,
-					y,
-					node.width,
-					node.height,
-					state as NinePatchThemeState
-				)
-
-				guiGraphics.blit(
-					(state as SimpleThemeState).texture,
-					x,
-					y,
-					state.width,
-					state.height,
-					state.u.toFloat(),
-					state.v.toFloat(),
-					state.uWidth,
-					state.vHeight,
-					state.textureSize.width,
-					state.textureSize.height,
-				)
+				guiGraphics.drawThemeState(state, x, y, node.width, node.height)
 
 				super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
 			}
 		},
 		modifier = Modifier.debug(state.texture.toString()).apply {
-			if (!composableTheme.isNinepatch) with(composableTheme.states["default"]!!) {
-				sizeIn(
-					minWidth = textureSize.width,
-					minHeight = textureSize.height
-				)
+			if (!composableTheme.isNineslice) {
+				with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
+					sizeIn(
+						minWidth = width,
+						minHeight = height
+					)
+				}
 			}
 		} then modifier,
 		content = content

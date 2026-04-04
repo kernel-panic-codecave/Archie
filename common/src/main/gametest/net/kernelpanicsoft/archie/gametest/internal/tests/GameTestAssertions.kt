@@ -1,26 +1,39 @@
 package net.kernelpanicsoft.archie.gametest.internal.tests
 
-internal fun assertTrue(condition: Boolean, message: () -> String)
+import net.minecraft.gametest.framework.GameTestHelper
+
+internal fun assertTrue(helper: GameTestHelper, condition: Boolean, message: () -> String)
 {
 	if (!condition) {
-		throw AssertionError(message())
+		helper.fail(message())
 	}
 }
 
-internal fun <T> assertEquals(expected: T, actual: T, message: () -> String = { "Expected <$expected>, got <$actual>" })
+internal fun <T> assertEquals(
+	helper: GameTestHelper,
+	expected: T,
+	actual: T,
+	message: () -> String = { "Expected <$expected>, got <$actual>" },
+)
 {
 	if (expected != actual) {
-		throw AssertionError(message())
+		helper.fail(message())
 	}
 }
 
-internal inline fun <reified T : Throwable> expectThrows(noinline block: () -> Unit): T
+internal inline fun <reified T : Throwable> expectThrows(helper: GameTestHelper, noinline block: () -> Unit): T
 {
 	return try {
 		block()
-		throw AssertionError("Expected exception ${T::class.simpleName} to be thrown")
+		helper.fail("Expected exception ${T::class.simpleName} to be thrown")
+		throw IllegalStateException("Unreachable")
 	} catch (t: Throwable) {
-		if (t is T) t else throw AssertionError("Expected ${T::class.simpleName}, got ${t::class.simpleName}", t)
+		if (t is T) t
+		else {
+			helper.fail("Expected ${T::class.simpleName}, got ${t::class.simpleName}")
+			throw IllegalStateException("Unreachable", t)
+		}
 	}
 }
+
 

@@ -28,7 +28,7 @@ internal fun <T : InputEvent> Screen.processInputEvent(
     condition: (LayoutNode) -> Boolean = { true },
     process: (LayoutNode, T) -> Unit,
 ) {
-    for (child in node.children.sortedBy { it.zIndex }.asReversed()) {
+    for (child in node.childrenDescendingZ()) {
         if (event.isConsumed) break
         processInputEvent(child, event, condition, process)
     }

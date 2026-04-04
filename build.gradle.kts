@@ -47,7 +47,7 @@ subprojects {
 		mavenLocal()
 		maven {
 			name = "kernelpanic"
-			url = uri("https://repo.kernelpanicsoft.net/maven/releases")
+			url = uri("https://maven.kernelpanicsoft.net/releases")
 		}
 		maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 		maven("https://maven.parchmentmc.org")
@@ -56,6 +56,9 @@ subprojects {
 		maven("https://maven.terraformersmc.com/releases/")
 //		maven("https://thedarkcolour.github.io/KotlinForForge/")
 		maven("https://repo.nyon.dev/releases")
+		maven("https://maven.isxander.dev/releases") {
+			name = "Xander Maven"
+		}
 		maven("https://maven.resourcefulbees.com/repository/maven-public/")
 		maven {
 			url = uri("https://maven.pkg.github.com/MrCrayfish/Maven")

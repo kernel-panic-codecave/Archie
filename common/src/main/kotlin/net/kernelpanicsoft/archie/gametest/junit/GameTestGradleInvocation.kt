@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.gametest.runner
+package net.kernelpanicsoft.archie.gametest.junit
 
 enum class Loader {
 	FABRIC,

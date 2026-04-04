@@ -52,6 +52,14 @@ abstract class SerializationReloadListener<T>(
     }
 
     /**
+     * Returns `true` when [fileLocation] should be decoded by this listener.
+     *
+     * Subclasses can override this to skip known non-data resources that share the same
+     * directory and extension pattern.
+     */
+    protected open fun shouldLoadResource(fileLocation: ResourceLocation): Boolean = true
+
+    /**
      * Scans [resourceManager] for all files matching [directory] / * [fileExtension],
      * deserializes each one, and returns the resulting map keyed by entry id.
      *
@@ -65,6 +73,7 @@ abstract class SerializationReloadListener<T>(
         val fileToIdConverter = FileToIdConverter(directory, fileExtension)
 
         for ((fileLocation, resource) in fileToIdConverter.listMatchingResources(resourceManager)) {
+            if (!shouldLoadResource(fileLocation)) continue
             val resourceId = fileToIdConverter.fileToId(fileLocation)
             try {
                 InputStreamReader(resource.open()).use { reader ->

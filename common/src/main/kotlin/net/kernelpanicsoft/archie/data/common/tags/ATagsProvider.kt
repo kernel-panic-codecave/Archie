@@ -100,6 +100,12 @@ abstract class ATagsProvider<T : Any>(
 		throw UnsupportedOperationException("Adding objects is not supported by $javaClass")
 	}
 
+	@Suppress("UNCHECKED_CAST")
+	protected fun <E : Any> reverseLookupInjected(element: E): ResourceKey<E>
+	{
+		return ((element as InjectedRegistryEntryExtension<E>).holder as Holder.Reference<E>).key()
+	}
+
 	/**
 	 * Creates a new instance of [IATagBuilder] for the given [TagKey].
 	 *
@@ -280,7 +286,7 @@ abstract class ATagsProvider<T : Any>(
 	{
 		override fun reverseLookup(element: Block): ResourceKey<Block>
 		{
-			return ((element as InjectedRegistryEntryExtension<Block>).holder as Holder.Reference<Block>).key()
+			return reverseLookupInjected(element)
 		}
 	}
 
@@ -358,7 +364,7 @@ abstract class ATagsProvider<T : Any>(
 
 		override fun reverseLookup(element: Item): ResourceKey<Item>
 		{
-			return ((element as InjectedRegistryEntryExtension<Item>).holder as Holder.Reference<Item>).key()
+			return reverseLookupInjected(element)
 		}
 	}
 
@@ -375,7 +381,7 @@ abstract class ATagsProvider<T : Any>(
 	{
 		override fun reverseLookup(element: Fluid): ResourceKey<Fluid>
 		{
-			return ((element as InjectedRegistryEntryExtension<Fluid>).holder as Holder.Reference<Fluid>).key()
+			return reverseLookupInjected(element)
 		}
 	}
 
@@ -392,7 +398,7 @@ abstract class ATagsProvider<T : Any>(
 	{
 		override fun reverseLookup(element: EntityType<*>): ResourceKey<EntityType<*>>
 		{
-			return ((element as InjectedRegistryEntryExtension<EntityType<*>>).holder as Holder.Reference<EntityType<*>>).key()
+			return reverseLookupInjected(element)
 		}
 	}
 

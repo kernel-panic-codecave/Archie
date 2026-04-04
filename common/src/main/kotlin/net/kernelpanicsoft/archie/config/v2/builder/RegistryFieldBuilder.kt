@@ -1,18 +1,13 @@
-package net.kernelpanicsoft.archie.config.builder
+package net.kernelpanicsoft.archie.config.v2.builder
 
 import me.shedaniel.clothconfig2.gui.entries.DropdownBoxEntry
 import me.shedaniel.clothconfig2.impl.builders.DropdownMenuBuilder
-import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
-import net.kernelpanicsoft.archie.config.builder.ofBlockEntityTypeObject
-import java.lang.reflect.Field
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")

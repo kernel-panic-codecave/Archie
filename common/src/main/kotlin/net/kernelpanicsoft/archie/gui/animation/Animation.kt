@@ -4,10 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import kotlin.math.roundToInt
 
 /** Describes a time-based interpolation used by Archie GUI animations. */
 fun interface Easing {
@@ -60,7 +60,7 @@ fun animateFloat(targetValue: Float, spec: AnimationSpec = AnimationSpec()): Flo
         do {
             val elapsedNanos = frameTime - startTime
             val rawProgress = (elapsedNanos / (duration * 1_000_000f)).coerceIn(0f, 1f)
-            val eased = spec.easing.transform(rawProgress).coerceIn(0f, 1f)
+            val eased = spec.easing.transform(rawProgress)
             value = start + delta * eased
             frameTime = withFrameNanos { it }
         } while (rawProgress < 1f)
@@ -74,9 +74,8 @@ fun animateFloat(targetValue: Float, spec: AnimationSpec = AnimationSpec()): Flo
 /** Animates an integer by interpolating as float and rounding to the nearest pixel. */
 @Composable
 fun animateInt(targetValue: Int, spec: AnimationSpec = AnimationSpec()): Int {
-    var value by remember { mutableIntStateOf(targetValue) }
     val animatedFloat = animateFloat(targetValue.toFloat(), spec)
-    value = animatedFloat.toInt()
-    return value
+    return animatedFloat.roundToInt()
 }
+
 

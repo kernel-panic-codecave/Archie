@@ -1,7 +1,7 @@
 package net.kernelpanicsoft.archie.gui.modifiers.position
 
 import androidx.compose.runtime.Stable
-import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
+import net.kernelpanicsoft.archie.gui.layout.IntOffset
 import net.kernelpanicsoft.archie.gui.modifiers.LayoutChangingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 
@@ -14,12 +14,12 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
  *
  * Only the **last** [OffsetModifier] in a chain takes effect.
  *
- * @property offset The pixel offset to apply as an [IntCoordinates] value.
+ * @property offset The pixel offset to apply as an [IntOffset] value.
  */
-data class OffsetModifier(val offset: IntCoordinates) : Modifier.Element<OffsetModifier>, LayoutChangingModifier {
+data class OffsetModifier(val offset: IntOffset) : Modifier.Element<OffsetModifier>, LayoutChangingModifier {
     override fun mergeWith(other: OffsetModifier): OffsetModifier = other
 
-    override fun modifyPosition(offset: IntCoordinates): IntCoordinates = offset + this.offset
+    override fun modifyPosition(offset: IntOffset): IntOffset = offset + this.offset
 }
 
 /**
@@ -31,4 +31,4 @@ data class OffsetModifier(val offset: IntCoordinates) : Modifier.Element<OffsetM
  * @param y Vertical pixel offset (positive moves down).
  */
 @Stable
-fun Modifier.offset(x: Int, y: Int): Modifier = this then OffsetModifier(IntCoordinates(x, y))
+fun Modifier.offset(x: Int = 0, y: Int = 0): Modifier = this then OffsetModifier(IntOffset(x, y))

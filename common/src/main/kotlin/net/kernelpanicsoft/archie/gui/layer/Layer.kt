@@ -23,10 +23,11 @@ import java.util.*
  */
 class Layer(
     val id: UUID = UUID.randomUUID(),
+    depth: Int,
     parentComposition: CompositionContext,
     content: @Composable () -> Unit,
 ) {
-    val rootNode = LayoutNode("Root")
+    val rootNode = LayoutNode("Root").apply { layer = depth }
 
     val rootContainerNode by lazy { rootNode.findNode("RootContainer") }
 

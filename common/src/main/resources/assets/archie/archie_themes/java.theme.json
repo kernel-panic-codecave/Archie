@@ -1,5 +1,5 @@
 {
-  "variants": ["", "dark", "inset"],
+  "variants": ["", "dark"],
   "default_variant": "",
   "aliases": {
     "default": ""

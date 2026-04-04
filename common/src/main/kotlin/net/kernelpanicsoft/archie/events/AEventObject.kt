@@ -6,6 +6,9 @@ import dev.architectury.platform.Mod
 abstract class AEventObject<T, H : AEvents.Handler<T>, C : AEvents.HandlerConstructor<T, H>>(val mod: Mod)
 {
 	abstract val event: Event<H>
+
+	@Volatile
+	private var initialized: Boolean = false
 	
 	abstract val handlerConstructor: C
 	
@@ -13,6 +16,12 @@ abstract class AEventObject<T, H : AEvents.Handler<T>, C : AEvents.HandlerConstr
 	
 	fun init()
 	{
-		event.register(handlerConstructor.create(mod) {handler()})
+		if (initialized) return
+		synchronized(this)
+		{
+			if (initialized) return
+			event.register(handlerConstructor.create(mod) { handler() })
+			initialized = true
+		}
 	}
 }

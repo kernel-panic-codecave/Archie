@@ -16,7 +16,7 @@ public abstract class AbstractContainerScreenDepthMixin
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;disableDepthTest()V", shift = At.Shift.AFTER))
     private void archie$restoreDepth(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci)
     {
-        if ((Object) this instanceof SlotLayerDepthProvider)
+        if (this instanceof SlotLayerDepthProvider)
         {
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(true);

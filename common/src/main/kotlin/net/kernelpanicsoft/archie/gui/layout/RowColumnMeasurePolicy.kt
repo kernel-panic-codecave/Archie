@@ -23,17 +23,27 @@ abstract class RowColumnMeasurePolicy(
 
     override fun measure(scope: MeasureScope, measurables: List<Measurable>, constraints: Constraints): MeasureResult {
         var remaining = constraints.copy(minWidth = 0, minHeight = 0)
-        val placeables = measurables.map { element ->
-            val measured = element.measure(remaining)
+        val placeables = ArrayList<Placeable>(measurables.size)
+        var widthValue = 0
+        var heightValue = 0
+
+        for (index in measurables.indices) {
+            val measured = measurables[index].measure(remaining)
+            placeables += measured
+
+            if (sumWidth) widthValue += measured.width else widthValue = max(widthValue, measured.width)
+            if (sumHeight) heightValue += measured.height else heightValue = max(heightValue, measured.height)
+
             remaining = remaining.copy(
                 maxWidth  = if (sumWidth)  (remaining.maxWidth  - measured.width).coerceAtLeast(0) else remaining.maxWidth,
                 maxHeight = if (sumHeight) (remaining.maxHeight - measured.height).coerceAtLeast(0) else remaining.maxHeight,
             )
-            measured
         }
+
         val extraSpacing = (arrangementSpacing * (placeables.size - 1)).coerceAtLeast(0)
-        val width  = if (sumWidth)  placeables.sumOf { it.width }  + extraSpacing else placeables.maxOfOrNull { it.width }  ?: 0
-        val height = if (sumHeight) placeables.sumOf { it.height } + extraSpacing else placeables.maxOfOrNull { it.height } ?: 0
+        val width = if (sumWidth) widthValue + extraSpacing else widthValue
+        val height = if (sumHeight) heightValue + extraSpacing else heightValue
+
         return placeChildren(
             scope, measurables, placeables,
             max(width,  constraints.minWidth),

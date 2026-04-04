@@ -50,7 +50,7 @@ Stacks children on top of each other, aligned within the box.
 
 ```kotlin
 Box(contentAlignment = Alignment.Center) {
-    Image(...)
+    // child content
     Text(Component.literal("Overlay"))
 }
 ```
@@ -64,7 +64,7 @@ Row(
     horizontalArrangement = Arrangement.spacedBy(8),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    Icon(...)
+    // child content
     Text(Component.literal("Label"))
 }
 ```
@@ -87,14 +87,52 @@ Column(verticalArrangement = Arrangement.spacedBy(4)) {
 |---|---|
 | `Text` | Renders a `Component` with optional scale and colour |
 | `Spacer` | Fills available space (useful as a flex gap) |
-| `Texture` | Blits a UV region from a texture atlas |
+| `Texture` | Blits a UV region from a texture or atlas sprite |
+| `Icon` | Fixed-size wrapper around `Texture` for sprite icons |
+| `Divider` | Horizontal/vertical separator line (`HorizontalDivider`, `VerticalDivider`) |
 | `Scrollable` | Wraps a child in a scrollable viewport |
 | `Collapsible` | Expand/collapse container with an animated arrow |
+| `Panel` | Padded themed surface for grouping related controls |
+| `Clickable` | Unstyled pointer interaction primitive (hover/pressed/click) |
 | `ButtonCore` | Unstyled clickable container exposing hover/pressed state |
 | `CheckboxCore` | Unstyled toggle exposing hover state |
+| `Switch` | Boolean toggle switch with animated thumb |
+| `Slider` | Drag-based normalized value control with optional step snapping |
+| `RadioGroup` | Single-choice option group using radio buttons |
 | `TextField` | Full controlled text input (single-line or multi-line) |
 | `BasicTextField` | Simpler `String`-based text field |
 | `ColorPicker` | HSV + alpha colour picker |
+| `TabContainer` | Create World style tab bar |
+| `AlertDialog` / `PromptDialog` / `ChoiceDialog` | Additional modal dialog primitives |
+
+### `TabContainer`
+
+Declarative tab strip that mimics the Create World screen. Tabs are defined as data and the
+selected tab is held in a `TabContainerState`. The bar optionally scrolls when there are
+more tabs than horizontal space.
+
+```kotlin
+val tabs = listOf(
+    TabSpec("game", Component.translatable("createWorld.game")),
+    TabSpec("world", Component.translatable("createWorld.world")),
+    TabSpec("more", Component.translatable("createWorld.more")),
+)
+val tabState = rememberTabContainerState(tabs)
+
+TabContainer(tabs = tabs, state = tabState) { selected ->
+    println("Selected tab: ${selected.id}")
+}
+```
+
+### Animation helpers
+
+```kotlin
+val y = animateInt(if (expanded) 0 else -6)
+val rotation = animateFloat(
+    targetValue = if (expanded) 90f else 0f,
+    spec = AnimationSpec(durationMillis = 260, easing = Easings.OutBack),
+)
+```
 
 ---
 
@@ -173,7 +211,44 @@ layerManager.modal(
 ) {
     ConfirmDialog(onConfirm = { dismiss() })
 }
+
+// New helpers
+layerManager.alertDialog(message = Component.literal("Saved"))
+layerManager.promptDialog(onConfirm = { value -> println(value) })
+
+// Custom modal with built-in enter/exit animation + backdrop fade
+layerManager.modal(transitionSpec = ModalTransitionSpec(durationMillis = 220)) {
+    MyCustomModal()
+}
 ```
+
+---
+
+## Automated GUI Testing
+
+Archie includes a backport client harness for GUI-focused tests on 1.21.1.
+
+- Mark client tests with `@AClientGameTest`
+- Use optional `AClientGameTestContext` parameter for assertions
+- Register test classes in `ArchieGameTest.kt` under `client {}`
+
+```kotlin
+class GuiClientHarnessTests {
+    @AClientGameTest
+    fun testSliderClamp(context: AClientGameTestContext) {
+        context.assertEquals(1f, normalizeSliderValue(2f))
+    }
+}
+```
+
+Run commands:
+
+```zsh
+./gradlew fabric:runGametestClient
+./gradlew neoforge:runGametestClient
+```
+
+The harness logs `[ClientGameTest] PASS/FAIL` lines and fails the run when any client test fails.
 
 ---
 
@@ -207,6 +282,6 @@ val kColor = color.toKColor()
 
 ## Debug overlay
 
-Press **Ctrl + Shift** while a Compose screen is open to toggle the layout debug overlay.
+Press **Ctrl + Shift + D** while a Compose screen is open to toggle the layout debug overlay.
 Hold **Shift** (in debug mode) to inspect individual node dimensions, coordinates, and
 any `debug(...)` modifier annotations.

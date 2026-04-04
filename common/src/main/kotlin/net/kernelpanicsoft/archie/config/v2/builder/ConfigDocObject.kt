@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.config.v2.builder
 
+import dev.architectury.platform.Mod
 import net.kernelpanicsoft.archie.config.CommonKeyCode
 import net.kernelpanicsoft.archie.config.toSnakeCase
 import net.kernelpanicsoft.archie.config.v2.model.BooleanField
@@ -31,14 +32,12 @@ import net.kernelpanicsoft.archie.config.v2.model.LongSliderField
 import net.kernelpanicsoft.archie.config.v2.model.RegistryField
 import net.kernelpanicsoft.archie.config.v2.model.RegistryListField
 import net.kernelpanicsoft.archie.config.v2.model.RegistryMapField
-import net.kernelpanicsoft.archie.config.v2.model.SpecField
-import net.kernelpanicsoft.archie.config.v2.model.SpecListField
-import net.kernelpanicsoft.archie.config.v2.model.SpecMapField
 import net.kernelpanicsoft.archie.config.v2.model.StringField
 import net.kernelpanicsoft.archie.config.v2.model.StringListField
 import net.kernelpanicsoft.archie.config.v2.model.StringMapField
 import net.kernelpanicsoft.archie.config.v2.runtime.ConfigState
-import net.kernelpanicsoft.archie.config.v2.runtime.ConfigV2Engine
+import net.kernelpanicsoft.archie.config.v2.runtime.ConfigEngine
+import net.kernelpanicsoft.archie.config.v2.ui.ConfigUiAdapter
 import net.kernelpanicsoft.archie.gui.util.KColor
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -50,18 +49,35 @@ import kotlin.reflect.KProperty
  * Usage mirrors v1 ergonomics: define fields as delegated properties on category objects,
  * then bind once to an engine to read values anywhere in the mod.
  */
-abstract class ConfigDocumentDsl(
+abstract class ConfigDocObject(
+    val mod: Mod,
     val id: String,
     val title: String = id
 ) {
-    private val categories = mutableListOf<ConfigCategoryDsl>()
+    private val categories = mutableListOf<ConfigCatObject>()
+
+    abstract val adapters: List<ConfigUiAdapter>
+
+    private var engine: ConfigEngine? = null
+
+    fun init()
+    {
+        engine = createEngine(load = true)
+    }
+
+    fun initClient()
+    {
+        adapters.forEach(ConfigUiAdapter::register)
+        engine?.registerScreenHandler(mod)
+    }
+
     private var state: ConfigState? = null
 
     val document: ConfigDocument by lazy {
         ConfigDocument(id = id, title = title, categories = categories.map { it.toModel() })
     }
 
-    protected fun <T : ConfigCategoryDsl> category(category: T): T {
+    protected fun <T : ConfigCatObject> category(category: T): T {
         categories += category
         return category
     }
@@ -71,8 +87,8 @@ abstract class ConfigDocumentDsl(
         categories.forEach { it.bindStateProvider { this.state } }
     }
 
-    fun createEngine(load: Boolean = true): ConfigV2Engine {
-        val engine = ConfigV2Engine(document)
+    fun createEngine(load: Boolean = true): ConfigEngine {
+        val engine = ConfigEngine(document)
         bind(engine.state)
         if (load) {
             engine.load()
@@ -81,24 +97,24 @@ abstract class ConfigDocumentDsl(
     }
 }
 
-abstract class ConfigCategoryDsl(
+abstract class ConfigCatObject(
     val id: String,
     val title: String
 ) {
     private val fields = mutableListOf<ConfigField<*>>()
-    private val children = mutableListOf<ConfigCategoryDsl>()
-    private val categoryLists = mutableMapOf<String, MutableList<ConfigCategoryDsl>>()
-    private val categoryMaps = mutableMapOf<String, MutableMap<String, ConfigCategoryDsl>>()
+    private val children = mutableListOf<ConfigCatObject>()
+    private val categoryLists = mutableMapOf<String, MutableList<ConfigCatObject>>()
+    private val categoryMaps = mutableMapOf<String, MutableMap<String, ConfigCatObject>>()
     private var stateProvider: (() -> ConfigState?)? = null
 
-    protected fun <T : ConfigCategoryDsl> nestedCategory(category: T): T {
+    protected fun <T : ConfigCatObject> nestedCategory(category: T): T {
         children += category
         return category
     }
 
-    protected fun <T : ConfigCategoryDsl> categoryListOf(
+    protected fun <T : ConfigCatObject> categoryListOf(
         factory: () -> T
-    ): PropertyDelegateProvider<ConfigCategoryDsl, ReadOnlyProperty<ConfigCategoryDsl, MutableList<T>>> {
+    ): PropertyDelegateProvider<ConfigCatObject, ReadOnlyProperty<ConfigCatObject, MutableList<T>>> {
         return PropertyDelegateProvider { _, property ->
             val key = property.name
             val list = categoryLists.getOrPut(key) { mutableListOf() }
@@ -107,9 +123,9 @@ abstract class ConfigCategoryDsl(
         }
     }
 
-    protected fun <T : ConfigCategoryDsl> categoryMapOf(
+    protected fun <T : ConfigCatObject> categoryMapOf(
         factory: (String) -> T
-    ): PropertyDelegateProvider<ConfigCategoryDsl, ReadOnlyProperty<ConfigCategoryDsl, MutableMap<String, T>>> {
+    ): PropertyDelegateProvider<ConfigCatObject, ReadOnlyProperty<ConfigCatObject, MutableMap<String, T>>> {
         return PropertyDelegateProvider { _, property ->
             val key = property.name
             val map = categoryMaps.getOrPut(key) { mutableMapOf() }
@@ -154,7 +170,7 @@ abstract class ConfigCategoryDsl(
         key: String?,
         addField: (String) -> ConfigField<*>,
         read: ConfigState.(String) -> T
-    ): PropertyDelegateProvider<ConfigCategoryDsl, ReadOnlyProperty<ConfigCategoryDsl, T>> {
+    ): PropertyDelegateProvider<ConfigCatObject, ReadOnlyProperty<ConfigCatObject, T>> {
         return PropertyDelegateProvider { _, property ->
             val resolved = resolveKey(property, key)
             requireUniqueKey(resolved)
@@ -232,10 +248,11 @@ abstract class ConfigCategoryDsl(
         default: Int,
         min: Int,
         max: Int,
+        step: Int = 1,
         key: String? = null
     ) = define(
         key = key,
-        addField = { IntSliderField(it, title, description, default, min, max) },
+        addField = { IntSliderField(it, title, description, default, min, max, step = step.coerceAtLeast(1)) },
         read = ConfigState::int
     )
 
@@ -245,10 +262,11 @@ abstract class ConfigCategoryDsl(
         default: Long,
         min: Long,
         max: Long,
+        step: Long = 1L,
         key: String? = null
     ) = define(
         key = key,
-        addField = { LongSliderField(it, title, description, default, min, max) },
+        addField = { LongSliderField(it, title, description, default, min, max, step = step.coerceAtLeast(1L)) },
         read = ConfigState::long
     )
 

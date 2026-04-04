@@ -33,7 +33,7 @@ private fun ModalDialogScaffold(
     title: Component,
     modifier: Modifier = Modifier,
     body: @Composable () -> Unit,
-    actions: @Composable Row.() -> Unit,
+    actions: @Composable () -> Unit,
 ) {
     Surface(modifier = modifier) {
         Column(modifier = Modifier.margin(4), verticalArrangement = Arrangement.spacedBy(4)) {
@@ -47,8 +47,7 @@ private fun ModalDialogScaffold(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.margin(top = 4),
-                content = actions,
-            )
+            ) { actions() }
         }
     }
 }
@@ -169,4 +168,5 @@ fun <T> ModalScope.ChoiceDialog(
         },
     )
 }
+
 

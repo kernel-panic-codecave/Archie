@@ -16,6 +16,8 @@
 
 package net.kernelpanicsoft.archie.gui.modifiers
 
+import net.minecraft.network.chat.Component
+
 /**
  * An ordered, immutable collection of [modifier elements][Modifier.Element] that decorate or add
  * behavior to Compose UI elements. For example, backgrounds, padding and click event listeners
@@ -82,12 +84,15 @@ interface Modifier {
 
 		fun mergeWith(other: Self): Self
 
-		fun unsafeMergeWith(other: Element<*>) = mergeWith(other as Self)
+		@Suppress("UNCHECKED_CAST")
+		private fun castSelf(other: Element<*>): Self = other as Self
+
+		fun unsafeMergeWith(other: Element<*>) = mergeWith(castSelf(other))
 
 		/**
 		 * Converts this modifier element to a debug [Component] representation.
 		 */
-		fun toComponent(): net.minecraft.network.chat.Component = net.minecraft.network.chat.Component.literal(toString())
+		fun toComponent(): Component = Component.literal(toString())
 	}
 
 	/**

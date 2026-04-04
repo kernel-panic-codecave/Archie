@@ -1,17 +1,16 @@
 {
-    "ninepatch": false,
-    "states": {
-        "default": {
-            "texture": "archie:textures/gui/java/small_checkbox.png",
-            "texture_size": {
-                "width": 13,
-                "height": 26
-            },
-            "width": 13,
-            "height": 13
-        },
-        "clicked": {
-            "v": 13
-        }
+  "states": {
+    "default": {
+      "texture": "archie:java/small_checkbox",
+      "texture_size": {
+        "width": 13,
+        "height": 13
+      },
+      "width": 13,
+      "height": 13
+    },
+    "clicked": {
+      "texture": "archie:java/small_checkbox_clicked"
     }
+  }
 }

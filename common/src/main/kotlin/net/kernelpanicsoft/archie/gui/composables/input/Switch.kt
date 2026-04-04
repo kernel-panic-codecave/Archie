@@ -20,6 +20,12 @@ private const val SWITCH_MIN_HEIGHT = 18
 private const val SWITCH_PADDING = 2
 private const val SWITCH_THUMB_SIZE = 14
 
+internal fun resolveSwitchThumbOffset(thumbOffset: Int, trackWidth: Int): Int {
+    val minOffset = SWITCH_PADDING
+    val maxOffset = (trackWidth - SWITCH_THUMB_SIZE - SWITCH_PADDING).coerceAtLeast(minOffset)
+    return thumbOffset.coerceIn(minOffset, maxOffset)
+}
+
 /**
  * Low-level switch primitive exposing hover/press state and checked state to custom visuals.
  */
@@ -86,7 +92,7 @@ fun Switch(
                     val thumbColor = if (enabled) KColor.WHITE.argb else 0xFFB0B0B0.toInt()
 
                     guiGraphics.fill(x, y, x + node.width, y + node.height, trackColor)
-                    val thumbX = x + thumbOffset.coerceIn(SWITCH_PADDING, node.width - SWITCH_THUMB_SIZE - SWITCH_PADDING)
+                    val thumbX = x + resolveSwitchThumbOffset(thumbOffset, node.width)
                     val thumbY = y + ((node.height - SWITCH_THUMB_SIZE) / 2)
                     guiGraphics.fill(thumbX, thumbY, thumbX + SWITCH_THUMB_SIZE, thumbY + SWITCH_THUMB_SIZE, thumbColor)
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)

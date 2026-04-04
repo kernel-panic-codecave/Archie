@@ -7,6 +7,7 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
 import net.kernelpanicsoft.archie.gui.blockentity.ComposeBlockEntityState
 import net.kernelpanicsoft.archie.gui.blockentity.getOrCreateBlockEntityState
+import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.transfer.ArchieItemMenuSlot
@@ -70,6 +71,10 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     var ready: Boolean = false
         private set
 
+    /** Parallel to [slots], stores which compose layer produced each vanilla slot. */
+    private var slotLayerDepthByIndex: IntArray = IntArray(0)
+    private var slotClipBoundsByIndex: Array<IntRect?> = emptyArray()
+
     val blockEntityState: ComposeBlockEntityState = getOrCreateBlockEntityState(tile.blockPos)
 
     /**
@@ -93,7 +98,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     protected val level: Level    = player.level()
 
     /** The index range occupied by block-entity slots in [slots]. */
-    protected open val menuSlots: IntRange   get() = 0 until slotData.slots.size
+    protected open val menuSlots: IntRange   get() = slotData.slots.indices
 
     /** The index range occupied by player-inventory slots in [slots]. */
     protected open val playerSlots: IntRange get() = slotData.slots.size until slots.size
@@ -148,25 +153,28 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
      */
     fun updateSlotData(data: SlotData) {
         slotData = data
-        val isFirstTime = slots.isEmpty()
-        if (isFirstTime) {
-            buildSlots()
-        } else {
-            repositionSlots()
-        }
-        broadcastChanges()
+        rebuildSlots()
+        rebuildSlotMetadataMaps()
+        broadcastFullState()
         // Notify server of the new layout so it can validate slot indices
         ArchieNetworkChannel.toServer(data)
     }
+
+    fun slotLayerDepth(slotIndex: Int): Int = slotLayerDepthByIndex.getOrElse(slotIndex) { 0 }
+    fun slotClipBounds(slotIndex: Int): IntRect? = slotClipBoundsByIndex.getOrNull(slotIndex)
 
     /**
      * First-time slot construction: registers all menu slots and player slots.
      * Must only be called when [slots] is empty.
      */
-    private fun buildSlots() {
+    private fun rebuildSlots() {
         registerSlotHandlers()
+        this.slots.clear()
+        this.lastSlots.clear()
+        this.remoteSlots.clear()
         addMenuSlots()
         addPlayerSlots()
+        repositionSlots()
     }
 
     /**
@@ -181,15 +189,20 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
         // Reposition menu slots
         slotData.groups.forEach { (id, group) ->
-
-            slotHandlers[id]?.let { _ ->
-                for (row in 0 until group.size.height) {
-                    for (col in 0 until group.size.width) {
-                        if (slotIndex < slots.size) {
-                            val mcSlot = slots[slotIndex]
-                            mcSlot.x = group.pos.x + 1 + col * 18 - screenLeftPos
-                            mcSlot.y = group.pos.y + 1 + row * 18 - screenTopPos
-                            slotIndex++
+            if (group.enabled)
+            {
+                slotHandlers[id]?.let { _ ->
+                    for (row in 0 until group.size.height)
+                    {
+                        for (col in 0 until group.size.width)
+                        {
+                            if (slotIndex < slots.size)
+                            {
+                                val mcSlot = slots[slotIndex]
+                                mcSlot.x = group.pos.x + 1 + col * 18 - screenLeftPos
+                                mcSlot.y = group.pos.y + 1 + row * 18 - screenTopPos
+                                slotIndex++
+                            }
                         }
                     }
                 }
@@ -218,10 +231,38 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         ready = true
     }
 
+    private fun rebuildSlotMetadataMaps() {
+        val depths = ArrayList<Int>(slots.size)
+        val clips = ArrayList<IntRect?>(slots.size)
+
+        slotData.groups.forEach { (id, group) ->
+            if (slotHandlers[id] == null) return@forEach
+            val clip = group.clip
+            repeat(group.size.width * group.size.height) {
+                depths += group.layerDepth
+                clips += clip
+            }
+        }
+
+        val playerClip = slotData.playerGroup.clip
+        repeat(36) {
+            depths += slotData.playerGroup.layerDepth
+            clips += playerClip
+        }
+
+        while (depths.size < slots.size) {
+            depths += 0
+            clips += null
+        }
+        slotLayerDepthByIndex = depths.toIntArray()
+        slotClipBoundsByIndex = clips.toTypedArray()
+    }
+
     // ── Internal slot helpers ──────────────────────────────────────────────
 
     private fun addMenuSlots() {
         slotData.groups.forEach { (id, group) ->
+            if (!group.enabled) return@forEach
             slotHandlers[id]?.let { handler ->
                 // Use slot-relative coords (subtract screen offset so vanilla adds it back correctly)
 //	            group.slots.forEachIndexed { slot, coords ->
@@ -272,10 +313,12 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     protected fun slot(mcSlot: Slot) { addSlot(mcSlot) }
 
     protected fun slot(storage: CommonStorage<ItemResource>, slot: Int, x: Int, y: Int) {
-        when {
-            storage is ArchieItemStorage       -> slot(storage, slot, x, y)
-            storage is AbstractVanillaContainer -> slot(storage as Container, slot, x, y)
-        }
+        if (slot !in 0 until storage.size()) return
+	    when (storage)
+	    {
+		    is ArchieItemStorage -> slot(storage, slot, x, y)
+		    is AbstractVanillaContainer -> slot(storage as Container, slot, x, y)
+	    }
     }
 
     protected fun slot(container: Container, slot: Int, x: Int, y: Int) {
@@ -293,21 +336,48 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     // ── AbstractContainerMenu overrides ────────────────────────────────────
 
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
-        var result = ItemStack.EMPTY
-        val slot = slots.getOrNull(index) ?: return result
-        if (slot.hasItem()) {
-            val slotStack = slot.item
-            result = slotStack.copy()
-            if (index in menuSlots) {
-                if (!moveItemStackTo(slotStack, playerSlots.first, playerSlots.last, true))
-                    return ItemStack.EMPTY
-            } else if (index in playerSlots) {
-                if (!moveItemStackTo(slotStack, menuSlots.first, menuSlots.last, false))
-                    return ItemStack.EMPTY
+        val slot = slots.getOrNull(index) ?: return ItemStack.EMPTY
+        if (!slot.hasItem()) return ItemStack.EMPTY
+
+        val stackInSlot = slot.item
+        val copied = stackInSlot.copy()
+
+        val totalSlots = slots.size
+        val playerSlotCount = 36
+        val playerStart = (totalSlots - playerSlotCount).coerceAtLeast(0)
+        val playerEndExclusive = totalSlots
+        val menuStart = 0
+        val menuEndExclusive = playerStart
+        val hotbarSize = 9
+        val hotbarStart = (playerEndExclusive - hotbarSize).coerceAtLeast(playerStart)
+        val inventoryStart = playerStart
+        val inventoryEndExclusive = hotbarStart
+
+        val moved = when {
+            // From menu -> player inventory/hotbar
+            index in menuStart until menuEndExclusive ->
+                moveItemStackTo(stackInSlot, playerStart, playerEndExclusive, true)
+
+            // From player main inventory -> menu first, then hotbar fallback
+            index in inventoryStart until inventoryEndExclusive -> {
+                val movedToMenu = menuEndExclusive > menuStart && moveItemStackTo(stackInSlot, menuStart, menuEndExclusive, false)
+                movedToMenu || moveItemStackTo(stackInSlot, hotbarStart, playerEndExclusive, false)
             }
-            if (slotStack.isEmpty) slot.set(ItemStack.EMPTY) else slot.setChanged()
+
+            // From hotbar -> menu first, then main inventory fallback
+            index in hotbarStart until playerEndExclusive -> {
+                val movedToMenu = menuEndExclusive > menuStart && moveItemStackTo(stackInSlot, menuStart, menuEndExclusive, false)
+                movedToMenu || moveItemStackTo(stackInSlot, inventoryStart, inventoryEndExclusive, false)
+            }
+
+            else -> false
         }
-        return result
+
+        if (!moved) return ItemStack.EMPTY
+
+        if (stackInSlot.isEmpty) slot.set(ItemStack.EMPTY) else slot.setChanged()
+        slot.onTake(player, stackInSlot)
+        return copied
     }
 
     override fun clicked(slotId: Int, button: Int, clickType: ClickType, player: Player) {
@@ -332,18 +402,15 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
         fun register() {
             ArchieNetworkChannel.serverbound(SlotData::class) { data, context ->
-                val menu = context.player.containerMenu
-                if (menu is ComposeContainerMenu<*, *>) {
-                    menu.slotData = data
-                    // Rebuild slot positions on the server to match the client layout
-                    if (menu.slots.isEmpty()) {
-                        menu.buildSlots()
-                    } else {
-                        menu.repositionSlots()
-                    }
-                    menu.broadcastChanges()
-                }
-            }
-        }
-    }
-}
+                 val menu = context.player.containerMenu
+                 if (menu is ComposeContainerMenu<*, *>) {
+                     menu.slotData = data
+                     // Rebuild slot positions on the server to match the client layout
+                     menu.rebuildSlots()
+                     menu.rebuildSlotMetadataMaps()
+                     menu.broadcastFullState()
+                 }
+             }
+         }
+     }
+ }
