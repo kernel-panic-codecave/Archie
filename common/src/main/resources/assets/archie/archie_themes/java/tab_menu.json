@@ -1,0 +1,16 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:textures/gui/java/tab.png",
+      "texture_size": { "width": 130, "height": 96 },
+      "repeat": false,
+      "corners_size": { "width": 2, "height": 2 },
+      "center_size": { "width": 126, "height": 22 }
+    },
+    "hovered": { "v": 24 },
+    "clicked": { "v": 48 },
+    "clicked_and_hovered": { "v": 72 },
+    "disabled": { "v": 0 }
+  }
+}
+

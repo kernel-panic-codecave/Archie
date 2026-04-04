@@ -1,0 +1,10 @@
+{
+  "sources": [
+    {
+      "type": "directory",
+      "source": "gui/sprites",
+      "prefix": ""
+    }
+  ]
+}
+

@@ -1,0 +1,18 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:widget/slider",
+      "texture_size": { "width": 200, "height": 20 },
+      "repeat": false,
+      "corners_size": { "width": 1, "height": 1 },
+      "center_size": { "width": 198, "height": 18 }
+    },
+    "hovered": {
+      "texture": "archie:widget/slider_highlighted"
+    },
+    "clicked": {
+      "texture": "archie:widget/slider_highlighted"
+    }
+  }
+}
+
