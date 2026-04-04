@@ -3,7 +3,6 @@ architectury {
 }
 
 dependencies {
-	modImplementation(project(path = ":common", configuration = "namedElements"))
 	modImplementation(libs.fabric.loader)
 	modCompileOnly(libs.catalogue.common)
 	modCompileOnly(libs.clothConfig.common)

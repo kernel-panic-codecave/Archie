@@ -1,5 +1,8 @@
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import net.fabricmc.loom.util.ModPlatform
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+import org.jetbrains.compose.compose
 
 
 plugins {
@@ -9,17 +12,22 @@ plugins {
 
 architectury {
 	platformSetupLoomIde()
-	fabric()
+	neoForge()
 }
 
 configurations {
 	create("common")
 	create("shadowCommon")
+	configureEach {
+		// Keep NeoForge Kotlin runtime provided by KotlinLangForge only.
+		exclude(group = "thedarkcolour", module = "kotlinforforge-neoforge")
+		exclude(group = "remapped.thedarkcolour", module = "kotlinforforge-neoforge-1d1bcbf2")
+	}
 	compileClasspath.get().extendsFrom(configurations["common"])
 	runtimeClasspath.get().extendsFrom(configurations["common"])
 	testCompileClasspath.get().extendsFrom(compileClasspath.get())
 	testRuntimeClasspath.get().extendsFrom(runtimeClasspath.get())
-//	getByName("developmentFabric").extendsFrom(configurations["common"])
+//	getByName("developmentNeoForge").extendsFrom(configurations["common"])
 }
 
 loom {
@@ -29,9 +37,11 @@ loom {
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(project.sourceSets.main.get())
+//			sourceSet(project(":common").sourceSets.main.get())
 		}
 		create("test") {
 			sourceSet(project.sourceSets.test.get())
+//			sourceSet(project(":common").sourceSets.test.get())
 		}
 	}
 
@@ -40,7 +50,7 @@ loom {
 			name = "Minecraft Client"
 			source(sourceSets.main.get())
 			source(sourceSets.test.get())
-			vmArg("-XX:+AllowEnhancedClassRedefinition")
+			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		getByName("server") {
 			name = "Minecraft Server"
@@ -48,42 +58,39 @@ loom {
 			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
-		// This adds a new gradle task that runs the datagen API: "gradlew runDatagen"
 		create("datagen") {
-			client()
+			data()
 			name = "Minecraft Datagen"
 			property("archie.datagen", "true")
-			property("archie.datagen.client", project.properties["client_datagen"] as String)
-			property("archie.datagen.server", project.properties["server_datagen"] as String)
-			property("fabric-api.datagen")
-			property("fabric-api.datagen.modid", properties["mod_id"] as String)
-			property("fabric-api.datagen.output-dir", file("src/main/generated").absolutePath)
-
-			runDir = "build/datagen"
+			property("archie.datagen.client", providers.gradleProperty("client_datagen").orElse("true").get())
+			property("archie.datagen.server", providers.gradleProperty("server_datagen").orElse("true").get())
+			programArgs("--all", "--mod", providers.gradleProperty("mod_id").orElse("archie").get())
+			programArgs("--output", file("src/main/generated").absolutePath)
 		}
+
 		create("gametest") {
 			server()
 			name = "Minecraft GameTest"
-			property("fabric-api.gametest")
-			property("archie.gametest.side", "server")
+			property("neoforge.enableGameTest", "true")
+			property("neoforge.gameTestServer", "true")
+			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
+
 		create("gametestClient") {
 			client()
 			name = "Minecraft GameTest Client"
-			property("fabric-api.gametest")
+			property("neoforge.enableGameTest", "true")
 			property("archie.gametest.side", "client")
+			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
 	}
-}
 
-fabricApi.configureDataGeneration {
-	createRunConfiguration = false
-	outputDirectory.set(file("src/main/generated"))
 }
 
 sourceSets {
 	main {
 		resources {
+			srcDir("src/main/generated")
 		}
 		kotlin {
 			srcDir("src/main/gametest")
@@ -94,43 +101,59 @@ sourceSets {
 	}
 }
 
+//val bundleRuntimeLibrary: Configuration by configurations.creating {
+//	exclude(group = "com.mojang")
+//	exclude(group = "org.jetbrains.kotlin")
+//	exclude(group = "org.jetbrains.kotlinx")
+//}
+
 dependencies {
-	modImplementation(libs.fabric.loader)
-	modApi(libs.fabric.api)
-	modApi(libs.architectury.fabric)
-	modImplementation(libs.kotlin.fabric)
+	"neoForge"(libs.neoforge)
+	modApi(libs.architectury.neoforge)
+	implementation(libs.kotlin.neoforge)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
-	modLocalRuntime(libs.rei.fabric)
-	modCompileOnlyApi(libs.modmenu)
-	modCompileOnlyApi(libs.catalogue.fabric)
-	modLocalRuntime(libs.catalogue.fabric)
-	modLocalRuntime(libs.menulogue.fabric)
-	modCompileOnlyApi(libs.clothConfig.fabric)
-	modLocalRuntime(libs.clothConfig.fabric)
-	modCompileOnlyApi(libs.yacl.fabric)
-	modLocalRuntime(libs.yacl.fabric)
-	bundleMod(libs.storage.fabric)
+	modRuntimeOnly(libs.rei.neoforge)
+	modCompileOnlyApi(libs.catalogue.neoforge)
+	modRuntimeOnly(libs.catalogue.neoforge)
+	modCompileOnlyApi(libs.clothConfig.neoforge)
+	modRuntimeOnly(libs.clothConfig.neoforge)
+	modCompileOnlyApi(libs.yacl.neoforge)
+//	modRuntimeOnly(libs.yacl.neoforge)
+//	modRuntimeOnly(libs.quilt.parsers.json)
+//	modRuntimeOnly(libs.quilt.parsers.gson)
+//	runtimeOnly(libs.quilt.parsers.json)
+//	runtimeOnly(libs.quilt.parsers.gson)
+	bundleMod(libs.storage.neoforge) {
+		exclude(group = "curse.maven")
+	}
 
-	testImplementation(project.project(":archie-test").sourceSets.main.get().output)
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
+	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
+//	bundleRuntimeLibrary.resolvedConfiguration.resolvedArtifacts.forEach {
+//		include(it.moduleVersion.id.toString())
+//		implementation(it.moduleVersion.id.toString())
+//		localRuntime(it.moduleVersion.id.toString()) {
+//			attributes {
+//				attribute(patchedFMLModType, true)
+//			}
+//		}
+//	}
 }
 
 modResources {
-	filesMatching.add("fabric.mod.json")
+	filesMatching.add("META-INF/neoforge.mods.toml")
 }
 
-
 tasks {
-	base.archivesName.set(base.archivesName.get() + "-fabric")
+	base.archivesName.set(base.archivesName.get() + "-neoforge")
 
 	test {
 		useJUnitPlatform()
@@ -146,9 +169,6 @@ tasks {
 	}
 
 	processTestResources {
-		from(project(":archie-test").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}_test/**")
-		}
 	}
 
 	classes {
@@ -156,18 +176,24 @@ tasks {
 	}
 
 	shadowJar {
+		exclude("fabric.mod.json")
 		configurations =
 			listOf(project.configurations.getByName("shadowCommon"), project.configurations.getByName("shadow"))
 		archiveClassifier.set("dev-shadow")
 	}
 
 	remapJar {
-		injectAccessWidener.set(true)
 		inputFile.set(shadowJar.get().archiveFile)
+//		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.path))
 		dependsOn(shadowJar)
 	}
 
 	jar.get().archiveClassifier.set("dev")
+
+	jar {
+		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+		from(project(":common").sourceSets.main.get().output)
+	}
 
 	sourcesJar {
 		val commonSources = project(":common").tasks.sourcesJar
@@ -175,10 +201,18 @@ tasks {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })
 	}
+
+//	task("printRuntimeClasspath") {
+//		val runtimeClasspath = sourceSets.test.get().runtimeClasspath
+//		inputs.files( runtimeClasspath )
+//		doLast {
+//			println(runtimeClasspath.joinToString("\n") { it.path })
+//		}
+//	}
 }
 
 //publishing {
-//	publications.create<MavenPublication>("mavenFabric") {
+//	publications.create<MavenPublication>("mavenNeoForge") {
 //		artifactId = base.archivesName.get()
 //		from(components["java"])
 //	}

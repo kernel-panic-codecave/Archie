@@ -1,10 +1,45 @@
+import org.jetbrains.kotlin.konan.properties.loadProperties
+
 architectury {
 	common("fabric", "neoforge")
 }
 
+val localProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("local.properties")
+	val sharedPropsFile = rootDir.resolve("../local.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val sharedProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("gradle.properties")
+	val sharedPropsFile = rootDir.resolve("../gradle.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val String.prop: String?
+	get() = sharedProperties?.get(this)?.toString()
+
+val String.local: String?
+	get() = localProperties?.get(this)?.toString()
+
+val String.env: String?
+	get() = System.getenv(this)
+
+val String.localOrEnv: String?
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
+
+
 loom {
 	log4jConfigs.from(rootProject.file("log4j-dev.xml"))
-	accessWidenerPath = file("src/main/resources/${project.properties["mod_id"]}.accesswidener")
+	accessWidenerPath = file("src/main/resources/${"mod_id".prop}.accesswidener")
 }
 
 sourceSets {

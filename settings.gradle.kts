@@ -15,6 +15,7 @@ pluginManagement {
 //	includeBuild("plugins")
 }
 
-include("common", "archie-test", "fabric", "neoforge")
+rootProject.name = "Archie-Repo"
 
-rootProject.name = "Archie"
+includeBuild("Archie")
+includeBuild("Archie-Test")

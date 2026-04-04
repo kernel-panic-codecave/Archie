@@ -62,9 +62,9 @@ loom {
 			data()
 			name = "Minecraft Datagen"
 			property("archie.datagen", "true")
-			property("archie.datagen.client", project.properties["client_datagen"] as String)
-			property("archie.datagen.server", project.properties["server_datagen"] as String)
-			programArgs("--all", "--mod", project.properties["mod_id"] as String)
+			property("archie.datagen.client", providers.gradleProperty("client_datagen").orElse("true").get())
+			property("archie.datagen.server", providers.gradleProperty("server_datagen").orElse("true").get())
+			programArgs("--all", "--mod", providers.gradleProperty("mod_id").orElse("archie").get())
 			programArgs("--output", file("src/main/generated").absolutePath)
 		}
 
@@ -131,7 +131,6 @@ dependencies {
 		exclude(group = "curse.maven")
 	}
 
-	testImplementation(project.project(":archie-test").sourceSets.main.get().output)
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
@@ -170,9 +169,6 @@ tasks {
 	}
 
 	processTestResources {
-		from(project(":archie-test").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}_test/**")
-		}
 	}
 
 	classes {
