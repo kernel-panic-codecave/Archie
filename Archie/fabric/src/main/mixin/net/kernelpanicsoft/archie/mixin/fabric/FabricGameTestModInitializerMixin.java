@@ -1,33 +1,27 @@
 package net.kernelpanicsoft.archie.mixin.fabric;
 
-import com.llamalad7.mixinextras.sugar.Local;
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
+import net.fabricmc.fabric.impl.gametest.FabricGameTestModInitializer;
 import net.kernelpanicsoft.archie.Archie;
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform;
-import net.fabricmc.fabric.impl.gametest.FabricGameTestModInitializer;
-import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
-import net.kernelpanicsoft.archie.gametest.AGameTestPlatformInternal;
 import net.kernelpanicsoft.archie.gametest.VerboseTestReporter;
 import net.minecraft.gametest.framework.GlobalTestReporter;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("UnstableApiUsage")
 @Mixin(FabricGameTestModInitializer.class)
-class FabricGameTestModInitializerMixin
+public interface FabricGameTestModInitializerMixin
 {
-	@Inject(method = "onInitialize()V", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/fabricmc/loader/api/FabricLoader;getEntrypointContainers(Ljava/lang/String;Ljava/lang/Class;)Ljava/util/List;"), remap = false)
-	public void onInitialize(CallbackInfo ci, @Local(name = "entrypointContainers") LocalRef<List<EntrypointContainer<Object>>> entrypointContainers)
-	{
-		if (AGameTestPlatform.INSTANCE.isGameTest())
-		{
-			Archie.LOGGER.info("Registering GameTests");
-			GlobalTestReporter.replaceWith(VerboseTestReporter.INSTANCE);
-			AGameTestPlatformInternal.addEntrypoints(entrypointContainers);
-		}
-	}
+
+	@Accessor("GAME_TEST_IDS")
+    static Map<Class<?>, String> getGameTestIds() { return null; }
+
+
+    @Accessor("LOGGER")
+    static org.slf4j.Logger getLogger() { return null; }
 }

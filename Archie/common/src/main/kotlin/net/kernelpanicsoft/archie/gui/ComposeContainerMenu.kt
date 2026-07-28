@@ -3,17 +3,14 @@ package net.kernelpanicsoft.archie.gui
 import earth.terrarium.common_storage_lib.item.impl.vanilla.AbstractVanillaContainer
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.CommonStorage
-import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
 import net.kernelpanicsoft.archie.gui.blockentity.ComposeBlockEntityState
 import net.kernelpanicsoft.archie.gui.blockentity.getOrCreateBlockEntityState
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
-import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.transfer.ArchieItemMenuSlot
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import net.kernelpanicsoft.archie.transfer.VanillaMenuSlot
-import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.Container
 import net.minecraft.world.entity.player.Inventory
@@ -25,6 +22,7 @@ import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
+import java.util.function.Predicate
 
 /**
  * Base class for Compose-backed container menus.
@@ -93,15 +91,10 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
     /** Maps slot-group id → the storage that backs it. */
     private val slotHandlers: MutableMap<String, CommonStorage<ItemResource>> = mutableMapOf()
+    private val slotFilters: MutableMap<String, Predicate<ItemStack>> = mutableMapOf()
 
     protected val player: Player  = playerInventory.player
     protected val level: Level    = player.level()
-
-    /** The index range occupied by block-entity slots in [slots]. */
-    protected open val menuSlots: IntRange   get() = slotData.slots.indices
-
-    /** The index range occupied by player-inventory slots in [slots]. */
-    protected open val playerSlots: IntRange get() = slotData.slots.size until slots.size
 
     init
     {
@@ -124,20 +117,11 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     protected abstract fun registerSlotHandlers()
 
     /**
-     * Registers a storage handler for the named slot group.
-     *
-     * @param group   The id matching a [SlotGroup] reported by the Compose layout.
-     * @param storage The [ArchieItemStorage] that backs this group.
-     */
-    protected fun handler(group: String, storage: ArchieItemStorage) {
-        slotHandlers[group] = storage
-    }
-
-    /**
      * Registers a generic [CommonStorage] handler for the named slot group.
      */
-    protected fun handler(group: String, storage: CommonStorage<ItemResource>) {
+    protected fun handler(group: String, storage: CommonStorage<ItemResource>, filter: Predicate<ItemStack> = Predicate { true }) {
         slotHandlers[group] = storage
+        slotFilters[group] = filter
     }
 
     // ── Called by the Compose layout ───────────────────────────────────────
@@ -268,7 +252,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 //	            group.slots.forEachIndexed { slot, coords ->
 //		            slot(handler, slot, coords.x - screenLeftPos, coords.y - screenTopPos)
 //	            }
-                slotGrid(group.pos.x - screenLeftPos, group.pos.y - screenTopPos, group.size.width, group.size.height, handler)
+                slotGrid(group.pos.x - screenLeftPos, group.pos.y - screenTopPos, group.size.width, group.size.height, handler, slotFilters[id] ?: Predicate { true })
             }
         }
     }
@@ -280,12 +264,12 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
             // 3 rows of 9 (main inventory: playerInventory indices 9–35)
             for (row in 0 until 3) {
                 for (col in 0 until 9) {
-                    slot(playerInventory, col + row * 9 + 9, relX + col * 18, relY + row * 18)
+                    slot(playerInventory, {true}, col + row * 9 + 9, relX + col * 18, relY + row * 18)
                 }
             }
             // Hotbar (playerInventory indices 0–8), 58px below main inventory
             for (col in 0 until 9) {
-                slot(playerInventory, col, relX + col * 18, relY + 58)
+                slot(playerInventory, {true}, col, relX + col * 18, relY + 58)
             }
         }
     }
@@ -302,35 +286,38 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         }
     }
 
-    protected fun slotGrid(x: Int, y: Int, width: Int, height: Int, container: Container) {
-        slotGrid(x, y, width, height) { slot(container, slot, this.x, this.y) }
+    protected fun slotGrid(x: Int, y: Int, width: Int, height: Int, container: Container, filter: Predicate<ItemStack> = Predicate { true }) {
+        slotGrid(x, y, width, height) { slot(container, filter, slot, this.x, this.y) }
     }
 
-    protected fun slotGrid(x: Int, y: Int, width: Int, height: Int, storage: CommonStorage<ItemResource>) {
-        slotGrid(x, y, width, height) { slot(storage, slot, this.x, this.y) }
+    protected fun slotGrid(x: Int, y: Int, width: Int, height: Int, storage: CommonStorage<ItemResource>, filter: Predicate<ItemStack> = Predicate { true }) {
+        slotGrid(x, y, width, height) { slot(storage, filter, slot, this.x, this.y) }
     }
 
     protected fun slot(mcSlot: Slot) { addSlot(mcSlot) }
 
-    protected fun slot(storage: CommonStorage<ItemResource>, slot: Int, x: Int, y: Int) {
+    protected fun slot(storage: CommonStorage<ItemResource>, filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) {
         if (slot !in 0 until storage.size()) return
 	    when (storage)
 	    {
-		    is ArchieItemStorage -> slot(storage, slot, x, y)
-		    is AbstractVanillaContainer -> slot(storage as Container, slot, x, y)
+		    is ArchieItemStorage -> slot(storage, filter, slot, x, y)
+		    is AbstractVanillaContainer -> slot(storage as Container, filter, slot, x, y)
 	    }
     }
 
-    protected fun slot(container: Container, slot: Int, x: Int, y: Int) {
-        addSlot(Slot(container, slot, x, y))
+    protected fun slot(container: Container, filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) {
+        addSlot(object : Slot(container, slot, x, y)
+        {
+            override fun mayPlace(itemStack: ItemStack): Boolean = filter.test(itemStack)
+        })
     }
 
-    protected fun slot(storage: ArchieItemStorage, slot: Int, x: Int, y: Int) {
-        addSlot(ArchieItemMenuSlot(storage, slot, x, y))
+    protected fun slot(storage: ArchieItemStorage, filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) {
+        addSlot(ArchieItemMenuSlot(storage, filter, slot, x, y))
     }
 
-    protected fun slot(storage: AbstractVanillaContainer, slot: Int, x: Int, y: Int) {
-        addSlot(VanillaMenuSlot(storage, slot, x, y))
+    protected fun slot(storage: AbstractVanillaContainer, filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) {
+        addSlot(VanillaMenuSlot(storage, filter, slot, x, y))
     }
 
     // ── AbstractContainerMenu overrides ────────────────────────────────────

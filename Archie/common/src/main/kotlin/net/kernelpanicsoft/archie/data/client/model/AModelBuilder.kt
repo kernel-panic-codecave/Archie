@@ -247,7 +247,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 
 		val transforms: Map<ItemDisplayContext, PlatformItemTransform> =
 			this.transforms.build()
-		if (!transforms.isEmpty())
+		if (transforms.isNotEmpty())
 		{
 			val display = JsonObject()
 			for ((key, vec) in transforms)
@@ -255,7 +255,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 				val transform = JsonObject()
 				if (vec == PlatformItemTransform.NO_TRANSFORM) continue
 				val hasRightRotation: Boolean =
-					vec.rightRotation!! != PlatformItemTransform.Deserializer.DEFAULT_ROTATION
+					vec.rightRotation != PlatformItemTransform.Deserializer.DEFAULT_ROTATION
 				if (vec.translation != PlatformItemTransform.Deserializer.DEFAULT_TRANSLATION)
 				{
 					transform.add("translation", serializeVector3f(vec.translation))
@@ -273,7 +273,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 				}
 				if (hasRightRotation)
 				{
-					transform.add("right_rotation", serializeVector3f(vec.rightRotation!!))
+					transform.add("right_rotation", serializeVector3f(vec.rightRotation))
 				}
 				display.add(key.serializedName, transform)
 			}

@@ -37,6 +37,6 @@ jobs:
       - run: pip install mkdocs-material mike mkdocs-rss-plugin cairosvg pngquant
       - run: git fetch origin gh-pages --depth=1
       - name: Build Documentation
-        run: ./gradlew publishDocs
+        run: cd Archie && ./gradlew publishDocs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

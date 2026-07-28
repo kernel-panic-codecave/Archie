@@ -15,6 +15,11 @@ architectury {
 	neoForge()
 }
 
+actualizer {
+	actualizes(project(":common-test"))
+	actualizes("net.kernelpanicsoft:common")
+}
+
 configurations {
 	create("common")
 	create("shadowCommon")
@@ -31,17 +36,12 @@ configurations {
 }
 
 loom {
-	log4jConfigs.from(project(":common").loom.log4jConfigs)
-	accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+	log4jConfigs.from(project(":common-test").loom.log4jConfigs)
+	accessWidenerPath.set(project(":common-test").loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
-			sourceSet(project.sourceSets.main.get())
-//			sourceSet(project(":common").sourceSets.main.get())
-		}
-		create("test") {
-			sourceSet(project.sourceSets.test.get())
-//			sourceSet(project(":common").sourceSets.test.get())
+			sourceSet(sourceSets.main.get())
 		}
 	}
 
@@ -49,13 +49,11 @@ loom {
 		getByName("client") {
 			name = "Minecraft Client"
 			source(sourceSets.main.get())
-			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		getByName("server") {
 			name = "Minecraft Server"
 			source(sourceSets.main.get())
-			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		create("datagen") {
@@ -108,6 +106,7 @@ sourceSets {
 //}
 
 dependencies {
+	modApi("net.kernelpanicsoft:neoforge:1.0.0") { isTransitive = false }
 	"neoForge"(libs.neoforge)
 	modApi(libs.architectury.neoforge)
 	implementation(libs.kotlin.neoforge)
@@ -131,12 +130,10 @@ dependencies {
 		exclude(group = "curse.maven")
 	}
 
-	implementation(libs.junit.jupiter.api)
-	testImplementation(libs.junit.jupiter.api)
-	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	"common"(project(":common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
+
+	"common"(project(":common-test", "namedElements")) { isTransitive = false }
+	"shadowCommon"(project(":common-test", "transformProductionNeoForge")) { isTransitive = false }
 //	bundleRuntimeLibrary.resolvedConfiguration.resolvedArtifacts.forEach {
 //		include(it.moduleVersion.id.toString())
 //		implementation(it.moduleVersion.id.toString())
@@ -160,7 +157,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":common").sourceSets.main.get().resources) {
+		from(project(":common-test").sourceSets.main.get().resources) {
 			include("assets/${project.properties["mod_id"]}/**")
 			include("data/${project.properties["mod_id"]}/**")
 			include("archie-common.mixins.json")
@@ -192,11 +189,11 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":common").sourceSets.main.get().output)
+		from(project(":common-test").sourceSets.main.get().output)
 	}
 
 	sourcesJar {
-		val commonSources = project(":common").tasks.sourcesJar
+		val commonSources = project(":common-test").tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

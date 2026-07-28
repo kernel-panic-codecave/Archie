@@ -1,11 +1,14 @@
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import org.gradle.api.publish.PublishingExtension
 import org.jetbrains.kotlin.konan.properties.loadProperties
+import org.gradle.api.publish.maven.MavenPublication
 import java.util.Properties
 
 plugins {
 	java
 	alias(libs.plugins.architectury)
-	alias(libs.plugins.architectury.kotlin)
+	id("net.kernelpanicsoft.actualizer") version "0.1.0" apply false
+//	alias(libs.plugins.architectury.kotlin)
 	alias(libs.plugins.architectury.loom) apply false
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.serialization)
@@ -52,6 +55,8 @@ val String.localOrEnv: String?
 
 subprojects {
 	apply(plugin = "dev.architectury.loom")
+	apply(plugin = "maven-publish")
+	apply(plugin = "net.kernelpanicsoft.actualizer")
 
 	val loom = project.extensions.getByName<LoomGradleExtensionAPI>("loom")
 
@@ -106,6 +111,31 @@ subprojects {
 		compileOnly("org.jetbrains:annotations:24.1.0")
 	}
 
+	extensions.configure<PublishingExtension>("publishing") {
+		publications {
+			create<MavenPublication>("mavenJava") {
+				artifactId = "${"mod_id".prop}-${base.archivesName.get()}"
+				from(components["java"])
+			}
+		}
+
+		repositories {
+			mavenLocal()
+			maven {
+				name = "kernelpanicReleases"
+				url = uri("https://maven.kernelpanicsoft.net/releases")
+				credentials {
+					username = "repoLogin".localOrEnv
+						?: "maven_username".localOrEnv
+						?: "maven_user".localOrEnv
+					password = "repoPassword".localOrEnv
+						?: "maven_password".localOrEnv
+						?: "maven_pass".localOrEnv
+				}
+			}
+		}
+	}
+
 }
 
 allprojects {
@@ -125,6 +155,13 @@ allprojects {
 	tasks.withType<JavaCompile>().configureEach {
 		options.encoding = "UTF-8"
 		options.release.set(21)
+	}
+
+	kotlin {
+		compilerOptions {
+			freeCompilerArgs.add("-Xexpect-actual-classes")
+			freeCompilerArgs.add("-Xcontext-parameters")
+		}
 	}
 
 	architectury {
@@ -211,5 +248,3 @@ tasks {
 		commandLine("mike", "deploy", "--push", "--update-aliases", tag, "latest")
 	}
 }
-
-

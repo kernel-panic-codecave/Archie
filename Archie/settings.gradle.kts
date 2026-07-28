@@ -11,6 +11,7 @@ pluginManagement {
             name = "kernelpanic"
             url = uri("https://maven.kernelpanicsoft.net/releases")
         }
+        mavenLocal()
         gradlePluginPortal()
     }
 }

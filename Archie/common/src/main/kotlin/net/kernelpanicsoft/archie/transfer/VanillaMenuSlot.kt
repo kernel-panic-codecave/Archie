@@ -6,8 +6,9 @@ import earth.terrarium.common_storage_lib.storage.base.UpdateManager
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
+import java.util.function.Predicate
 
-class VanillaMenuSlot(private val storage: AbstractVanillaContainer, slot: Int, x: Int, y: Int) : Slot(SimpleContainer(0), slot, x, y)
+class VanillaMenuSlot(private val storage: AbstractVanillaContainer, val filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) : Slot(SimpleContainer(0), slot, x, y)
 {
 	override fun getItem(): ItemStack
 	{
@@ -42,5 +43,10 @@ class VanillaMenuSlot(private val storage: AbstractVanillaContainer, slot: Int, 
 		} else ItemStack.EMPTY
 		setChanged()
 		return ret
+	}
+
+	override fun mayPlace(stack: ItemStack): Boolean
+	{
+		return filter.test(stack)
 	}
 }

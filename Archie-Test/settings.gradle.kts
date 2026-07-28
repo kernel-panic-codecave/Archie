@@ -12,6 +12,7 @@ pluginManagement {
             url = uri("https://maven.kernelpanicsoft.net/releases")
         }
         gradlePluginPortal()
+        mavenLocal()
     }
 }
 
@@ -23,7 +24,19 @@ dependencyResolutionManagement {
     }
 }
 
+includeBuild("../Archie") {
+    dependencySubstitution {
+        substitute(module("net.kernelpanicsoft:common")).using(project(":common"))
+        substitute(module("net.kernelpanicsoft:fabric")).using(project(":fabric"))
+        substitute(module("net.kernelpanicsoft:neoforge")).using(project(":neoforge"))
+    }
+}
+
 include("common", "fabric", "neoforge")
 
 rootProject.name = "Archie-Test"
+
+project(":common").name = "common-test"
+project(":fabric").name = "fabric-test"
+project(":neoforge").name = "neoforge-test"
 

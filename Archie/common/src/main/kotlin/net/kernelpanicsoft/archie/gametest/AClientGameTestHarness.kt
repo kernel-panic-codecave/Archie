@@ -1318,7 +1318,7 @@ data class AClientGameTestSummary(
 )
 
 object AClientGameTestHarness {
-    fun run(modToClasses: Map<Mod, List<Class<*>>>, side: AGameTestSide): AClientGameTestSummary {
+    fun run(modToClasses: Map<Mod, List<Class<*>>>, side: AGameTestSide?): AClientGameTestSummary {
         if (side != AGameTestSide.CLIENT) return AClientGameTestSummary(passed = 0, failed = 0, skipped = 0)
 
         val selectedMods = selectModsToRun(modToClasses)

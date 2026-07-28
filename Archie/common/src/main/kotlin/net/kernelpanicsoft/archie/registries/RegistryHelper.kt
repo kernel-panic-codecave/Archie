@@ -28,7 +28,7 @@ import kotlin.reflect.KProperty
  * @param T The base type stored in the target registry.
  * @property registry The [DeferredRegister] to which entries will be submitted.
  */
-open class RegistryHelper<T : Any>(val registry: DeferredRegister<T>) {
+abstract class RegistryHelper<T : Any>(val registry: DeferredRegister<T>) {
 
     /**
      * Registers this helper's [DeferredRegister] with the game's registry system.

@@ -52,6 +52,7 @@ compose = "1.7.1"
 dokka-mkdocs = "0.6.1"
 junit = "5.11.4"
 junit-platform = "1.11.4"
+ui-tooling-preview-jvmstubs = "1.10.6"
 
 [bundles]
 # must contain all transitive deps, so they can be included in the production jar
@@ -107,7 +108,6 @@ neoforge = { module = "net.neoforged:neoforge", version.ref = "neoforge" }
 modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

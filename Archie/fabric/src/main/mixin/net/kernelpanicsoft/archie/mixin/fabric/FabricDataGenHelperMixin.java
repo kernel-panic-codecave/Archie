@@ -21,7 +21,7 @@ class FabricDataGenHelperMixin
 {
 	@SuppressWarnings("UnresolvedLocalCapture")
 	@Inject(remap = false, method = "runInternal()V", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/fabricmc/loader/api/FabricLoader;getEntrypointContainers(Ljava/lang/String;Ljava/lang/Class;)Ljava/util/List;"))
-	private static void addEntrypoints(CallbackInfo ci, @Local LocalRef<List<EntrypointContainer<DataGeneratorEntrypoint>>> dataGeneratorInitializers)
+	private static void addEntrypoints(CallbackInfo ci, @Local(name = "dataGeneratorInitializers") LocalRef<List<EntrypointContainer<DataGeneratorEntrypoint>>> dataGeneratorInitializers)
 	{
 		if (ADataGeneratorPlatform.INSTANCE.isDataGen())
 		{

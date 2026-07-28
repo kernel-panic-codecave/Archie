@@ -12,13 +12,13 @@ actual object AGameTestPlatform
 	actual val isGameTest: Boolean
 		get() = GameTestHooks.isGametestEnabled()
 
-	actual val side: AGameTestSide
+	actual val side: AGameTestSide?
 		get() {
 			val override = System.getProperty(SIDE_OVERRIDE_PROP)?.trim()?.lowercase()
 			return when (override) {
 				"client" -> AGameTestSide.CLIENT
 				"server" -> AGameTestSide.SERVER
-				else -> if (Platform.getEnvironment().name == "CLIENT") AGameTestSide.CLIENT else AGameTestSide.SERVER
+				else -> null
 			}
 		}
 

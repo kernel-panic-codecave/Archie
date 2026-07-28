@@ -4,6 +4,10 @@ architectury {
 	common("fabric", "neoforge")
 }
 
+actualizer {
+	stubUnfulfilledExpects()
+}
+
 val localProperties = kotlin.runCatching {
 	val localPropsFile = rootDir.resolve("local.properties")
 	val sharedPropsFile = rootDir.resolve("../local.properties")
@@ -123,9 +127,6 @@ tasks {
 		testClassesDirs = sourceSets.test.get().output.classesDirs
 		classpath = sourceSets.test.get().runtimeClasspath
 		useJUnitPlatform()
-		filter {
-			includeTestsMatching("net.kernelpanicsoft.archie.testing.*")
-		}
 		systemProperty("archie.junit.gametest", "true")
 		systemProperty("archie.junit.gametest.matrix", "fabric:server,fabric:client,neoforge:server,neoforge:client")
 		systemProperty("archie.junit.gametest.timeoutMinutes", "20")

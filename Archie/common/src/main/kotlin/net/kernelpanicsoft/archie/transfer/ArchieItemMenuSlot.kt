@@ -4,8 +4,9 @@ import earth.terrarium.common_storage_lib.storage.base.UpdateManager
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
+import java.util.function.Predicate
 
-class ArchieItemMenuSlot(private val storage: ArchieItemStorage, slot: Int, x: Int, y: Int) : Slot(SimpleContainer(0), slot, x, y)
+class ArchieItemMenuSlot(private val storage: ArchieItemStorage, val filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) : Slot(SimpleContainer(0), slot, x, y)
 {
 	override fun getItem(): ItemStack
 	{
@@ -37,5 +38,10 @@ class ArchieItemMenuSlot(private val storage: ArchieItemStorage, slot: Int, x: I
 		val ret = slot.remove(amount)
 		setChanged()
 		return ret
+	}
+
+	override fun mayPlace(stack: ItemStack): Boolean
+	{
+		return filter.test(stack)
 	}
 }

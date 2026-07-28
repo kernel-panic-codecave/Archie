@@ -11,6 +11,7 @@
   ],
   "mixins": [
     "FabricDataGenHelperMixin",
+    "FabricGameTestHelperMixin",
     "FabricGameTestModInitializerMixin"
   ],
   "server": [

@@ -1,8 +1,6 @@
-import net.fabricmc.loom.api.LoomGradleExtensionAPI
-import net.fabricmc.loom.util.ModPlatform
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
-import org.jetbrains.compose.compose
+import org.jetbrains.kotlin.konan.properties.loadProperties
 
 
 plugins {
@@ -14,6 +12,43 @@ architectury {
 	platformSetupLoomIde()
 	neoForge()
 }
+
+actualizer {
+	actualizes(project(":common"))
+}
+
+val localProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("local.properties")
+	val sharedPropsFile = rootDir.resolve("../local.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val sharedProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("gradle.properties")
+	val sharedPropsFile = rootDir.resolve("../gradle.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val String.prop: String?
+	get() = sharedProperties?.get(this)?.toString()
+
+val String.local: String?
+	get() = localProperties?.get(this)?.toString()
+
+val String.env: String?
+	get() = System.getenv(this)
+
+val String.localOrEnv: String?
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
+
 
 configurations {
 	create("common")
@@ -36,12 +71,7 @@ loom {
 
 	mods {
 		maybeCreate("main").apply {
-			sourceSet(project.sourceSets.main.get())
-//			sourceSet(project(":common").sourceSets.main.get())
-		}
-		create("test") {
-			sourceSet(project.sourceSets.test.get())
-//			sourceSet(project(":common").sourceSets.test.get())
+			sourceSet(sourceSets.main.get())
 		}
 	}
 
@@ -49,13 +79,11 @@ loom {
 		getByName("client") {
 			name = "Minecraft Client"
 			source(sourceSets.main.get())
-			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		getByName("server") {
 			name = "Minecraft Server"
 			source(sourceSets.main.get())
-			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		create("datagen") {

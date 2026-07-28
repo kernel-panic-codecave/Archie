@@ -27,6 +27,7 @@ import net.kernelpanicsoft.archie.serialization.serializers.BuiltInSerializersMo
 import net.kernelpanicsoft.archie.serialization.serializers.MinecraftSerializersModule
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.Tag
+import net.minecraft.resources.DelegatingOps
 import kotlin.reflect.KClass
 import com.google.gson.JsonElement as GsonElement
 
@@ -122,7 +123,14 @@ object SerializationManager {
 	 * @param op The [DynamicOps] instance.
 	 * @return A registry that can encode/decode the `DynamicOp`, or `null` if not found.
 	 */
-	operator fun get(op: DynamicOps<*>) = ops[op]
+	operator fun get(op: DynamicOps<*>): DynamicOpRegistryBuilder.Operation<Any>?
+	{
+		if (op is DelegatingOps<*>) {
+			// Handle DelegatingOps by checking the delegate
+			return get(op.delegate)
+		}
+		return ops[op]
+	}
 
 	/**
 	 * Retrieves the serializer registry for a specific [Encoder].

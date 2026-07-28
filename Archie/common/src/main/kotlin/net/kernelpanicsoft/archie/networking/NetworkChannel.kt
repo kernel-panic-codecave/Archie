@@ -3,7 +3,10 @@
 package net.kernelpanicsoft.archie.networking
 
 import dev.architectury.networking.NetworkManager
+import dev.architectury.utils.Env
+import dev.architectury.utils.EnvExecutor
 import dev.architectury.utils.GameInstance
+import kotlinx.coroutines.Runnable
 import kotlinx.serialization.*
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
@@ -321,19 +324,29 @@ open class NetworkChannel(private val id: ResourceLocation) {
      */
     @Suppress("UNCHECKED_CAST")
     fun register() {
-        NetworkManager.registerReceiver(NetworkManager.Side.S2C, serverPacketId, PayloadCodec) { payload, ctx ->
-            val (msg, handler) = decodeDispatchData(
-                payload = payload,
-                classes = clientClasses,
-                handlers = clientboundHandlers,
-                missingClassMessage = "No class was found on the clientside. Did you forget to do clientbound?",
-                missingHandlerMessage = "No handler was found on the clientside. Did you forget to do clientbound?",
-            )
-            handler(msg, object : IPacketContext {
-                override val player: Player get() = ctx.player
-                override val registryAccess: RegistryAccess get() = ctx.registryAccess()
-            })
+        EnvExecutor.runInEnv(Env.SERVER) {
+            Runnable {
+                NetworkManager.registerS2CPayloadType(serverPacketId, PayloadCodec)
+            }
         }
+        EnvExecutor.runInEnv(Env.CLIENT) {
+            Runnable {
+                NetworkManager.registerReceiver(NetworkManager.Side.S2C, serverPacketId, PayloadCodec) { payload, ctx ->
+                    val (msg, handler) = decodeDispatchData(
+                        payload = payload,
+                        classes = clientClasses,
+                        handlers = clientboundHandlers,
+                        missingClassMessage = "No class was found on the clientside. Did you forget to do clientbound?",
+                        missingHandlerMessage = "No handler was found on the clientside. Did you forget to do clientbound?",
+                    )
+                    handler(msg, object : IPacketContext {
+                        override val player: Player get() = ctx.player
+                        override val registryAccess: RegistryAccess get() = ctx.registryAccess()
+                    })
+                }
+            }
+        }
+
 
         NetworkManager.registerReceiver(NetworkManager.Side.C2S, clientPacketId, PayloadCodec) { payload, ctx ->
             val (msg, handler) = decodeDispatchData(

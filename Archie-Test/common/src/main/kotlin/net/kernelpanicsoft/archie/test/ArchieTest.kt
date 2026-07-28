@@ -20,7 +20,7 @@ object ArchieTest
 	val LOGGER: Logger = LogUtils.getLogger()
 
 	@JvmStatic
-	operator fun get(loc: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Archie.MOD_ID, loc)
+	operator fun get(loc: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, loc)
 
 	@JvmStatic
 	fun init()

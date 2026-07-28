@@ -4,8 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerDepth
 import net.kernelpanicsoft.archie.gui.layout.*
@@ -17,7 +21,9 @@ import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
+import net.kernelpanicsoft.archie.serialization.serializers.SItemStack
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.world.item.ItemStack
 
 /**
  * Per-slot-group layout data reported back from the Compose layout to [ComposeContainerMenu].
@@ -26,12 +32,12 @@ import net.minecraft.client.gui.GuiGraphics
  */
 @Serializable
 data class SlotGroup(
-    var pos: IntCoordinates = IntCoordinates(0, 0),
-    var size: IntSize = IntSize(0, 0),
-    var enabled: Boolean = true,
-    var layerDepth: Int = 0,
-    var slots: MutableSet<IntCoordinates> = mutableSetOf(),
-    var clip: IntRect? = null,
+	var pos: IntCoordinates = IntCoordinates(0, 0),
+	var size: IntSize = IntSize(0, 0),
+	var enabled: Boolean = true,
+	var layerDepth: Int = 0,
+	var slots: MutableSet<IntCoordinates> = mutableSetOf(),
+	var clip: IntRect? = null,
 )
 
 /**
@@ -66,16 +72,16 @@ val LocalSlotClipBounds = compositionLocalOf<IntRect?> { null }
  * register the corresponding vanilla [net.minecraft.world.inventory.Slot]s.
  *
  * @param id      The name that matches the `handler(id, storage)` call in your menu.
- * @param width   The number of slot columns in this group.
- * @param height  The number of slot rows in this group.
+ * @param width   The number of slot columns in this group. Defaults to 1.
+ * @param height  The number of slot rows in this group. Defaults to 1.
  * @param content The composable [Slot] grid inside this region.
  * @return The [SlotGroup] that will be populated once the layout runs.
  */
 @Composable
 fun Slots(
     id: String,
-    width: Int,
-    height: Int,
+    width: Int = 1,
+    height: Int = 1,
     content: @Composable () -> Unit = {
         Column {
             repeat(height) {
@@ -139,7 +145,7 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
     val state = composableTheme.getState(TextureStates.DEFAULT, ThemeVariants.DEFAULT)
-
+    var lastPos by remember { mutableStateOf(IntCoordinates(0, 0)) }
     Layout(
         name = "Slot",
         measurePolicy = { _, _, constraints ->
@@ -158,7 +164,11 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
         modifier = Modifier
             .sizeIn(minWidth = 18, minHeight = 18)
             .onGloballyPositioned { pos ->
+                if (pos == lastPos) return@onGloballyPositioned // Skip if position hasn't changed since last report
+                if (group.slots.contains(lastPos))
+                    group.slots.remove(lastPos)
                 group.slots.add(pos)
+                lastPos = pos
                 tryUpdateMenu(data, menu)
             }
             .then(modifier),

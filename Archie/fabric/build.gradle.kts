@@ -13,6 +13,10 @@ architectury {
 	fabric()
 }
 
+actualizer {
+	actualizes(project(":common"))
+}
+
 val localProperties = kotlin.runCatching {
 	val localPropsFile = rootDir.resolve("local.properties")
 	val sharedPropsFile = rootDir.resolve("../local.properties")
@@ -62,10 +66,7 @@ loom {
 
 	mods {
 		maybeCreate("main").apply {
-			sourceSet(project.sourceSets.main.get())
-		}
-		create("test") {
-			sourceSet(project.sourceSets.test.get())
+			sourceSet(sourceSets.main.get())
 		}
 	}
 
@@ -73,13 +74,11 @@ loom {
 		getByName("client") {
 			name = "Minecraft Client"
 			source(sourceSets.main.get())
-			source(sourceSets.test.get())
 			vmArg("-XX:+AllowEnhancedClassRedefinition")
 		}
 		getByName("server") {
 			name = "Minecraft Server"
 			source(sourceSets.main.get())
-			source(sourceSets.test.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		// This adds a new gradle task that runs the datagen API: "gradlew runDatagen"
@@ -87,7 +86,7 @@ loom {
 			client()
 			name = "Minecraft Datagen"
 			property("archie.datagen", "true")
-			property("archie.datagen.client", "client_datagen".prop)
+			property("archie.datagen.client", providers.gradleProperty("client_datagen").orElse("true").get())
 			property("archie.datagen.server", providers.gradleProperty("server_datagen").orElse("true").get())
 			property("fabric-api.datagen")
 			property("fabric-api.datagen.modid", providers.gradleProperty("mod_id").orElse("archie").get())
@@ -171,8 +170,8 @@ tasks {
 
 	processResources {
 		from(project(":common").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}/**")
-			include("data/${project.properties["mod_id"]}/**")
+			include("assets/${"mod_id".prop}/**")
+			include("data/${"mod_id".prop}/**")
 			include("archie-common.mixins.json")
 		}
 		dependsOn(processTestResources)

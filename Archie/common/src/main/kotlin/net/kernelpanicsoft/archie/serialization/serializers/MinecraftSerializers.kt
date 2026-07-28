@@ -8,11 +8,13 @@ import kotlinx.serialization.builtins.ByteArraySerializer
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 import kotlinx.serialization.modules.SerializersModule
+import net.kernelpanicsoft.archie.serialization.CodecSerializer
 import net.minecraft.core.*
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.BlockHitResult
@@ -64,6 +66,8 @@ typealias SGlobalPos = @Contextual GlobalPos
  * the field is annotated with `@Contextual`.
  */
 typealias SBlockHitResult = @Contextual BlockHitResult
+
+typealias SItemStack = @Contextual ItemStack
 
 /* ─────────────────────── Serializers ─────────────────────── */
 
@@ -344,4 +348,5 @@ val MinecraftSerializersModule = SerializersModule {
     contextual(ChunkPos::class, ChunkPosSerializer)
     contextual(GlobalPos::class, GlobalPosSerializer)
     contextual(BlockHitResult::class, BlockHitResultSerializer)
+    contextual(ItemStack::class, CodecSerializer(ItemStack.CODEC))
 }

@@ -144,7 +144,7 @@ open class SerializerCodec<T : Any>(private val serializer: KSerializer<T>) : Co
 	@Suppress("UNCHECKED_CAST")
 	override fun <V : Any> encode(input: T, ops: DynamicOps<V>, prefix: V): DataResult<V>
 	{
-		return tryOrThrow<V> {
+		return tryOrThrow {
 			val cod = SerializationManager[ops]
 				?: throw UnsupportedOperationException("${ops::class.simpleName} is not a supported DynamicOps instance.")
 
@@ -157,7 +157,7 @@ open class SerializerCodec<T : Any>(private val serializer: KSerializer<T>) : Co
 		ops: DynamicOps<V>,
 		input: V
 	): DataResult<Pair<T, V>> {
-		return tryOrThrow<Pair<T, V>> {
+		return tryOrThrow {
 			val cod = SerializationManager[ops]
 				?: throw UnsupportedOperationException("${ops::class.simpleName} is not a supported DynamicOps instance.")
 

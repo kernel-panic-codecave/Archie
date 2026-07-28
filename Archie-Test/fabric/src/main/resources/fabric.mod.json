@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "${mod_id}_test",
+  "id": "${mod_id}",
   "version": "${mod_version}",
-  "name": "${mod_display_name} Test Mod",
+  "name": "${mod_display_name}",
   "description": "${mod_description}",
   "authors": [
     "${mod_authors}"
@@ -16,11 +16,11 @@
   },
   "custom": {
     "catalogue": {
-      "banner": "assets/${mod_id}_test/banner.png"
+      "banner": "assets/${mod_id}/banner.png"
     }
   },
   "license": "${mod_license}",
-  "icon": "assets/${mod_id}_test/icon.png",
+  "icon": "assets/${mod_id}/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [

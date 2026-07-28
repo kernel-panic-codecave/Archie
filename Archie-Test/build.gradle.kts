@@ -6,7 +6,8 @@ import kotlin.collections.forEach
 plugins {
     java
     alias(libs.plugins.architectury)
-    alias(libs.plugins.architectury.kotlin)
+    id("net.kernelpanicsoft.actualizer") version "0.1.0" apply false
+//    alias(libs.plugins.architectury.kotlin)
     alias(libs.plugins.architectury.loom) apply false
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -50,6 +51,7 @@ val String.localOrEnv: String?
 
 subprojects {
     apply(plugin = "dev.architectury.loom")
+    apply(plugin = "net.kernelpanicsoft.actualizer")
 
     val loom = project.extensions.getByName<LoomGradleExtensionAPI>("loom")
 
@@ -114,7 +116,7 @@ allprojects {
 
     version = "mod_version".prop!!
     group = "mod_group".prop!!
-    base.archivesName = "${"mod_id".prop!!}-test"
+    base.archivesName = "mod_id".prop!!.replace("_", "-")
 
     tasks.withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
