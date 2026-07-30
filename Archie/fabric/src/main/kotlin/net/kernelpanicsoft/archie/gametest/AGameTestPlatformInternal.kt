@@ -8,12 +8,20 @@ import net.kernelpanicsoft.archie.mixin.fabric.FabricGameTestModInitializerMixin
 import net.minecraft.gametest.framework.GameTestRegistry
 import net.minecraft.gametest.framework.GlobalTestReporter
 
+/** Backs [AGameTestPlatform] on Fabric: holds registered test classes and drives Fabric's own GameTest registry. */
 internal object AGameTestPlatformInternal
 {
 
+	/** Test classes registered via [AGameTestPlatform.register], keyed by owning mod. */
 	@JvmField
 	internal val testClasses: MutableMap<Mod, MutableSet<Class<*>>> = mutableMapOf()
 
+	/**
+	 * No-ops unless [isGameTest]. Fires [AEvents.REGISTER_GAME_TEST] for every registered mod (or
+	 * just [Archie.MOD] if none registered), then registers each resulting test class with
+	 * [GameTestRegistry] and [FabricGameTestModInitializerMixin]'s id/logger bookkeeping - throwing
+	 * if the same class is registered under more than one mod.
+	 */
 	@JvmStatic
 	@JvmName("registerGameTests")
 	internal fun registerGameTests()

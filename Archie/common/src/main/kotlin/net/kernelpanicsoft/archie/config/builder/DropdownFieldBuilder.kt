@@ -7,6 +7,11 @@ import me.shedaniel.clothconfig2.impl.builders.DropdownMenuBuilder.CellCreatorBu
 import me.shedaniel.clothconfig2.impl.builders.DropdownMenuBuilder.TopCellElementBuilder
 import net.minecraft.network.chat.Component
 
+/**
+ * Cloth Config builder for a dropdown/autocomplete field over [selections]. Set [toObjectFunction]
+ * to parse free-typed text back into a `T` (required when [suggestionMode] is enabled); override
+ * [toTextFunction] to customize how values are displayed.
+ */
 open class DropdownFieldBuilder<T : Any>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,

@@ -7,6 +7,7 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that folds [children]'s results pairwise with `==` (holds when they agree). */
 data class AEqualsCondition(override val children: List<IACondition>) :
 	AGroupCondition()
 {

@@ -8,6 +8,7 @@ import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
 import net.minecraft.network.chat.Component
 
+/** [MapFieldBuilder] for `Double` values, using Cloth Config's `startDoubleField` per row. */
 class DoubleMapBuilder(resetButtonKey: Component, fieldNameKey: Component, value: Map<String, Double>) : MapFieldBuilder<Double, DoubleListEntry, DoubleMapBuilder>(
 	resetButtonKey, fieldNameKey, value
 )

@@ -5,8 +5,6 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.SizeModifier
-import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.Minecraft
@@ -45,11 +43,12 @@ fun getTextSize(
  * )
  * ```
  *
- * @param text      The text component to render.
- * @param fontScale Uniform scale applied to the font. Default `1f` (native size).
- * @param font      The [Font] used for rendering and size measurement.
- * @param color     ARGB packed text colour. Default opaque white (`0xFFFFFFFF`).
- * @param modifier  Additional modifiers applied to the layout node.
+ * @param text       The text component to render.
+ * @param fontScale  Uniform scale applied to the font. Default `1f` (native size).
+ * @param font       The [Font] used for rendering and size measurement.
+ * @param color      Text color. Defaults to the current [LocalTheme]'s light text color.
+ * @param dropShadow Whether to render the vanilla text drop shadow. Default `true`.
+ * @param modifier   Additional modifiers applied to the layout node.
  */
 @Composable
 fun Text(
@@ -60,11 +59,18 @@ fun Text(
     dropShadow: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val textSize = getTextSize(text, fontScale, font)
     Layout(
         name = "Text",
         measurePolicy = { _, _, constraints ->
-            MeasureResult(constraints.minWidth, constraints.minHeight) {}
+            // Measured here (during LayoutNode.measure(), which only ever runs on the render
+            // thread) rather than in the composable body, since Font.width() can lazily bake
+            // glyphs into a GPU texture atlas and is not safe to call from the recomposition
+            // dispatcher's background thread.
+            val textSize = getTextSize(text, fontScale, font)
+            MeasureResult(
+                textSize.width.coerceIn(constraints.minWidth, constraints.maxWidth),
+                textSize.height.coerceIn(constraints.minHeight, constraints.maxHeight),
+            ) {}
         },
         renderer = object : net.kernelpanicsoft.archie.gui.layout.Renderer {
             override fun render(
@@ -88,8 +94,6 @@ fun Text(
                 super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }
         },
-        modifier = Modifier.then(
-            SizeModifier(Constraints(textSize.width, textSize.width, textSize.height, textSize.height))
-        ).then(modifier),
+        modifier = modifier,
     )
 }

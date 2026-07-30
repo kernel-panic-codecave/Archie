@@ -9,11 +9,13 @@ import kotlin.io.path.exists
 import kotlin.io.path.outputStream
 import kotlin.io.path.readLines
 
+/** One test's pass/fail outcome, parsed from a GameTest invocation's log output. */
 internal data class TestResult(
 	val testId: String,
 	val passed: Boolean,
 )
 
+/** The outcome of one [GameTestGradleExecutor.run] invocation, including per-test results parsed from its log. */
 internal data class GameTestGradleResult(
 	val success: Boolean,
 	val command: List<String>,
@@ -23,7 +25,13 @@ internal data class GameTestGradleResult(
 	val testResults: Map<String, TestResult> = emptyMap(), // testId -> TestResult
 )
 
+/** Shells out to the Gradle wrapper to run one [GameTestGradleInvocation], capturing and parsing its log output. */
 internal object GameTestGradleExecutor {
+	/**
+	 * Runs [invocation]'s Gradle task via `ProcessBuilder`, streaming output to both stdout and
+	 * a log file under `build/tmp/junit-gametest-runner/` in [workspaceRoot], killing the
+	 * process if it exceeds [timeout].
+	 */
 	fun run(
 		invocation: GameTestGradleInvocation,
 		timeout: Duration,

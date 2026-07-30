@@ -9,16 +9,24 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.properties.Property
 import java.util.*
 
+/**
+ * Builds a `multipart`-style blockstate JSON for [owner], where each [PartBuilder] applies its
+ * model(s) whenever its `when` conditions (block property values, optionally grouped with
+ * AND/OR) match. Obtain via [ABlockStateProvider.getMultipartBuilder].
+ */
 class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockState
 {
 	private val parts: MutableList<PartBuilder> = ArrayList()
 
 	private var config: (PartBuilder.() -> Unit)? = null
+
+	/** Starts an [AConfiguredModel.Builder] whose [AConfiguredModel.Builder.addModel] creates and adds a new unconditional [PartBuilder]. */
 	fun part(): AConfiguredModel.Builder<PartBuilder>
 	{
 		return AConfiguredModel.builder(this)
 	}
 
+	/** Builds a new [PartBuilder] with its model(s) declared in [block], adds it, and applies any pending [configure] callback. */
 	fun part(block: AConfiguredModel.Builder<PartBuilder>.() -> Unit): PartBuilder
 	{
 		return AConfiguredModel.builder(this)
@@ -29,17 +37,20 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 			}
 	}
 
+	/** Registers an already-built [part]. */
 	fun addPart(part: PartBuilder): AMultiPartBlockStateBuilder
 	{
 		parts.add(part)
 		return this
 	}
 
+	/** Sets a callback run against every part built by [part] after this call, e.g. to add shared conditions. */
 	fun configure(block: (PartBuilder.() -> Unit)?)
 	{
 		config = block
 	}
 
+	/** Serializes to the `{"multipart": [...]}` blockstate JSON. */
 	override fun toJson(): JsonObject
 	{
 		val variants = JsonArray()
@@ -52,6 +63,7 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 		return main
 	}
 
+	/** A single `multipart` entry: applies [models] when its (possibly nested) conditions match. */
 	inner class PartBuilder internal constructor(models: ABlockStateProvider.ConfiguredModelList)
 	{
 		var models: ABlockStateProvider.ConfiguredModelList = models
@@ -60,12 +72,14 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 			MultimapBuilder.linkedHashKeys().arrayListValues().build()
 		val nestedConditionGroups: MutableList<ConditionGroup> = ArrayList()
 
+		/** Combines this part's [conditions] with OR instead of the default AND. */
 		fun useOr(): PartBuilder
 		{
 			this.useOr = true
 			return this
 		}
 
+		/** Requires [prop] to equal one of [values] (OR'd together) for this part to apply. Cannot be mixed with [nestedGroup]. */
 		@SafeVarargs
 		fun <T : Comparable<T>> condition(prop: Property<T>, vararg values: T): PartBuilder
 		{
@@ -89,6 +103,7 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 			return this
 		}
 
+		/** Starts a nested [ConditionGroup] under this part. Cannot be mixed with [condition]. */
 		fun nestedGroup(): ConditionGroup
 		{
 			Preconditions.checkState(
@@ -100,11 +115,13 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 			return group
 		}
 
+		/** Returns to the enclosing [AMultiPartBlockStateBuilder]. */
 		fun end(): AMultiPartBlockStateBuilder
 		{
 			return this@AMultiPartBlockStateBuilder
 		}
 
+		/** Serializes this part's `when`/`apply` entry. */
 		fun toJson(): JsonObject
 		{
 			val out = JsonObject()
@@ -119,11 +136,13 @@ class AMultiPartBlockStateBuilder(private val owner: Block) : IAGeneratedBlockSt
 			return out
 		}
 
+		/** Whether every property referenced by this part's conditions exists on [b]. */
 		fun canApplyTo(b: Block): Boolean
 		{
 			return b.stateDefinition.properties.containsAll(conditions.keySet())
 		}
 
+		/** A nested AND/OR group of conditions within a [PartBuilder]'s `when` clause. */
 		inner class ConditionGroup
 		{
 			val conditions: Multimap<Property<*>, Comparable<*>> =

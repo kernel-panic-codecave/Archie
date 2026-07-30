@@ -10,6 +10,7 @@ import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
 import kotlin.reflect.KClass
 
+/** [MapFieldBuilder] for [registry] entries, using [RegistryFieldBuilder] per row. */
 class RegistryMapBuilder<T : Any, R : T>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,

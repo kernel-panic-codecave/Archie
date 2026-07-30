@@ -9,12 +9,14 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
 import kotlinx.coroutines.*
+import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
 import net.kernelpanicsoft.archie.gui.blockentity.LocalBlockEntityState
 import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
+import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
@@ -32,23 +34,51 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import org.lwjgl.glfw.GLFW
 import kotlin.coroutines.CoroutineContext
 
+/** Provides the current [ComposeContainerScreen] to any composable in its tree. */
 val LocalContainerScreen: ProvidableCompositionLocal<ComposeContainerScreen<*, *>> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
+
+/** Provides the current [ComposeContainerMenu] to any composable in its tree. */
 val LocalContainerMenu: ProvidableCompositionLocal<ComposeContainerMenu<*, *>> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
 
+/**
+ * A Compose-driven [AbstractContainerScreen] with layer support, async recomposition, and
+ * vanilla [Slot] rendering kept in sync with the Compose-reported [SlotGroup] layout.
+ *
+ * Behaves like [ComposeScreen] but additionally bridges vanilla's container/slot machinery:
+ * the base layer (layer 0) is rendered from [renderBg] so it draws under vanilla's slots, and
+ * any additional layers (modals) render on top from [render] via [renderSlot]/[slotClipRect]
+ * clipping so scrolled-out-of-view slots don't paint over unrelated content.
+ *
+ * Extend this class and call [start] inside your `init()` override, the same way as
+ * [ComposeScreen].
+ *
+ * @param T The concrete [ComposeContainerMenu] subclass driving this screen.
+ * @param B The [BlockEntity] type backing [T].
+ * @param menu The container menu instance for this screen.
+ * @param playerInventory The opening player's inventory.
+ * @param title The screen title passed to the vanilla [AbstractContainerScreen] constructor.
+ * @param asynchronous When `true` (default), recomposition runs off the main thread and
+ *   the result is joined at the start of the next frame for smooth, non-blocking updates.
+ *   Set to `false` to force synchronous recomposition (simpler but may stutter).
+ */
 abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockEntity>(
 	menu: T, playerInventory: Inventory, title: Component,
     val asynchronous: Boolean = true,
 ) : AbstractContainerScreen<T>(menu, playerInventory, title),
     CoroutineScope,
-    SlotLayerDepthProvider
+    SlotLayerDepthProvider,
+    SlotHighlightClipProvider,
+    ComposeIdleAware,
+    LayerManagerProvider
 {
     companion object {
         private const val BASE_LAYER_Z = 100f
         private const val LAYER_Z_STEP = 200f
         private const val SLOT_LAYER_OFFSET = 120f
 
+        /** The base Z offset used when rendering the layer at [layerDepth], deepest layers on top. */
         fun layerBaseZ(layerDepth: Int): Float = BASE_LAYER_Z + layerDepth * LAYER_Z_STEP
     }
 
@@ -59,7 +89,8 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
     private val composeScope = CoroutineScope(Dispatchers.Default) + clock
     final override val coroutineContext: CoroutineContext = composeScope.coroutineContext
 
-    private lateinit var layerManager: LayerStackManager
+    final override lateinit var layerManager: LayerStackManager
+        private set
     private lateinit var recomposer: Recomposer
     private var recomposeJob: Job? = null
 
@@ -77,7 +108,10 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
     private var lastMouseX = 0.0
     private var lastMouseY = 0.0
 
+    override fun isComposeIdle(): Boolean =
+        !applyScheduled && !hasFrameWaiters && recomposeJob?.isActive != true
 
+    /** [titleLabelX]/[titleLabelY] expressed as an absolute-screen [IntCoordinates] pair. */
     var titleLabelPos: IntCoordinates
         get() = IntCoordinates(titleLabelX, titleLabelY)
         set(value) {
@@ -85,6 +119,7 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
             titleLabelY = value.y - topPos
         }
 
+    /** [inventoryLabelX]/[inventoryLabelY] expressed as an absolute-screen [IntCoordinates] pair. */
     var inventoryLabelPos: IntCoordinates
         get() = IntCoordinates(inventoryLabelX, inventoryLabelY)
         set(value) {
@@ -142,39 +177,54 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
             clock.sendFrame(System.nanoTime())
         }
 
-        val layerIndices = if (baseLayer) {
-            if (layerManager.layers.isEmpty()) return
-            0..0
-        } else {
-            if (layerManager.layers.size <= 1) return
-            1 until layerManager.layers.size
-        }
+        // layerManager.layers is a SnapshotStateList that can be structurally mutated (modal
+        // push/dismiss) from the recomposer coroutine on another thread while this method runs on
+        // the render thread. Reading it inside a snapshot gives a frozen, consistent view for the
+        // whole size-check-then-index sequence below, instead of racing the live list. A mutable
+        // (not read-only) snapshot is required because measure() can itself write state (e.g.
+        // ScrollableState.setChildSize), and those writes must be applied back afterward.
+        val layersSnapshot = Snapshot.takeMutableSnapshot()
+        try {
+            layersSnapshot.enter {
+                val layerIndices = if (baseLayer) {
+                    if (layerManager.layers.isEmpty()) return@enter
+                    0..0
+                } else {
+                    if (layerManager.layers.size <= 1) return@enter
+                    1 until layerManager.layers.size
+                }
 
-        for (layerIndex in layerIndices) {
-            val layer = layerManager.layers[layerIndex]
-            val rootNode = layer.rootNode
-            rootNode.measure(Constraints(maxWidth = width, maxHeight = height))
-            rootNode.render(0, 0, guiGraphics, mouseX, mouseY, partialTick, layerBaseZ(layerIndex))
-        }
+                for (layerIndex in layerIndices) {
+                    val layer = layerManager.layers[layerIndex]
+                    val rootNode = layer.rootNode
+                    rootNode.measure(Constraints(maxWidth = width, maxHeight = height))
+                    rootNode.render(0, 0, guiGraphics, mouseX, mouseY, partialTick, layerBaseZ(layerIndex))
+                }
 
-        layerManager.screenSize.let { (width, height) ->
-            imageWidth = width
-            imageHeight = height
-        }
-        layerManager.screenPos.let { (x, y) ->
-            if (x == 0 && y == 0)
-                return@let
-            leftPos = x
-            topPos = y
-            menu.screenLeftPos = leftPos
-            menu.screenTopPos = topPos
-        }
+                layerManager.screenSize.let { (width, height) ->
+                    imageWidth = width
+                    imageHeight = height
+                }
+                layerManager.screenPos.let { (x, y) ->
+                    if (x == 0 && y == 0)
+                        return@let
+                    leftPos = x
+                    topPos = y
+                    menu.screenLeftPos = leftPos
+                    menu.screenTopPos = topPos
+                }
+                menu.refreshSlotPositions()
 
-        if (asynchronous && hasFrameWaiters) {
-            hasFrameWaiters = false
-            recomposeJob = composeScope.launch {
-                clock.sendFrame(System.nanoTime())
+                if (asynchronous && hasFrameWaiters) {
+                    hasFrameWaiters = false
+                    recomposeJob = composeScope.launch {
+                        clock.sendFrame(System.nanoTime())
+                    }
+                }
             }
+            layersSnapshot.apply().check()
+        } finally {
+            layersSnapshot.dispose()
         }
     }
 
@@ -197,6 +247,19 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
     ): Boolean
     {
         if (layerManager.layers.size != 1) return false
+
+        if (width == 16 && height == 16) {
+            val slotIndex = menu.slots.indexOfFirst { it.x == x && it.y == y }
+            val clip = if (slotIndex >= 0) menu.slotClipBounds(slotIndex) else null
+            if (clip != null) {
+                val absX = leftPos + x
+                val absY = topPos + y
+                val visible = IntRect(absX, absY, absX + width, absY + height).intersect(clip) ?: return false
+                return mouseX >= visible.minX - 1 && mouseX < visible.maxX + 1 &&
+                    mouseY >= visible.minY - 1 && mouseY < visible.maxY + 1
+            }
+        }
+
         return super.isHovering(x, y, width, height, mouseX, mouseY)
     }
 
@@ -221,6 +284,18 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
         }
     }
 
+    /**
+     * Called by [net.kernelpanicsoft.archie.mixin.client.gui.AbstractContainerScreenMixin]
+     * (via [net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider]) to clip the
+     * hover-highlight overlay the same way [renderSlot] clips the item icon - vanilla only
+     * exposes a static `renderSlotHighlight(GuiGraphics, x, y, blitOffset)` with no per-slot
+     * override point, so this has to be reached from a mixin redirect instead of `override`.
+     */
+    override fun slotHighlightClipRect(x: Int, y: Int): IntRect? {
+        val slot = menu.slots.firstOrNull { it.x == x && it.y == y } ?: return null
+        return slotClipRect(slot)
+    }
+
     override fun slotRenderLayerOffset(slot: Slot): Float? = slotRenderLayerZ(slot)
 
     /**
@@ -240,34 +315,25 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
     /**
      * Computes the clip rectangle for [slot] in absolute screen coordinates.
      *
-     * Returns `null` when the slot does not intersect the container area.
+     * Intersects the overall container bounds with the slot's own group clip (if it sits
+     * inside a [net.kernelpanicsoft.archie.gui.composables.containers.Scrollable] viewport),
+     * so a slot scrolled out of view is actually clipped instead of rendering on top of
+     * whatever else occupies that screen area.
+     *
+     * Returns `null` when the slot does not intersect the (possibly narrower) clip area.
      */
-    protected open fun slotClipRect(slot: Slot): SlotClipRect? {
+    protected open fun slotClipRect(slot: Slot): IntRect? {
+        val containerClip = IntRect(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight)
+        val slotIndex = menu.slots.indexOf(slot).takeIf { it >= 0 }
+        val groupClip = slotIndex?.let { menu.slotClipBounds(it) }
+        val effectiveClip = groupClip?.let { containerClip.intersect(it) } ?: containerClip
+
         val slotMinX = leftPos + slot.x
         val slotMinY = topPos + slot.y
-        val slotMaxX = slotMinX + 16
-        val slotMaxY = slotMinY + 16
+        val slotRect = IntRect(slotMinX, slotMinY, slotMinX + 16, slotMinY + 16)
 
-        val clipMinX = leftPos
-        val clipMinY = topPos
-        val clipMaxX = leftPos + imageWidth
-        val clipMaxY = topPos + imageHeight
-
-        val minX = maxOf(slotMinX, clipMinX)
-        val minY = maxOf(slotMinY, clipMinY)
-        val maxX = minOf(slotMaxX, clipMaxX)
-        val maxY = minOf(slotMaxY, clipMaxY)
-
-        if (maxX <= minX || maxY <= minY) return null
-        return SlotClipRect(minX, minY, maxX, maxY)
+        return effectiveClip.intersect(slotRect)
     }
-
-    protected data class SlotClipRect(
-        val minX: Int,
-        val minY: Int,
-        val maxX: Int,
-        val maxY: Int,
-    )
 
     override fun onClose() {
         GLFW.glfwSetCursor(minecraft!!.window.window, 0L)
@@ -358,11 +424,14 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
         val topNode = getTopNode() ?: return super.keyPressed(keyCode, scanCode, modifiers)
-        // CTRL + SHIFT
-        // CTRL is detected as modifier 3
-        // SHIFT is the detected key
-        if (keyCode == InputConstants.KEY_D && modifiers == 3) topNode.debug =
-            (!topNode.debug)
+        // Ctrl+Shift+D toggles the debug overlay. A bitwise check (not `modifiers == 3`) is
+        // required here - GLFW also sets bits for Caps Lock/Num Lock in `modifiers` when those
+        // are active, so an exact-equality check against just the Ctrl+Shift bitmask silently
+        // never matches on those systems.
+        val ctrlShiftMask = GLFW.GLFW_MOD_CONTROL or GLFW.GLFW_MOD_SHIFT
+        if (keyCode == InputConstants.KEY_D && (modifiers and ctrlShiftMask) == ctrlShiftMask) {
+            topNode.debug = !topNode.debug
+        }
         if (topNode.debug && keyCode == InputConstants.KEY_LSHIFT) topNode.extraDebug = true
 
         val event = processKeyEvent(topNode, keyCode, scanCode, modifiers)

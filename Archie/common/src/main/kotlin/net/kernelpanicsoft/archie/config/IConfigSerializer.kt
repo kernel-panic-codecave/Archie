@@ -1,12 +1,27 @@
 package net.kernelpanicsoft.archie.config
 
+import net.kernelpanicsoft.archie.Archie
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
+/**
+ * Reads and writes a [ConfigSpec] to/from a specific file format (JSON, JSON5, TOML, ...). Built-in
+ * implementations live in `net.kernelpanicsoft.archie.config.serializer`; [ConfigSpec.fileSerializer]
+ * picks one per-platform by default.
+ */
 interface IConfigSerializer
 {
+	/** File the given [config] is read from and written to. */
 	fun configPath(config: ConfigSpec): Path
 
+	/**
+	 * Reads [config]'s file if present via [loadString], then always [save]s it back out - this
+	 * both formats a freshly-created file with defaults and rewrites an existing one with any
+	 * newly-added fields. If the existing file fails to parse, it's logged and renamed to
+	 * `<file>.corrupted` rather than deleted, and loading falls through to writing fresh defaults
+	 * so startup isn't blocked.
+	 */
 	fun load(config: ConfigSpec)
 	{
 		val path = configPath(config)
@@ -19,14 +34,23 @@ interface IConfigSerializer
 			}
 			catch (e: Throwable)
 			{
-				throw SerializationException(e)
+				// A malformed/corrupt file must not permanently block startup. Back the bad
+				// file up rather than deleting it, log it, and fall through to save(config)
+				// below so a fresh default file gets written and the mod still loads.
+				Archie.LOGGER.error("Failed to load config at $path, resetting to defaults. The invalid file was backed up.", e)
+				runCatching {
+					Files.move(path, path.resolveSibling("${path.fileName}.corrupted"), StandardCopyOption.REPLACE_EXISTING)
+				}
 			}
 		}
 
 		save(config)
 	}
+
+	/** Parses [string] and populates [config]'s fields from it. Implemented per-format. */
 	fun loadString(config: ConfigSpec, string: String)
 
+	/** Writes [config]'s current field values to [configPath], creating parent directories as needed. */
 	fun save(config: ConfigSpec)
 	{
 		val path = configPath(config)
@@ -40,7 +64,10 @@ interface IConfigSerializer
 			throw SerializationException(e)
 		}
 	}
+
+	/** Renders [config]'s current field values as a file-format string. Implemented per-format. */
 	fun saveString(config: ConfigSpec): String
 
+	/** Thrown when writing a config file fails (e.g. an I/O error). */
 	class SerializationException(cause: Throwable) : Exception(cause)
 }

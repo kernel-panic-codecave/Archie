@@ -28,8 +28,10 @@ private const val SLIDER_THUMB_WIDTH = 8
 private const val SLIDER_THUMB_HEIGHT = 20
 private const val SLIDER_TRACK_HEIGHT = 2
 
+/** Clamps a slider value into the normalized `0f..1f` range. */
 internal fun normalizeSliderValue(value: Float): Float = value.coerceIn(0f, 1f)
 
+/** Normalizes [value] then rounds it to the nearest of [steps] evenly spaced increments (no snapping when [steps] <= 0). */
 internal fun snapSliderValue(value: Float, steps: Int): Float {
     if (steps <= 0) return normalizeSliderValue(value)
     val clamped = normalizeSliderValue(value)
@@ -37,6 +39,7 @@ internal fun snapSliderValue(value: Float, steps: Int): Float {
     return (clamped / stepSize).roundToInt() * stepSize
 }
 
+/** Clamps a raw thumb x-position so the [thumbWidth]-wide thumb stays within the track bounds. */
 internal fun resolveSliderThumbX(rawThumbX: Int, sliderX: Int, sliderWidth: Int, thumbWidth: Int = SLIDER_THUMB_WIDTH): Int {
     val minThumbX = sliderX
     val maxThumbX = (sliderX + sliderWidth - thumbWidth).coerceAtLeast(minThumbX)
@@ -50,6 +53,19 @@ private fun resolveSliderStateName(enabled: Boolean, hovered: Boolean, dragging:
     else -> TextureStates.DEFAULT
 }
 
+/**
+ * Low-level unstyled slider behavior: drag/click-to-position and hover/drag state tracking,
+ * with no visuals of its own.
+ *
+ * @param value                 The current value, normalized/snapped via [snapSliderValue].
+ * @param onValueChange         Called with the new normalized value on every drag/click update.
+ * @param modifier              Additional modifiers applied to the outer container.
+ * @param enabled               When `false`, pointer events are ignored.
+ * @param steps                 Number of discrete increments to snap to; `0` means continuous.
+ * @param onValueChangeFinished Called once when a drag interaction ends (on release).
+ * @param content               The visual content; receives hover/drag state and the
+ *   normalized, snapped value to render.
+ */
 @Composable
 fun SliderCore(
     value: Float,
@@ -107,6 +123,18 @@ fun SliderCore(
     }
 }
 
+/**
+ * A standard themed horizontal slider, drawing a "slider" track and "slider_handle" thumb
+ * from the current theme, plus a solid-color fill up to the thumb.
+ *
+ * @param value                 The current value, normalized/snapped via [snapSliderValue].
+ * @param onValueChange         Called with the new normalized value on every drag/click update.
+ * @param modifier              Additional modifiers applied to the outer container.
+ * @param enabled               When `false`, the disabled state is drawn and input is ignored.
+ * @param variant               The theme variant used for both the track and thumb textures.
+ * @param steps                 Number of discrete increments to snap to; `0` means continuous.
+ * @param onValueChangeFinished Called once when a drag interaction ends (on release).
+ */
 @Composable
 fun Slider(
     value: Float,

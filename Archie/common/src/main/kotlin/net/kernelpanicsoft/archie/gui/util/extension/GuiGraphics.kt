@@ -36,6 +36,7 @@ fun GuiGraphics.blit(state: SimpleThemeState, x: Int, y: Int) {
     )
 }
 
+/** Fills a rectangle with a 4-corner color gradient using the default GUI [RenderType]. */
 fun GuiGraphics.fillGradient(
     x: Int,
     y: Int,
@@ -57,6 +58,10 @@ fun GuiGraphics.fillGradient(
     bottomRightColor,
 )
 
+/**
+ * Fills a rectangle with a 4-corner color gradient, unlike vanilla's [GuiGraphics.fillGradient]
+ * (top-to-bottom only), by directly emitting one quad with a per-vertex ARGB color to [type].
+ */
 fun GuiGraphics.fillGradient(
     type: RenderType,
     x: Int,
@@ -77,6 +82,7 @@ fun GuiGraphics.fillGradient(
     buffer.addVertex(matrix, x + width, y + height, 0).setColor(bottomRightColor)
 }
 
+/** Draws an unfilled rectangle outline of [thickness] pixels using the default GUI [RenderType]. */
 fun GuiGraphics.drawRectOutline(
     x: Int,
     y: Int,
@@ -86,6 +92,7 @@ fun GuiGraphics.drawRectOutline(
     thickness: Int = 1,
 ) = drawRectOutline(RenderType.gui(), x, y, width, height, color, thickness)
 
+/** Draws an unfilled rectangle outline of [thickness] pixels as four filled edge strips. */
 fun GuiGraphics.drawRectOutline(
     type: RenderType,
     x: Int,

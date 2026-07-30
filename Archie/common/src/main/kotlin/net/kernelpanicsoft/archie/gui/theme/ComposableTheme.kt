@@ -53,12 +53,14 @@ data class SimpleThemeState(
 @Serializable
 data class StatefulTheme(val states: Map<String, ThemeState>)
 
+/** Raw JSON shape of a theme file, deserialized as-is and resolved by [ThemeResourceListener] into a [ComposableTheme]. */
 @Serializable
 data class RawComposableTheme(
     val states: Map<String, RawThemeState> = emptyMap(),
     val variants: Map<String, Map<String, RawThemeState>> = emptyMap(),
 )
 
+/** Raw JSON shape of a single theme state; fields left `null` inherit from the state's `"default"` entry. */
 @Serializable
 data class RawThemeState(
     val texture: String? = null,
@@ -93,6 +95,9 @@ private data class GuiScalingMetadata(
  *
  * Contains base [states] and optional named [variants] (e.g. `"dark"`).
  *
+ * @property isNineslice Whether [states]' default texture is nine-slice scaled, per its
+ *   `.mcmeta` sprite metadata. When `false`, composables using this theme get a minimum
+ *   size matching the sprite's own pixel dimensions instead of stretching arbitrarily.
  * @property states      Base state map (always contains at least `"default"`).
  * @property variants    Named variant overrides (e.g. `"dark"` → its own state map).
  */
@@ -169,6 +174,7 @@ class ThemeResourceListener :
         internal val COMPOSABLES = mutableMapOf<ResourceLocation, ComposableTheme>()
     }
 
+    /** Excludes `*.theme.json` [ThemeManifest] files, which this listener does not parse. */
     override fun shouldLoadResource(fileLocation: ResourceLocation): Boolean =
         !fileLocation.path.endsWith(".theme.json")
 

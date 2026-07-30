@@ -29,6 +29,10 @@ import net.minecraft.world.phys.Vec3
  */
 typealias SFriendlyByteBuf = @Contextual FriendlyByteBuf
 
+/**
+ * Contextual type-alias for [ResourceLocation] that uses [ResourceLocationSerializer] when
+ * the field is annotated with `@Contextual`.
+ */
 typealias SResourceLocation = @Contextual ResourceLocation
 
 /**
@@ -67,6 +71,10 @@ typealias SGlobalPos = @Contextual GlobalPos
  */
 typealias SBlockHitResult = @Contextual BlockHitResult
 
+/**
+ * Contextual type-alias for [ItemStack] that uses a [net.kernelpanicsoft.archie.serialization.CodecSerializer]
+ * over [ItemStack.CODEC] when the field is annotated with `@Contextual`.
+ */
 typealias SItemStack = @Contextual ItemStack
 
 /* ─────────────────────── Serializers ─────────────────────── */
@@ -95,6 +103,9 @@ object FriendlyByteBufSerializer : KSerializer<FriendlyByteBuf> {
         }
 }
 
+/**
+ * A [KSerializer] for [ResourceLocation] that encodes/decodes its `namespace:path` string form.
+ */
 object ResourceLocationSerializer : KSerializer<ResourceLocation>
 {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ResourceLocation", PrimitiveKind.STRING)

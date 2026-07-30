@@ -8,7 +8,27 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
 
 /**
- * A layout component that places contents in a column top-to-bottom.
+ * A layout composable that arranges its children in a vertical sequence from top to bottom.
+ *
+ * Children are measured sequentially and their heights subtracted from the available space.
+ * Use [verticalArrangement] to control spacing and placement along the main axis, and
+ * [horizontalAlignment] to align children along the cross axis.
+ *
+ * ### Example
+ * ```kotlin
+ * Column(
+ *     verticalArrangement = Arrangement.spacedBy(8),
+ *     horizontalAlignment = Alignment.CenterHorizontally,
+ * ) {
+ *     Text(Component.literal("Title"))
+ *     Text(Component.literal("Subtitle"))
+ * }
+ * ```
+ *
+ * @param modifier            Modifiers applied to the Column node.
+ * @param verticalArrangement Controls spacing and placement along the vertical axis.
+ * @param horizontalAlignment Controls alignment of children along the horizontal axis.
+ * @param content             The child composables to lay out in a column.
  */
 @Composable
 fun Column(

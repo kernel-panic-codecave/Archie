@@ -69,7 +69,10 @@ MyConfig.init()
 | `selector` | Arbitrary list of values |
 | `spec` | Nested `CategorySpec` |
 
-Each type also has list and map variants: e.g. `intList`, `intMap`, `specList`, `specMap`, `registryList`, etc.
+Most types also have list and map variants: `intList`/`intMap`, `longList`/`longMap`,
+`floatList`/`floatMap`, `doubleList`/`doubleMap`, `stringList`/`stringMap`, `specList`/`specMap`,
+`registryList`/`registryMap`, `keycodeList`/`keycodeMap`, `colorList`/`colorMap`. `boolean`,
+`intSlider`, `longSlider`, `enumSelector`, and `selector` don't have list/map variants.
 
 ---
 
@@ -98,3 +101,13 @@ object Parent : CategorySpec(Component.literal("Parent"), "parent") {
     }
 }
 ```
+
+---
+
+## Cloth Config UI
+
+You don't build the settings screen yourself. `ConfigSpec.client` lazily builds a
+`ClientConfigSpec` (and each `CategorySpec` a matching `ClientCategorySpec`) that mirrors your
+spec into a Cloth Config `ConfigBuilder` — one category per enabled entry, saving back through
+`ConfigSpec.save()`. Open it wherever you'd open a Cloth Config screen, e.g. from a mod-menu
+integration.

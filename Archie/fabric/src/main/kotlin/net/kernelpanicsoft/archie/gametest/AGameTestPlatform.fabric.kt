@@ -4,11 +4,13 @@ import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import net.fabricmc.fabric.impl.gametest.FabricGameTestHelper
 
+/** Fabric implementation of [AGameTestPlatform]. */
 @Suppress("unused")
 actual object AGameTestPlatform
 {
 	private const val SIDE_OVERRIDE_PROP = "archie.gametest.side"
 
+	/** True when running under Fabric's own GameTest harness (`fabric-gametest-api-v1`). */
 	@Suppress("UnstableApiUsage")
 	actual val isGameTest: Boolean
 		get() = FabricGameTestHelper.ENABLED

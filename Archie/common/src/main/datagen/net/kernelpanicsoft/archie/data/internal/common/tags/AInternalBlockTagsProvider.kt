@@ -16,6 +16,11 @@ import net.minecraft.world.level.block.Blocks
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
+/**
+ * Populates Archie's vanilla-derived common ("c") block tags (see [ACommonTags.Blocks]) with
+ * their vanilla block members, so downstream mods can depend on the `c` tag convention without
+ * every mod having to redeclare it.
+ */
 class AInternalBlockTagsProvider(
 	output: PackOutput,
 	lookupProvider: CompletableFuture<HolderLookup.Provider>
@@ -334,6 +339,10 @@ class AInternalBlockTagsProvider(
 		)
 	}
 
+	/**
+	 * For each [DyeColor], resolves the vanilla block named by substituting `{color}` into
+	 * `pattern` and adds it to the per-color common tag `c:{group path}/{color}` (via [getCommonTag]).
+	 */
 	private fun addColored(group: TagKey<Block>, pattern: String, consumer: Consumer<Block> = Consumer {})
 	{
 		val prefix = group.location().path.lowercase() + '/'
@@ -348,6 +357,10 @@ class AInternalBlockTagsProvider(
 		}
 	}
 
+	/**
+	 * For each [DyeColor], resolves the vanilla block named by substituting `{color}` into
+	 * `pattern` and adds it directly to [tag] (unlike [addColored], all colors share one tag).
+	 */
 	private fun addColoredFlat(tag: TagKey<Block>, pattern: String, consumer: Consumer<Block> = Consumer {})
 	{
 		for (color in DyeColor.entries)
@@ -360,6 +373,7 @@ class AInternalBlockTagsProvider(
 		}
 	}
 
+	/** Looks up a common ("c") block tag by [name], throwing if it isn't declared in [ACommonTags.Blocks]. */
 	private fun getCommonTag(name: String): TagKey<Block>
 	{
 		return ACommonTags.Blocks[ResourceLocation.fromNamespaceAndPath("c", name)]

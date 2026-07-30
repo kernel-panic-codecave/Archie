@@ -4,11 +4,13 @@ import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import net.neoforged.neoforge.gametest.GameTestHooks
 
+/** NeoForge implementation of [AGameTestPlatform]. */
 @Suppress("unused")
 actual object AGameTestPlatform
 {
 	private const val SIDE_OVERRIDE_PROP = "archie.gametest.side"
 
+	/** True when running under NeoForge's own GameTest harness. */
 	actual val isGameTest: Boolean
 		get() = GameTestHooks.isGametestEnabled()
 

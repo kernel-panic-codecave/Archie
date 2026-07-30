@@ -8,6 +8,18 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 
 /**
+ * Tracks which server instance's tick thread currently owns the shared "server" phaser slot.
+ *
+ * The [ServerMixin] this bridge backs is applied to every [net.minecraft.server.MinecraftServer]
+ * instance - both the integrated singleplayer server and an in-process dedicated GameTest
+ * server can exist back-to-back (or briefly overlap during teardown/startup). Since only one
+ * "server" participant can safely register with [ThreadingImpl.phaser] at a time, this
+ * identifies the owning thread so a late call from an already-superseded instance can't
+ * deregister or arrive on behalf of a different, currently-active instance.
+ */
+private val serverRegisteredThread = AtomicReference<Thread?>(null)
+
+/**
  * Shared client gametest threading bridge inspired by Fabric's ThreadingImpl.
  *
  * Uses a Phaser for tick-phase barriers and semaphores for task handoff from
@@ -36,9 +48,6 @@ object ThreadingImpl {
 
     @Volatile
     private var clientRegistered: Boolean = false
-
-    @Volatile
-    private var serverRegistered: Boolean = false
 
     @Volatile
     private var testRegistered: Boolean = false
@@ -101,7 +110,7 @@ object ThreadingImpl {
 
     @JvmStatic
     fun checkOnGametestThread(methodName: String) {
-        check(Thread.currentThread() === testThread) {
+        check(isOnGametestThread()) {
             "$methodName can only be called from the client gametest thread"
         }
     }
@@ -132,8 +141,12 @@ object ThreadingImpl {
                 clientRegistered = false
                 phaser.arriveAndDeregister()
             }
-            if (serverRegistered) {
-                serverRegistered = false
+        }
+
+        // Force-release the server slot regardless of which instance holds it - the client is
+        // shutting down entirely, so nothing should be left registered afterward.
+        if (serverRegisteredThread.getAndSet(null) != null) {
+            synchronized(this) {
                 phaser.arriveAndDeregister()
             }
         }
@@ -141,26 +154,28 @@ object ThreadingImpl {
 
     @JvmStatic
     fun onServerRunStart() {
-        if (!serverRegistered) {
+        val current = Thread.currentThread()
+        if (serverRegisteredThread.compareAndSet(null, current)) {
             synchronized(this) {
-                if (!serverRegistered) {
-                    phaser.register()
-                    serverRegistered = true
-                }
+                phaser.register()
             }
         }
+        // If another server instance's thread already holds the slot (e.g. an integrated
+        // server that hasn't finished tearing down yet), this instance simply won't
+        // participate in tick-phase sync until that one releases it - see onServerTick().
     }
 
     @JvmStatic
     fun onServerRunStop() {
         serverCanAcceptTasks = false
 
-        synchronized(this) {
-            if (serverRegistered) {
-                serverRegistered = false
+        val current = Thread.currentThread()
+        if (serverRegisteredThread.compareAndSet(current, null)) {
+            synchronized(this) {
                 phaser.arriveAndDeregister()
             }
         }
+        // If this thread never held the slot, it never registered either - nothing to release.
     }
 
     @JvmStatic
@@ -214,13 +229,18 @@ object ThreadingImpl {
     fun onServerTick() {
         if (testThread == null && !testRegistered) return
 
-        if (!serverRegistered) {
+        val current = Thread.currentThread()
+        if (serverRegisteredThread.compareAndSet(null, current)) {
             synchronized(this) {
-                if (!serverRegistered) {
-                    phaser.register()
-                    serverRegistered = true
-                }
+                phaser.register()
             }
+        }
+
+        if (serverRegisteredThread.get() !== current) {
+            // Another server instance already owns the shared slot (e.g. this is a dedicated
+            // GameTest server ticking while the integrated server hasn't finished tearing
+            // down yet). Don't touch the semaphore/phaser on its behalf.
+            return
         }
 
         serverCanAcceptTasks = true
@@ -229,9 +249,7 @@ object ThreadingImpl {
             taskToRun?.run()
         }
 
-        if (serverRegistered) {
-            phaser.arrive()
-        }
+        phaser.arrive()
     }
 
     @Suppress("unused")
@@ -240,7 +258,7 @@ object ThreadingImpl {
         checkOnGametestThread("runOnClient")
         ensureDispatchPhase()
         check(clientCanAcceptTasks) { "runOnClient called when no client is running" }
-        runTaskOnOtherThread(action)
+        runTaskOnOtherThread(action, clientSemaphore)
     }
 
     @Suppress("unused")
@@ -248,17 +266,17 @@ object ThreadingImpl {
     fun runOnServer(action: () -> Unit) {
         checkOnGametestThread("runOnServer")
         ensureDispatchPhase()
-        check(serverCanAcceptTasks) { "runOnServer called when no server is running" }
+        check(serverCanAcceptTasks) {
+            "runOnServer called when no server is running " +
+                "(serverRegisteredThread=${serverRegisteredThread.get()?.name}, " +
+                "testRegistered=$testRegistered, testThread=${testThread?.name}, phase=${getCurrentPhase()})"
+        }
         runTaskOnOtherThread(action, serverSemaphore)
     }
 
     private fun ensureDispatchPhase() {
         // Intentionally no-op for the current client harness bridge.
         // Dispatch relies on non-blocking client/server loop integration.
-    }
-
-    private fun runTaskOnOtherThread(action: () -> Unit) {
-        runTaskOnOtherThread(action, clientSemaphore)
     }
 
     private fun runTaskOnOtherThread(action: () -> Unit, targetSemaphore: Semaphore) {

@@ -9,6 +9,10 @@ import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.FieldBuilder
 import net.minecraft.network.chat.Component
 
+/**
+ * [MapFieldBuilder] for [ModifierKeyCode] values, using Cloth Config's `startModifierKeyCodeField`
+ * per row. See [KeycodeListBuilder] for the `allowKey`/`allowMouse`/`allowModifiers` constraints.
+ */
 class KeycodeMapBuilder(
 	resetButtonKey: Component,
 	fieldNameKey: Component,

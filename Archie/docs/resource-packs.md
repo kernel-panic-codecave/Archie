@@ -38,6 +38,9 @@ Register the listener during `initClient()`:
 ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeLoader())
 ```
 
+Override `shouldLoadResource(fileLocation)` (default: always `true`) if your listener's
+`directory`/`fileExtension` pattern also matches files it shouldn't try to decode.
+
 ---
 
 ## Supported formats

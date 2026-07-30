@@ -38,9 +38,11 @@ import net.minecraft.network.chat.Component
 import java.util.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Provides the nearest [LayerStackManager] to composables inside a [net.kernelpanicsoft.archie.gui.ComposeScreen]
@@ -181,7 +183,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
                 entered = false
                 onDismissRequest()
                 closeScope.launch {
-                    delay(transitionSpec.durationMillis.toLong())
+                    delay(transitionSpec.durationMillis.milliseconds)
                     popLayer()
                 }
             }
@@ -205,6 +207,14 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         }
     }
 
+    /**
+     * Pushes a modal presenting a [ConfirmDialog] with confirm/cancel actions. The modal
+     * animates out and dismisses itself after either action runs.
+     *
+     * @param onConfirm Invoked when the user confirms.
+     * @param onCancel Invoked when the user cancels.
+     * @param content Additional body content shown above the actions.
+     */
     fun confirmDialog(
         title: Component = Component.literal("Confirm Dialog"),
         confirmText: Component = Component.literal("Confirm"),
@@ -228,6 +238,11 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         }
     }
 
+    /**
+     * Pushes a modal presenting an [AlertDialog] with a single acknowledgement action.
+     *
+     * @param onConfirm Invoked when the user acknowledges the alert.
+     */
     fun alertDialog(
         title: Component = Component.literal("Alert"),
         message: Component,
@@ -244,6 +259,14 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         }
     }
 
+    /**
+     * Pushes a modal presenting a [PromptDialog] for single-line text input.
+     *
+     * @param initialValue Text prefilled in the input field.
+     * @param validator Predicate controlling whether the confirm action is enabled.
+     * @param onConfirm Invoked with the entered text when the user confirms.
+     * @param onCancel Invoked when the user cancels.
+     */
     fun promptDialog(
         title: Component = Component.literal("Enter Value"),
         initialValue: String = "",
@@ -268,6 +291,13 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         }
     }
 
+    /**
+     * Pushes a modal presenting a [ChoiceDialog] listing [choices] for the user to pick from.
+     *
+     * @param choices The selectable options.
+     * @param onSelected Invoked with the chosen value's [ModalChoice.value] when a choice is picked.
+     * @param onCancel Invoked when the user cancels without choosing.
+     */
     fun <T> choiceDialog(
         title: Component = Component.literal("Choose an Option"),
         message: Component? = null,
@@ -342,6 +372,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
                 modifier = Modifier
                     .offset(x = 0, y = offsetY)
                     .onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event -> event.consume() }
+                    .zIndex(1f)
             ) {
                 content()
             }

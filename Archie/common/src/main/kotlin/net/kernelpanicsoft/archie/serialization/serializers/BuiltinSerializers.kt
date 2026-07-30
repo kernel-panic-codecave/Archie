@@ -13,18 +13,27 @@ import me.shedaniel.math.Color
 
 /* ------------------ TypeAliases ------------------ */
 
+/**
+ * Contextual type-alias for Cloth Config's [ModifierKeyCode] that uses [ModifierKeyCodeSerializer]
+ * when the field is annotated with `@Contextual`.
+ */
 typealias SModifierKeyCode = @Contextual ModifierKeyCode
+/**
+ * Contextual type-alias for Cloth Config's [Color] that uses [ColorSerializer] when the field
+ * is annotated with `@Contextual`.
+ */
 typealias SColor = @Contextual Color
 
 /* ------------------ Serializers ------------------ */
 
+/** A [KSerializer] for Cloth Config's [ModifierKeyCode] (a keybind plus its held modifier). */
 object ModifierKeyCodeSerializer : KSerializer<ModifierKeyCode>
 {
 	@Serializable
 	enum class KeyType(val type: Type)
 	{
 		KEYSYM(Type.KEYSYM),
-		SCANCODE(Type.KEYSYM),
+		SCANCODE(Type.SCANCODE),
 		MOUSE(Type.MOUSE);
 
 		companion object
@@ -68,7 +77,8 @@ object ModifierKeyCodeSerializer : KSerializer<ModifierKeyCode>
 			}
 			if (keyCode == -1)
 				ModifierKeyCode.unknown()
-			ModifierKeyCode.of(type.type.getOrCreate(keyCode), Modifier.of(modifier))
+			else
+				ModifierKeyCode.of(type.type.getOrCreate(keyCode), Modifier.of(modifier))
 		}
 	}
 
@@ -85,6 +95,7 @@ object ModifierKeyCodeSerializer : KSerializer<ModifierKeyCode>
 
 }
 
+/** A [KSerializer] for Cloth Config's [Color] that encodes/decodes as an `#AARRGGBB` hex string. */
 object ColorSerializer : KSerializer<Color>
 {
 	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Color", PrimitiveKind.STRING)
@@ -106,6 +117,10 @@ object ColorSerializer : KSerializer<Color>
 
 }
 
+/**
+ * A [SerializersModule] that registers Archie's Cloth Config-related type serializers
+ * ([ModifierKeyCodeSerializer], [ColorSerializer]) as contextual serializers.
+ */
 val BuiltInSerializersModule = SerializersModule {
 	contextual(ModifierKeyCode::class, ModifierKeyCodeSerializer)
 	contextual(Color::class, ColorSerializer)

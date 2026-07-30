@@ -14,6 +14,12 @@ import java.util.*
 import java.util.function.Supplier
 import kotlin.jvm.optionals.getOrNull
 
+/**
+ * Base Cloth Config builder for a list field, rendered as an editable list of rows sharing one
+ * element type. Concrete subclasses (e.g. [KeycodeListBuilder]) only need to implement [factory]
+ * (the default for a newly-inserted row) and [builder] (the field builder for each row); this
+ * class handles add/remove wiring and error/tooltip propagation.
+ */
 abstract class ListFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : ListFieldBuilder<T, A, SELF>>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,
@@ -27,8 +33,10 @@ abstract class ListFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : ListFi
 		this.value = value
 	}
 
+	/** Value assigned to a row inserted via the UI's "add" button. */
 	abstract fun factory(): T
 
+	/** Builds the Cloth Config field for a single row. */
 	abstract fun ConfigEntryBuilder.builder(title: Component, value: T, list: NestedListListEntry<T, A>): FieldBuilder<T, A, *>
 
 	override fun build(): NestedListListEntry<T, A>

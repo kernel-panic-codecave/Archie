@@ -27,6 +27,23 @@ val LocalScreen: ProvidableCompositionLocal<ComposeScreen> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
 
 /**
+ * Implemented by Compose-driven screens that recompose asynchronously, so test harnesses can
+ * poll for a settled frame (no pending or in-flight recomposition) before asserting on rendered
+ * output - e.g. before taking a screenshot right after simulating a click.
+ */
+internal interface ComposeIdleAware {
+    /** `true` when there is no snapshot-write notification, frame request, or recompose job pending. */
+    fun isComposeIdle(): Boolean
+}
+
+/** Implemented by hosts (screens) that own a [LayerStackManager] for their layer stack. */
+interface LayerManagerProvider
+{
+    /** The layer stack owned by this host. */
+    val layerManager: LayerStackManager
+}
+
+/**
  * A Compose-driven Minecraft [Screen] base class with layer support, async recomposition,
  * and full pointer/keyboard input dispatch.
  *
@@ -53,7 +70,7 @@ val LocalScreen: ProvidableCompositionLocal<ComposeScreen> =
 abstract class ComposeScreen(
     title: Component,
     val asynchronous: Boolean = true,
-) : Screen(title), CoroutineScope {
+) : Screen(title), CoroutineScope, ComposeIdleAware, LayerManagerProvider {
 
     private var hasFrameWaiters = false
     private val clock = BroadcastFrameClock { hasFrameWaiters = true }
@@ -61,7 +78,8 @@ abstract class ComposeScreen(
     private val composeScope = CoroutineScope(Dispatchers.Default) + clock
     final override val coroutineContext: CoroutineContext = composeScope.coroutineContext
 
-    private lateinit var layerManager: LayerStackManager
+    final override lateinit var layerManager: LayerStackManager
+        private set
     private lateinit var recomposer: Recomposer
     private var recomposeJob: Job? = null
 
@@ -78,6 +96,9 @@ abstract class ComposeScreen(
 
     private var lastMouseX = 0.0
     private var lastMouseY = 0.0
+
+    override fun isComposeIdle(): Boolean =
+        !applyScheduled && !hasFrameWaiters && recomposeJob?.isActive != true
 
     /**
      * Initialises the Compose runtime and pushes the base layer with [content].
@@ -122,12 +143,20 @@ abstract class ComposeScreen(
             clock.sendFrame(System.nanoTime())
         }
 
-        var zOffset = 0f
-        for (layer in layerManager.layers) {
-            val root = layer.rootNode
-            root.measure(Constraints(maxWidth = width, maxHeight = height))
-            root.render(0, 0, guiGraphics, mouseX, mouseY, partialTick, zOffset)
-            zOffset = root.getMaxZ(zOffset) + 10f
+        val layersSnapshot = Snapshot.takeMutableSnapshot()
+        try {
+            layersSnapshot.enter {
+                var zOffset = 0f
+                for (layer in layerManager.layers) {
+                    val root = layer.rootNode
+                    root.measure(Constraints(maxWidth = width, maxHeight = height))
+                    root.render(0, 0, guiGraphics, mouseX, mouseY, partialTick, zOffset)
+                    zOffset = root.getMaxZ(zOffset) + 10f
+                }
+            }
+            layersSnapshot.apply().check()
+        } finally {
+            layersSnapshot.dispose()
         }
 
         if (asynchronous && hasFrameWaiters) {

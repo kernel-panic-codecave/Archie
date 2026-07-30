@@ -213,8 +213,13 @@ layerManager.modal(
 }
 
 // New helpers
+layerManager.confirmDialog(onConfirm = { doDelete() }) { Text(Component.literal("Delete this?")) }
 layerManager.alertDialog(message = Component.literal("Saved"))
 layerManager.promptDialog(onConfirm = { value -> println(value) })
+layerManager.choiceDialog(
+    choices = listOf(ModalChoice("a", Component.literal("A")), ModalChoice("b", Component.literal("B"))),
+    onSelected = { choice -> println(choice) },
+)
 
 // Custom modal with built-in enter/exit animation + backdrop fade
 layerManager.modal(transitionSpec = ModalTransitionSpec(durationMillis = 220)) {
@@ -228,18 +233,22 @@ layerManager.modal(transitionSpec = ModalTransitionSpec(durationMillis = 220)) {
 
 Archie includes a backport client harness for GUI-focused tests on 1.21.1.
 
-- Mark client tests with `@AClientGameTest`
-- Use optional `AClientGameTestContext` parameter for assertions
-- Register test classes in `ArchieGameTest.kt` under `client {}`
+- Mark client test methods with `@ClientGameTest`, written as an extension function on
+  `ClientGameTestContext` (not a function taking a context parameter).
+- `ClientGameTestContext` gives you `setScreen`, `waitForScreen`, `waitForLayer`, `hasNode`/`node`,
+  `computeOnClient`, and assertion helpers (`assertTrue`, `assertEquals`, ...).
+- Register test classes in `ArchieGameTest.kt`'s `archieGameTests()` under `client { }`.
 
 ```kotlin
 class GuiClientHarnessTests {
-    @AClientGameTest
-    fun testSliderClamp(context: AClientGameTestContext) {
-        context.assertEquals(1f, normalizeSliderValue(2f))
+    @ClientGameTest
+    fun ClientGameTestContext.testSliderClamp() {
+        assertEquals(1f, normalizeSliderValue(2f))
     }
 }
 ```
+
+See `ComposeRenderingTests.kt` for a fuller example that drives an actual screen.
 
 Run commands:
 

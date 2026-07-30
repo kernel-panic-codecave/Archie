@@ -89,3 +89,14 @@ MyTabs.init()
 
 The `registries/extensions.kt` file provides convenience helpers for the Architectury
 `DeferredRegister` API in idiomatic Kotlin style.
+
+---
+
+## Other helpers
+
+- **`RegistrarHelper`** — a base for declaring lazily-built Architectury `Registrar`s (as opposed
+  to the `DeferredRegister`-backed helpers above). Use it when you need `Registrar`'s
+  eager-registry semantics instead of deferred registration.
+- **`ACreativeTabRegistry.create { ... }`** — thin wrapper over Architectury's
+  `CreativeTabRegistry` for building a one-off `CreativeModeTab` without registering it (see
+  `CreativeTabRegistryHelper` above if you do want it registered).

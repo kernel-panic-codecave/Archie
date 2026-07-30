@@ -9,6 +9,11 @@ import me.shedaniel.clothconfig2.impl.builders.FieldBuilder
 import me.shedaniel.clothconfig2.impl.builders.KeyCodeBuilder
 import net.minecraft.network.chat.Component
 
+/**
+ * [ListFieldBuilder] for [ModifierKeyCode] values, using Cloth Config's `startModifierKeyCodeField`
+ * per row. [allowKey] and [allowMouse] can't both be `false` - at least one input source must
+ * remain selectable. [allowModifiers] toggles whether Ctrl/Shift/Alt can be bound alongside the key.
+ */
 class KeycodeListBuilder(
 	resetButtonKey: Component,
 	fieldNameKey: Component,

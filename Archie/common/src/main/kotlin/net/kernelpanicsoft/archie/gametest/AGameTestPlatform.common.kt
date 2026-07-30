@@ -21,6 +21,7 @@ internal fun AGameTestSide.toEnv(): Env = when (this) {
  */
 expect object AGameTestPlatform
 {
+	/** `true` when the current process is running under a GameTest task (`runGametest`/`runGametestClient`). */
 	val isGameTest: Boolean
 
 	/** Active logical side for this GameTest run (supports launcher/property overrides). */

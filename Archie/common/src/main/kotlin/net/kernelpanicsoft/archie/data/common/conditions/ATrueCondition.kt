@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec
 import net.kernelpanicsoft.archie.Archie
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that always holds. */
 data object ATrueCondition :
 	IACondition
 {

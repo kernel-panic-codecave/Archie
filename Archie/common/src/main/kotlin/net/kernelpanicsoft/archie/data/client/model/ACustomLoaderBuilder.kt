@@ -4,8 +4,15 @@ import com.google.common.base.Preconditions
 import com.google.gson.JsonObject
 import net.minecraft.resources.ResourceLocation
 
+/**
+ * Base for a custom geometry loader's model JSON, embedded in an [AModelBuilder] via
+ * [AModelBuilder.customLoader]. Subclasses add their loader's own fields by overriding
+ * [toJson]; this base handles the common `loader`/`visibility`/`optional` fields.
+ */
 abstract class ACustomLoaderBuilder<T : AModelBuilder<T>> protected constructor(
+	/** The id of the associated geometry loader. */
 	val loaderId: ResourceLocation,
+	/** The [AModelBuilder] this loader is being configured on; returned by [end]. */
 	protected val parent: T,
 	val allowInlineElements: Boolean
 )
@@ -13,16 +20,13 @@ abstract class ACustomLoaderBuilder<T : AModelBuilder<T>> protected constructor(
 	protected val visibility: MutableMap<String, Boolean> = LinkedHashMap()
 	private var optional = false
 
-	/**
-	 * @param loaderId           The ID of the associated [IGeometryLoader]
-	 * @param parent             The parent [AModelBuilder]
-	 */
-	@Deprecated("Use {@link #CustomLoaderBuilder(ResourceLocation, ModelBuilder, boolean)}} instead")
+	@Deprecated("Use the (loaderId, parent, allowInlineElements) constructor instead")
 	protected constructor(
 		loaderId: ResourceLocation,
 		parent: T,
 	) : this(loaderId, parent, false)
 
+	/** Sets whether the model part named [partName] is initially visible. */
 	fun visibility(partName: String, show: Boolean): ACustomLoaderBuilder<T>
 	{
 		Preconditions.checkNotNull(partName, "partName must not be null")
@@ -44,6 +48,7 @@ abstract class ACustomLoaderBuilder<T : AModelBuilder<T>> protected constructor(
 		return this
 	}
 
+	/** Returns to the enclosing [AModelBuilder] this loader was configured on. */
 	fun end(): T
 	{
 		return parent

@@ -98,12 +98,14 @@ loom {
 			server()
 			name = "Minecraft GameTest"
 			property("fabric-api.gametest")
+			property("archie.gametest", "true")
 			property("archie.gametest.side", "server")
 		}
 		create("gametestClient") {
 			client()
 			name = "Minecraft GameTest Client"
 			property("fabric-api.gametest")
+			property("archie.gametest", "true")
 			property("archie.gametest.side", "client")
 		}
 	}
@@ -132,6 +134,9 @@ dependencies {
 	modApi(libs.fabric.api)
 	modApi(libs.architectury.fabric)
 	modImplementation(libs.kotlin.fabric)
+	compileOnly(libs.kotlinx.serialization)
+	bundleRuntimeLibrary(libs.kotlinx.serialization)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.json)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
@@ -144,8 +149,8 @@ dependencies {
 	modLocalRuntime(libs.menulogue.fabric)
 	modCompileOnlyApi(libs.clothConfig.fabric)
 	modLocalRuntime(libs.clothConfig.fabric)
-	modCompileOnlyApi(libs.yacl.fabric)
-	modLocalRuntime(libs.yacl.fabric)
+//	modCompileOnlyApi(libs.yacl.fabric)
+//	modLocalRuntime(libs.yacl.fabric)
 	bundleMod(libs.storage.fabric)
 
 	implementation(libs.junit.jupiter.api)
@@ -172,7 +177,9 @@ tasks {
 		from(project(":common").sourceSets.main.get().resources) {
 			include("assets/${"mod_id".prop}/**")
 			include("data/${"mod_id".prop}/**")
-			include("archie-common.mixins.json")
+			include("${"mod_id".prop}-common.mixins.json")
+			include("${"mod_id".prop}.common.json")
+			include("${"mod_id".prop}.accesswidener")
 		}
 		dependsOn(processTestResources)
 	}

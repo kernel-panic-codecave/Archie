@@ -19,6 +19,10 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.hasAnnotation
 
+/**
+ * [NBTHolder] implementation backing [NBTHolder.fluid], persisting field values into [stack]'s
+ * [CustomData] component instead of an in-memory map.
+ */
 class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 {
 	private val data: MutableMap<String, NbtTag> = mutableMapOf()

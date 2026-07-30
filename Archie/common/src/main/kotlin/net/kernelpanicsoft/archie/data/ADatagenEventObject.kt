@@ -6,6 +6,10 @@ import net.kernelpanicsoft.archie.events.AEventObject
 import dev.architectury.event.Event
 import dev.architectury.platform.Mod
 
+/**
+ * Convenience [AEventObject] base for hooking into [AEvents.GATHER_DATA], the event fired by
+ * the loader during a datagen run. Implement [handler] to build and run an [ADataGenerator].
+ */
 abstract class ADatagenEventObject(mod: Mod) :
 	AEventObject<ADataGenerator, GatherDataHandler, GatherDataHandler.Companion>(
 		mod

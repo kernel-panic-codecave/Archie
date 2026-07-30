@@ -16,6 +16,10 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
+/**
+ * [NBTHolder] implementation backing [NBTHolder.item], persisting field values into [stack]'s
+ * [CustomData] component instead of an in-memory map.
+ */
 class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 {
 	private val data: MutableMap<String, NbtTag> = mutableMapOf()

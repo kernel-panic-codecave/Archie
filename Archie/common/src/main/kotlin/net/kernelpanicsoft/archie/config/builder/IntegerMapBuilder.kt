@@ -8,6 +8,7 @@ import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
 import net.minecraft.network.chat.Component
 
+/** [MapFieldBuilder] for `Int` values, using Cloth Config's `startIntField` per row. */
 class IntegerMapBuilder(resetButtonKey: Component, fieldNameKey: Component, value: Map<String, Int>) : MapFieldBuilder<Int, IntegerListEntry, IntegerMapBuilder>(
 	resetButtonKey, fieldNameKey, value
 )

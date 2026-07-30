@@ -8,16 +8,20 @@ import net.neoforged.neoforge.common.crafting.IngredientType
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 import java.util.stream.Stream
 
+/** NeoForge implementation of [ACustomIngredientPlatform], adapting [ArchieIngredient] onto NeoForge's `ICustomIngredient` API. */
 actual object ACustomIngredientPlatform
 {
+	/** Wraps [custom] as a NeoForge [ICustomIngredient] and converts it to a vanilla [Ingredient]. */
 	actual fun vanillaOf(custom: ArchieIngredient): Ingredient
 	{
 		return custom.neoforge.toVanilla()
 	}
 
+	/** Wraps this ingredient as a NeoForge [ICustomIngredient]. */
 	val <T : ArchieIngredient> T.neoforge: NeoForgeCustomIngredient<T>
 		get() = NeoForgeCustomIngredient(this)
 
+	/** Adapts an [ArchieIngredient] to NeoForge's [ICustomIngredient] interface, delegating all matching logic to it; never treated as [isSimple]. */
 	class NeoForgeCustomIngredient<T : ArchieIngredient>(
 		override val custom: T
 	) : ICustomIngredient, IACustomIngredientHolder<T>

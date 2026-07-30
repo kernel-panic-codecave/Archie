@@ -81,7 +81,7 @@ class ATagBuilder<T : Any>(private val parent: TagsProvider.TagAppender<T>, priv
 
 	override fun addTag(tag: TagKey<T>): ATagBuilder<T>
 	{
-		builder.add(ForcedTagEntry(TagEntry.element(tag.location())))
+		builder.add(ForcedTagEntry(TagEntry.tag(tag.location())))
 		return this
 	}
 

@@ -11,9 +11,7 @@
 	"DatagenModLoaderMixin",
     "GameTestHooksMixin",
     "GameTestRegistryMixin",
-    "StructureTemplateManagerMixin"
-  ],
-  "server": [
+    "StructureTemplateManagerMixin",
     "threading.ServerMixin"
   ],
   "injectors": {

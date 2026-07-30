@@ -16,7 +16,12 @@ import net.minecraft.world.item.Items
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
- class AInternalItemTagsProvider(
+/**
+ * Populates Archie's vanilla-derived common ("c") item tags (see [ACommonTags.Items]) with
+ * their vanilla item members, so downstream mods can depend on the `c` tag convention without
+ * every mod having to redeclare it.
+ */
+class AInternalItemTagsProvider(
 	output: PackOutput,
 	lookupProvider: CompletableFuture<HolderLookup.Provider>,
 	blockTagsProvider: BlockTagsProvider
@@ -611,6 +616,10 @@ import java.util.function.Consumer
 
 	}
 
+	/**
+	 * For each [DyeColor], resolves the vanilla item named by substituting `{color}` into
+	 * `pattern` and adds it to the per-color common tag `c:{group path}/{color}` (via [getCommonItemTag]).
+	 */
 	private fun addColored(group: TagKey<Item>, pattern: String)
 	{
 		val prefix = group.location().path.lowercase() + '/'
@@ -624,6 +633,7 @@ import java.util.function.Consumer
 		}
 	}
 
+	/** Passes each of [group]'s per-color common tags (`c:{group path}/{color}`) to [consumer]. */
 	private fun addColoredTags(group: TagKey<Item>, consumer: Consumer<TagKey<Item>>)
 	{
 		val prefix = group.location().path.lowercase() + '/'
@@ -634,6 +644,7 @@ import java.util.function.Consumer
 		}
 	}
 
+	/** Looks up a common ("c") item tag by [name], throwing if it isn't declared in [ACommonTags.Items]. */
 	private fun getCommonItemTag(name: String): TagKey<Item>
 	{
 		return ACommonTags.Items[ResourceLocation.fromNamespaceAndPath("c", name)]

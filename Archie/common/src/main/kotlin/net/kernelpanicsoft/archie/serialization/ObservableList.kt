@@ -4,6 +4,11 @@ import java.util.function.IntFunction
 import java.util.function.Predicate
 import java.util.function.UnaryOperator
 
+/**
+ * A [MutableList] wrapper that invokes [listener] with the underlying [list] after every
+ * mutating operation. Used by [listField]-style [NBTHolder] delegates to detect changes and
+ * persist/sync them.
+ */
 class ObservableList<T>(private val list: MutableList<T>, private val listener: (MutableList<T>) -> Unit) : MutableList<T> by list
 {
 	override fun add(element: T): Boolean

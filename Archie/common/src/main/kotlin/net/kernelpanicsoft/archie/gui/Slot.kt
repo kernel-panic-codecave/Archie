@@ -1,15 +1,7 @@
 package net.kernelpanicsoft.archie.gui
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerDepth
 import net.kernelpanicsoft.archie.gui.layout.*
@@ -21,9 +13,8 @@ import net.kernelpanicsoft.archie.gui.nodes.AUINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
-import net.kernelpanicsoft.archie.serialization.serializers.SItemStack
+import net.kernelpanicsoft.archie.gui.composables.containers.Scrollable
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.world.item.ItemStack
 
 /**
  * Per-slot-group layout data reported back from the Compose layout to [ComposeContainerMenu].
@@ -61,8 +52,42 @@ val LocalSlotData = compositionLocalOf { SlotData() }
 /** Provides the current [SlotGroup] to [Slot] composables inside a [Slots] container. */
 val LocalSlotGroup = compositionLocalOf { SlotGroup() }
 
-/** Provides the active clip bounds (if any) applied by ancestor scroll/clip containers. */
-val LocalSlotClipBounds = compositionLocalOf<IntRect?> { null }
+/**
+ * A layout-synchronous (non-Compose-state) holder for a [Scrollable]'s
+ * current clip bounds.
+ *
+ * The [Scrollable] updates [bounds] directly from its `onGloballyPositioned`/`onSizeChanged`
+ * callbacks, which fire every layout pass regardless of composition state. A descendant [Slot]
+ * reads [bounds] live, from its own `onGloballyPositioned` callback, at the same layout-pass
+ * granularity as [SlotGroup.pos]. Using [androidx.compose.runtime.mutableStateOf] here instead
+ * would only propagate the new value on the *next* recomposition - a composition-cycle lag
+ * behind position tracking that let a slot's clip bounds go stale exactly when the surrounding
+ * layout had just finished settling into a new position.
+ */
+class SlotClipSource {
+	private var origin: IntCoordinates = IntCoordinates(0, 0)
+	private var size: Size = Size(0, 0)
+
+	var bounds: IntRect? = null
+		private set
+
+	fun updateOrigin(newOrigin: IntCoordinates) {
+		origin = newOrigin
+		recompute()
+	}
+
+	fun updateSize(newSize: Size) {
+		size = newSize
+		recompute()
+	}
+
+	private fun recompute() {
+		bounds = if (size.width <= 0 || size.height <= 0) null else IntRect.fromPositionAndSize(origin, size)
+	}
+}
+
+/** Provides the active [SlotClipSource] (if any) from the nearest ancestor scroll/clip container. */
+val LocalSlotClipBounds = compositionLocalOf<SlotClipSource?> { null }
 
 /**
  * Defines a named region of inventory slots within a [ComposeContainerScreen].
@@ -95,13 +120,13 @@ fun Slots(
     },
 ): SlotGroup {
     val layerDepth = LocalLayerDepth.current
-    val clipBounds = LocalSlotClipBounds.current
+    val clipSource = LocalSlotClipBounds.current
     val group = remember(id) { SlotGroup(size = IntSize(width = width, height = height)) }
     group.size = IntSize(width = width, height = height)
     group.layerDepth = layerDepth
     val data = LocalSlotData.current
     data.groups[id] = group
-    group.clip = clipBounds
+    group.clip = clipSource?.bounds
 
     DisposableEffect(data, id, group) {
         data.groups[id] = group
@@ -118,7 +143,8 @@ fun Slots(
         modifier = Modifier.onGloballyPositioned { coords ->
             group.pos = coords
             group.layerDepth = layerDepth
-            group.clip = clipBounds
+            // Live read, not a composition-time snapshot - see SlotClipSource.
+            group.clip = clipSource?.bounds
             data.groups[id] = group
         }
     ) {
@@ -185,9 +211,9 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
 fun PlayerSlots() {
     val data = LocalSlotData.current
     val layerDepth = LocalLayerDepth.current
-    val clipBounds = LocalSlotClipBounds.current
+    val clipSource = LocalSlotClipBounds.current
     data.playerGroup.layerDepth = layerDepth
-    data.playerGroup.clip = clipBounds
+    data.playerGroup.clip = clipSource?.bounds
 
     // Clear so re-layout starts fresh
     data.playerGroup.slots.clear()
@@ -196,7 +222,8 @@ fun PlayerSlots() {
         modifier = Modifier.onGloballyPositioned { coords ->
             data.playerGroup.pos = coords
             data.playerGroup.layerDepth = layerDepth
-            data.playerGroup.clip = clipBounds
+            // Live read, not a composition-time snapshot - see SlotClipSource.
+            data.playerGroup.clip = clipSource?.bounds
         }
     ) {
         Column {
@@ -224,6 +251,7 @@ private fun PlayerSlot(texture: String = "slot", modifier: Modifier = Modifier) 
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
     val state = composableTheme.getState(TextureStates.DEFAULT, ThemeVariants.DEFAULT)
+    var lastPos by remember { mutableStateOf(IntCoordinates(0, 0)) }
     Layout(
         name = "PlayerSlot",
         measurePolicy = { _, _, constraints ->
@@ -242,7 +270,11 @@ private fun PlayerSlot(texture: String = "slot", modifier: Modifier = Modifier) 
         modifier = modifier
             .sizeIn(minWidth = 18, minHeight = 18)
             .onGloballyPositioned { pos ->
+                if (pos == lastPos) return@onGloballyPositioned // Skip if position hasn't changed since last report
+                if (data.playerGroup.slots.contains(lastPos))
+                    data.playerGroup.slots.remove(lastPos)
                 data.playerGroup.slots.add(pos)
+                lastPos = pos
                 tryUpdateMenu(data, menu)
             },
     )

@@ -8,14 +8,29 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.tags.TagKey
 
+/**
+ * A cross-loader condition, evaluated at datapack load time, that decides whether the entry it's
+ * attached to (a recipe, tag entry, etc.) should be active. Mirrors NeoForge's/Fabric's native
+ * condition systems but is decoded through [CODEC] so the same condition classes work on both
+ * loaders.
+ *
+ * Built-in implementations live alongside this file (e.g. [AAndCondition], [AOrCondition],
+ * [ANotCondition], [ATrueCondition], [AModLoadedCondition], [ARegistryCondition]); see
+ * [ABuiltinConditions] for the full set and [AConditionBuilder] for a DSL to combine them.
+ * Register custom conditions with [register].
+ */
 interface IACondition
 {
+	/** Evaluates this condition against [context], returning whether it holds. */
 	fun test(context: IContext): Boolean
 
+	/** The codec used to (de)serialize this condition to/from JSON. */
 	val codec: MapCodec<out IACondition>
 
+	/** The condition type's registered id, matching the key it was [register]ed under. */
 	val identifier: ResourceLocation
 
+	/** Read-only view of loaded tags/registries available to [test] while a condition is evaluated. */
 	interface IContext
 	{
 		/**
@@ -56,11 +71,13 @@ interface IACondition
 
 	companion object
 	{
+		/** Registers condition type [T] under [identifier] so it can be decoded via [CODEC]. */
 		inline fun <reified T : IACondition> register(identifier: ResourceLocation, codec: MapCodec<T>)
 		{
 			AConditionsPlatform.register(identifier, codec)
 		}
 
+		/** The dispatch codec that decodes any registered [IACondition] type by its [identifier]. */
 		val CODEC: Codec<IACondition>
 			get() = AConditionsPlatform.codec()
 	}

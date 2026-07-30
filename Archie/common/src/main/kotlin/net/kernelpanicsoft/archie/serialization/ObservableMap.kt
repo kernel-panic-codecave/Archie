@@ -3,6 +3,11 @@ package net.kernelpanicsoft.archie.serialization
 import java.util.function.BiFunction
 import java.util.function.Function
 
+/**
+ * A [MutableMap] wrapper that invokes [listener] with the underlying [map] after every
+ * mutating operation. Used by [mapField]-style [NBTHolder] delegates to detect changes and
+ * persist/sync them.
+ */
 class ObservableMap<K, V>(private val map: MutableMap<K, V>, private val listener: (MutableMap<K, V>) -> Unit) : MutableMap<K, V> by map
 {
 	override fun put(key: K, value: V): V?

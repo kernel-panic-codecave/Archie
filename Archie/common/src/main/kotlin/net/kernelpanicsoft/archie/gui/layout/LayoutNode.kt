@@ -51,7 +51,8 @@ class LayoutNode(
     private var childrenAscendingZCache: List<LayoutNode>? = null
     private var childrenDescendingZCache: List<LayoutNode>? = null
 
-    fun findNode(name: String): LayoutNode? = children.find { it.nodeName == name } ?: children.map { it.findNode(name) }.firstOrNull()
+    /** Recursively searches this subtree for a descendant node whose [nodeName] equals [name]. */
+    fun findNode(name: String): LayoutNode? = children.find { it.nodeName == name } ?: children.firstNotNullOfOrNull { it.findNode(name) }
 
     override var modifier: Modifier = Modifier
         set(value) {
@@ -103,6 +104,7 @@ class LayoutNode(
     /** The effective z-index for this node, used for draw and input ordering. */
     val zIndex: Float get() = get<ZIndexModifier>()?.zIndex ?: 0f
 
+    /** This node's absolute z-depth, combining its [layer]'s base z with all ancestor [zIndex]es. */
     val effectiveZ: Float get() = effectiveZ(ComposeContainerScreen.layerBaseZ(layer))
 
     /** Computes the maximum effective z-depth in this subtree, adding [layerOffset]. */
@@ -128,7 +130,10 @@ class LayoutNode(
     internal fun childrenDescendingZ(): List<LayoutNode> {
         val cached = childrenDescendingZCache
         if (cached != null) return cached
-        return children.sortedByDescending { it.zIndex }.also { childrenDescendingZCache = it }
+        return children.sortedByDescending { it.zIndex }.also { sorted ->
+            childrenDescendingZCache = sorted
+            childrenAscendingZCache = sorted.asReversed()
+        }
     }
 
     private fun effectiveZ(layerOffset: Float): Float =

@@ -7,6 +7,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
 
+/** [IConfigSerializer] for plain JSON (no comments). Not used by default on any platform - opt in explicitly by overriding [ConfigSpec.fileSerializer]. */
 object JsonConfigSerializer : IConfigSerializer
 {
 	@OptIn(ExperimentalSerializationApi::class)

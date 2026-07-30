@@ -10,7 +10,15 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
+/**
+ * NeoForge implementation of [ADedicatedServerPlatform].
+ *
+ * Boots a real dedicated server ([Main.main]) on a daemon thread and hands the resulting
+ * [DedicatedServer] back through [ADedicatedServerPlatformInternal], which `ServerMixin` feeds
+ * via [ADedicatedServerPlatformInternal.captureRunningServer] once the server instance exists.
+ */
 actual object ADedicatedServerPlatform {
+    /** Baseline `server.properties` for a headless, single-player-only GameTest server; overridden by caller-supplied properties. */
     private val defaultProperties: Properties = Util.make(Properties()) { props ->
         props.setProperty("online-mode", "false")
         props.setProperty("sync-chunk-writes", (Util.getPlatform() == Util.OS.WINDOWS).toString())
@@ -18,6 +26,12 @@ actual object ADedicatedServerPlatform {
         props.setProperty("max-players", "1")
     }
 
+    /**
+     * Writes `server.properties`/`eula.txt` into [serverDirectory], launches vanilla's dedicated
+     * server entrypoint on a background thread, and blocks up to [timeoutSeconds] for it to report
+     * back via [ADedicatedServerPlatformInternal]. Falls back to the last captured server instance
+     * if the wait times out but a server is already up and listening.
+     */
     actual fun start(serverDirectory: Path, serverProperties: Properties, timeoutSeconds: Long): Any {
         Files.createDirectories(serverDirectory)
         writeServerFiles(serverDirectory, serverProperties)

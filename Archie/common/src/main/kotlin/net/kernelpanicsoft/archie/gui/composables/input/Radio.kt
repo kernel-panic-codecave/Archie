@@ -18,6 +18,19 @@ import net.minecraft.network.chat.Component
 
 private const val RADIO_SIZE = 12
 
+/**
+ * Low-level unstyled radio-button behavior, built on [Clickable].
+ *
+ * Calls [onSelect] on press only when not already [selected] (clicking an already-selected
+ * radio option is a no-op, matching standard radio-group semantics). Applies no visuals -
+ * that is up to [content].
+ *
+ * @param selected Whether this option is currently selected.
+ * @param onSelect Invoked when this (unselected) option is clicked.
+ * @param modifier Additional modifiers applied to the outer clickable container.
+ * @param enabled  When `false`, pointer events are ignored.
+ * @param content  The visual content; receives hover/press state and [selected].
+ */
 @Composable
 fun RadioButtonCore(
     selected: Boolean,
@@ -35,6 +48,7 @@ fun RadioButtonCore(
     }
 }
 
+/** A standard 12x12 boxed radio button with a filled center dot when [selected]. See [RadioGroup] for a labeled option list. */
 @Composable
 fun RadioButton(
     selected: Boolean,
@@ -79,12 +93,22 @@ fun RadioButton(
     }
 }
 
+/** A single labeled choice within a [RadioGroup]. */
 data class RadioOption<T>(
     val value: T,
     val label: Component,
     val enabled: Boolean = true,
 )
 
+/**
+ * A vertical list of labeled, mutually exclusive [RadioButton]s.
+ *
+ * @param options       The selectable options, in display order.
+ * @param selected      The currently selected value, or `null` if none is selected.
+ * @param onSelected    Called with an option's value when it is selected.
+ * @param modifier      Additional modifiers applied to the outer [Column].
+ * @param optionSpacing Vertical spacing between options, in pixels.
+ */
 @Composable
 fun <T> RadioGroup(
     options: List<RadioOption<T>>,

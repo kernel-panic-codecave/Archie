@@ -9,9 +9,14 @@ import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.nbt.CompoundTag
 
+/**
+ * GameTest coverage for [NBTHolder]: default values, save/load round-tripping for scalar,
+ * list, and map delegated fields, and that only [Sync]-annotated fields appear in the sync tag.
+ */
 @Suppress("unused")
 class BlockEntityNBTHolderTests
 {
+	/** Minimal [NBTHolder] with one of each supported field kind, used as a fixture across tests. */
 	private class HolderFixture : NBTHolder by NBTHolder.create()
 	{
 		var counter by intField { 1 }
@@ -24,11 +29,11 @@ class BlockEntityNBTHolderTests
 	}
 
 	@GameTest(template = EMPTY)
-	fun testFieldDefaultsAndPersistenceRoundTrip(helper: GameTestHelper)
+	fun GameTestHelper.testFieldDefaultsAndPersistenceRoundTrip()
 	{
 		val holder = HolderFixture()
-		assertEquals(helper, 1, holder.counter)
-		assertEquals(helper, "default", holder.label)
+		assertEquals(1, holder.counter)
+		assertEquals("default", holder.label)
 
 		holder.counter = 12
 		holder.label = "changed"
@@ -39,13 +44,13 @@ class BlockEntityNBTHolderTests
 		val loaded = HolderFixture()
 		loaded.loadFromTag(tag)
 
-		assertEquals(helper, 12, loaded.counter)
-		assertEquals(helper, "changed", loaded.label)
-		helper.succeed()
+		assertEquals(12, loaded.counter)
+		assertEquals("changed", loaded.label)
+		succeed()
 	}
 
 	@GameTest(template = EMPTY)
-	fun testListAndMapDelegatesPersistMutations(helper: GameTestHelper)
+	fun GameTestHelper.testListAndMapDelegatesPersistMutations()
 	{
 		val holder = HolderFixture()
 		holder.values.add(3)
@@ -57,27 +62,26 @@ class BlockEntityNBTHolderTests
 		val loaded = HolderFixture()
 		loaded.loadFromTag(tag)
 
-		assertEquals(helper, listOf(1, 2, 3), loaded.values.toList())
-		assertEquals(helper, 2, loaded.weights["b"])
-		helper.succeed()
+		assertEquals(listOf(1, 2, 3), loaded.values.toList())
+		assertEquals(2, loaded.weights["b"])
+		succeed()
 	}
 
 	@GameTest(template = EMPTY)
-	fun testSyncTagContainsOnlySyncAnnotatedFields(helper: GameTestHelper)
+	fun GameTestHelper.testSyncTagContainsOnlySyncAnnotatedFields()
 	{
 		val holder = HolderFixture()
 		holder.counter = 42
 		holder.syncedCounter = 9
 
 		val syncTag = holder.getSyncTag()
-		assertTrue(helper, syncTag.contains("synced_counter")) {
+		assertTrue(syncTag.contains("synced_counter")) {
 			"Expected sync tag to include synced field"
 		}
-		assertTrue(helper, !syncTag.contains("counter")) {
+		assertTrue(!syncTag.contains("counter")) {
 			"Expected sync tag to exclude non-synced field"
 		}
-		helper.succeed()
+		succeed()
 	}
 
 }
-

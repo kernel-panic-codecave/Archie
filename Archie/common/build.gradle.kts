@@ -42,7 +42,7 @@ val String.localOrEnv: String?
 
 
 loom {
-	log4jConfigs.from(rootProject.file("log4j-dev.xml"))
+	log4jConfigs.from(rootDir.resolve("../log4j-dev.xml"))
 	accessWidenerPath = file("src/main/resources/${"mod_id".prop}.accesswidener")
 }
 
@@ -59,16 +59,13 @@ sourceSets {
 }
 
 dependencies {
-	compileOnly(libs.kotlinx.serialization)
-	compileOnly(libs.kotlinx.serialization.json)
 	compileOnly(kotlin("reflect"))
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)
-	testImplementation(libs.kotlinx.serialization)
 	testImplementation(kotlin("reflect"))
 	testRuntimeOnly(libs.junit.jupiter.engine)
-	testRuntimeOnly(libs.kotlinx.serialization)
-	testRuntimeOnly(libs.kotlinx.serialization.json)
+	api(libs.kotlinx.serialization)
+	api(libs.kotlinx.serialization.json)
 	api(libs.kotlinx.serialization.nbt) { isTransitive = false }
 	api(libs.kotlinx.serialization.toml) { isTransitive = false }
 	api(libs.kotlinx.serialization.json5) { isTransitive = false }

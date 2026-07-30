@@ -23,8 +23,16 @@ import java.util.stream.Stream
 import net.kernelpanicsoft.archie.data.common.conditions.IACondition as ArchieCondition
 
 
+/**
+ * NeoForge implementation of [AConditionsPlatform], adapting Archie's platform-neutral
+ * [ArchieCondition] onto NeoForge's `ICondition` API.
+ *
+ * Every [ArchieCondition] is wrapped as a [NeoForgeCondition] to cross into NeoForge's condition
+ * system, and unwrapped again via [ICondition.archie] when Archie code needs the original back.
+ */
 actual object AConditionsPlatform
 {
+	/** Registers [identifier] as a NeoForge condition serializer, backed by [codec] via the [NeoForgeConditionCodec] wrapper. */
 	actual fun register(identifier: ResourceLocation, codec: MapCodec<out ArchieCondition>)
 	{
 		val registry = DeferredRegister.create(NeoForgeRegistries.CONDITION_SERIALIZERS, identifier.namespace)
@@ -34,11 +42,13 @@ actual object AConditionsPlatform
 		registry.register(MOD_BUS)
 	}
 
+	/** Wraps [output] so every entry accepted through it also carries [condition]. */
 	actual fun withCondition(output: RecipeOutput, condition: ArchieCondition): RecipeOutput
 	{
 		return NeoForgeConditionalRecipeOutput(output, condition.neoforge)
 	}
 
+	/** Codec for [ArchieCondition] backed by `ICondition.CODEC`, round-tripping through [neoforge]/[archie]. */
 	actual fun codec(): Codec<ArchieCondition>
 	{
 		return ICondition.CODEC.xmap({
@@ -48,17 +58,22 @@ actual object AConditionsPlatform
 		})
 	}
 
+	/** Fabric-only concern; always `null` on NeoForge. */
 	actual fun fabricRecipeProvider(child: ARecipeProvider, registries: CompletableFuture<HolderLookup.Provider>): RecipeProvider? = null
 
+	/** Unwraps a NeoForge [ICondition] back to its originating [ArchieCondition]. Throws if it wasn't created via [neoforge]. */
 	val ICondition.archie
 		get() = ((this as? NeoForgeCondition) ?: throw AssertionError()).condition
 
+	/** Wraps this condition as a NeoForge [ICondition]. */
 	val ArchieCondition.neoforge
 		get() = NeoForgeCondition(this)
 
+	/** Wraps this codec as a NeoForge condition-serializer codec. */
 	val MapCodec<out ArchieCondition>.neoforge
 		get() = NeoForgeConditionCodec(this)
 
+	/** Adapts an [ArchieCondition] to NeoForge's [ICondition] interface, delegating [test] to it and [codec] to the registered serializer. */
 	class NeoForgeCondition(
 		val condition: ArchieCondition
 	) : ICondition
@@ -85,6 +100,7 @@ actual object AConditionsPlatform
 		}
 	}
 
+	/** Adapts a [MapCodec] of [ArchieCondition] to one producing/consuming [NeoForgeCondition] wrappers. */
 	class NeoForgeConditionCodec(
 		private val codec: MapCodec<out ArchieCondition>
 	) : MapCodec<NeoForgeCondition>()
@@ -112,6 +128,7 @@ actual object AConditionsPlatform
 		}
 	}
 
+	/** [RecipeOutput] wrapper that always attaches [condition] to whatever [inner] accepts. */
 	class NeoForgeConditionalRecipeOutput(private val inner: RecipeOutput, private val condition: ICondition) :
 		RecipeOutput
 	{
@@ -120,6 +137,7 @@ actual object AConditionsPlatform
 			return inner.advancement()
 		}
 
+		/** Forwards to [inner], attaching [condition]; any [iConditions] passed by the caller are not currently applied. */
 		override fun accept(
 			id: ResourceLocation,
 			recipe: Recipe<*>,

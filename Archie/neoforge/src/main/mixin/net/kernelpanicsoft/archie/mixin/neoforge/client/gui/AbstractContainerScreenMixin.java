@@ -1,8 +1,10 @@
 package net.kernelpanicsoft.archie.mixin.neoforge.client.gui;
 
 import net.kernelpanicsoft.archie.Archie;
+import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider;
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthContext;
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider;
+import net.kernelpanicsoft.archie.gui.layout.IntRect;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -56,6 +58,33 @@ public abstract class AbstractContainerScreenMixin<T extends AbstractContainerMe
                 SlotLayerDepthContext.pop();
             }
             archie$slotDepthOverride = null;
+        }
+    }
+
+    /**
+     * Vanilla's per-slot hover highlight is drawn via a static helper that only takes the
+     * slot's raw x/y/blitOffset - there's no per-slot instance override point to clip it the
+     * way {@link #archie$adjustSlotLayer} clips the item icon, so this redirects the call
+     * site directly instead.
+     */
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderSlotHighlight(Lnet/minecraft/client/gui/GuiGraphics;III)V"))
+    private void archie$clipSlotHighlight(GuiGraphics guiGraphics, int x, int y, int blitOffset) {
+        IntRect clip = null;
+        if (this instanceof SlotHighlightClipProvider provider) {
+            clip = provider.slotHighlightClipRect(x, y);
+            if (clip == null) {
+                return;
+            }
+        }
+        if (clip != null) {
+            guiGraphics.enableScissor(clip.getMinX(), clip.getMinY(), clip.getMaxX(), clip.getMaxY());
+        }
+        try {
+            AbstractContainerScreen.renderSlotHighlight(guiGraphics, x, y, blitOffset);
+        } finally {
+            if (clip != null) {
+                guiGraphics.disableScissor();
+            }
         }
     }
 }

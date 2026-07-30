@@ -4,8 +4,10 @@ import net.fabricmc.fabric.impl.datagen.FabricTagBuilder
 import net.minecraft.data.tags.TagsProvider
 import net.minecraft.tags.*
 
+/** Fabric implementation of [ATagBuilderPlatform]. */
 actual object ATagBuilderPlatform
 {
+	/** Sets the tag's `replace` flag via Fabric's `FabricTagBuilder` extension on [TagBuilder]. */
 	@Suppress("UnstableApiUsage")
 	actual fun setTagReplace(builder: TagBuilder, replace: Boolean)
 	{

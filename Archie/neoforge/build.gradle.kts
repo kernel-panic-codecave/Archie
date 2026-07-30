@@ -80,11 +80,13 @@ loom {
 			name = "Minecraft Client"
 			source(sourceSets.main.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
+			property("kotlinx.coroutines.debug", "off")
 		}
 		getByName("server") {
 			name = "Minecraft Server"
 			source(sourceSets.main.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
+			property("kotlinx.coroutines.debug", "off")
 		}
 		create("datagen") {
 			data()
@@ -92,6 +94,7 @@ loom {
 			property("archie.datagen", "true")
 			property("archie.datagen.client", providers.gradleProperty("client_datagen").orElse("true").get())
 			property("archie.datagen.server", providers.gradleProperty("server_datagen").orElse("true").get())
+			property("kotlinx.coroutines.debug", "off")
 			programArgs("--all", "--mod", providers.gradleProperty("mod_id").orElse("archie").get())
 			programArgs("--output", file("src/main/generated").absolutePath)
 		}
@@ -101,6 +104,8 @@ loom {
 			name = "Minecraft GameTest"
 			property("neoforge.enableGameTest", "true")
 			property("neoforge.gameTestServer", "true")
+			property("archie.gametest", "true")
+			property("kotlinx.coroutines.debug", "off")
 			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
 
@@ -109,6 +114,8 @@ loom {
 			name = "Minecraft GameTest Client"
 			property("neoforge.enableGameTest", "true")
 			property("archie.gametest.side", "client")
+			property("archie.gametest", "true")
+			property("kotlinx.coroutines.debug", "off")
 			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
 	}
@@ -129,16 +136,13 @@ sourceSets {
 	}
 }
 
-//val bundleRuntimeLibrary: Configuration by configurations.creating {
-//	exclude(group = "com.mojang")
-//	exclude(group = "org.jetbrains.kotlin")
-//	exclude(group = "org.jetbrains.kotlinx")
-//}
-
 dependencies {
 	neoForge(libs.neoforge)
 	modApi(libs.architectury.neoforge)
 	implementation(libs.kotlin.neoforge)
+	compileOnly(libs.kotlinx.serialization)
+	bundleRuntimeLibrary(libs.kotlinx.serialization)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.json)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
@@ -149,12 +153,6 @@ dependencies {
 	modRuntimeOnly(libs.catalogue.neoforge)
 	modCompileOnlyApi(libs.clothConfig.neoforge)
 	modRuntimeOnly(libs.clothConfig.neoforge)
-	modCompileOnlyApi(libs.yacl.neoforge)
-//	modRuntimeOnly(libs.yacl.neoforge)
-//	modRuntimeOnly(libs.quilt.parsers.json)
-//	modRuntimeOnly(libs.quilt.parsers.gson)
-//	runtimeOnly(libs.quilt.parsers.json)
-//	runtimeOnly(libs.quilt.parsers.gson)
 	bundleMod(libs.storage.neoforge) {
 		exclude(group = "curse.maven")
 	}
@@ -165,15 +163,6 @@ dependencies {
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionNeoForge")) { isTransitive = false }
-//	bundleRuntimeLibrary.resolvedConfiguration.resolvedArtifacts.forEach {
-//		include(it.moduleVersion.id.toString())
-//		implementation(it.moduleVersion.id.toString())
-//		localRuntime(it.moduleVersion.id.toString()) {
-//			attributes {
-//				attribute(patchedFMLModType, true)
-//			}
-//		}
-//	}
 }
 
 modResources {
@@ -189,9 +178,11 @@ tasks {
 
 	processResources {
 		from(project(":common").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}/**")
-			include("data/${project.properties["mod_id"]}/**")
-			include("archie-common.mixins.json")
+			include("assets/${"mod_id".prop}/**")
+			include("data/${"mod_id".prop}/**")
+			include("${"mod_id".prop}-common.mixins.json")
+			include("${"mod_id".prop}.common.json")
+			include("${"mod_id".prop}.accesswidener")
 		}
 		dependsOn(processTestResources)
 	}
@@ -212,7 +203,7 @@ tasks {
 
 	remapJar {
 		inputFile.set(shadowJar.get().archiveFile)
-//		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.path))
+		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.path))
 		dependsOn(shadowJar)
 	}
 
@@ -229,14 +220,6 @@ tasks {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })
 	}
-
-//	task("printRuntimeClasspath") {
-//		val runtimeClasspath = sourceSets.test.get().runtimeClasspath
-//		inputs.files( runtimeClasspath )
-//		doLast {
-//			println(runtimeClasspath.joinToString("\n") { it.path })
-//		}
-//	}
 }
 
 //publishing {

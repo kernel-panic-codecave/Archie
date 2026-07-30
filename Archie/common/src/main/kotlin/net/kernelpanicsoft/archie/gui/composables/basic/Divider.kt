@@ -10,7 +10,14 @@ import net.kernelpanicsoft.archie.gui.modifiers.height
 import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.util.KColor
 
-/** Draws a thin horizontal or vertical separator line. */
+/**
+ * Draws a thin horizontal or vertical separator line.
+ *
+ * @param color The line's fill color, as an ARGB int.
+ * @param thickness The line's thickness in pixels along its short axis.
+ * @param vertical When `true`, the line fills its height and is [thickness] pixels wide;
+ *   when `false` (default), it fills its width and is [thickness] pixels tall.
+ */
 @Composable
 fun Divider(
     modifier: Modifier = Modifier,

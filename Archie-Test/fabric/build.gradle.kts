@@ -1,5 +1,6 @@
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+import org.jetbrains.kotlin.konan.properties.loadProperties
 
 
 plugins {
@@ -17,11 +18,45 @@ actualizer {
 	actualizes("net.kernelpanicsoft:common")
 }
 
+val localProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("local.properties")
+	val sharedPropsFile = rootDir.resolve("../local.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val sharedProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("gradle.properties")
+	val sharedPropsFile = rootDir.resolve("../gradle.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val String.prop: String?
+	get() = sharedProperties?.get(this)?.toString()
+
+val String.local: String?
+	get() = localProperties?.get(this)?.toString()
+
+val String.env: String?
+	get() = System.getenv(this)
+
+val String.localOrEnv: String?
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
+
+
 configurations {
 	create("common")
+	create("archie")
 	create("shadowCommon")
-	compileClasspath.get().extendsFrom(configurations["common"])
-	runtimeClasspath.get().extendsFrom(configurations["common"])
+	compileClasspath.get().extendsFrom(configurations["common"], configurations["archie"])
+	runtimeClasspath.get().extendsFrom(configurations["common"], configurations["archie"])
 	testCompileClasspath.get().extendsFrom(compileClasspath.get())
 	testRuntimeClasspath.get().extendsFrom(runtimeClasspath.get())
 //	getByName("developmentFabric").extendsFrom(configurations["common"])
@@ -65,12 +100,14 @@ loom {
 			server()
 			name = "Minecraft GameTest"
 			property("fabric-api.gametest")
+			property("archie.gametest", "true")
 			property("archie.gametest.side", "server")
 		}
 		create("gametestClient") {
 			client()
 			name = "Minecraft GameTest Client"
 			property("fabric-api.gametest")
+			property("archie.gametest", "true")
 			property("archie.gametest.side", "client")
 		}
 	}
@@ -95,28 +132,19 @@ sourceSets {
 }
 
 dependencies {
-	modApi("net.kernelpanicsoft:fabric:1.0.0") { isTransitive = false }
+	"archie"("net.kernelpanicsoft:fabric") { targetConfiguration = "namedElements" }
 	modImplementation(libs.fabric.loader)
 	modApi(libs.fabric.api)
 	modApi(libs.architectury.fabric)
 	modImplementation(libs.kotlin.fabric)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
-	bundleRuntimeLibrary(compose.runtime)
 	modLocalRuntime(libs.rei.fabric)
-	modCompileOnlyApi(libs.modmenu)
-	modCompileOnlyApi(libs.catalogue.fabric)
 	modLocalRuntime(libs.catalogue.fabric)
 	modLocalRuntime(libs.menulogue.fabric)
-	modCompileOnlyApi(libs.clothConfig.fabric)
 	modLocalRuntime(libs.clothConfig.fabric)
-	modCompileOnlyApi(libs.yacl.fabric)
-	modLocalRuntime(libs.yacl.fabric)
 	bundleMod(libs.storage.fabric)
 
 	"common"(project(":common-test", "namedElements")) { isTransitive = false }
+	"common"("net.kernelpanicsoft:common") { targetConfiguration = "namedElements" }
 	"shadowCommon"(project(":common-test", "transformProductionFabric")) { isTransitive = false }
 }
 
@@ -134,9 +162,11 @@ tasks {
 
 	processResources {
 		from(project(":common-test").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}/**")
-			include("data/${project.properties["mod_id"]}/**")
-			include("archie-common.mixins.json")
+			include("assets/${"mod_id".prop}/**")
+			include("data/${"mod_id".prop}/**")
+			include("${"mod_id".prop}-common.mixins.json")
+			include("${"mod_id".prop}.common.json")
+			include("${"mod_id".prop}.accesswidener")
 		}
 		dependsOn(processTestResources)
 	}

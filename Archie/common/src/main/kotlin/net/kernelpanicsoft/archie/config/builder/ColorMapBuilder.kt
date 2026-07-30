@@ -9,6 +9,7 @@ import me.shedaniel.clothconfig2.impl.builders.FieldBuilder
 import me.shedaniel.math.Color
 import net.minecraft.network.chat.Component
 
+/** [MapFieldBuilder] for [Color] values, using Cloth Config's `startColorField` per row. Set [alphaMode] to allow editing alpha. */
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 class ColorMapBuilder(
 	resetButtonKey: Component,

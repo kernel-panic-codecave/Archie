@@ -23,6 +23,17 @@ import java.util.function.Consumer
 import java.util.function.Function
 import kotlin.system.exitProcess
 
+/**
+ * Datagen provider that builds `blockstates`/`*.json` files, along with the block/item models
+ * they reference via the embedded [blockModels] and [itemModels] providers.
+ *
+ * Implement [generate] and, for each block, call either [getVariantBuilder] (for a simple
+ * `variants` blockstate) or [getMultipartBuilder] (for a `multipart` blockstate), then use the
+ * `*Block`/`*BlockWithRenderType` helpers (e.g. `stairsBlock`, `slabBlock`, `fenceBlock`,
+ * `signBlock`) or [simpleBlock] to wire up standard model shapes. These helpers mirror
+ * NeoForge's vanilla `BlockStateProvider` datagen helpers, so their names/parameters match that
+ * API 1:1. Use via [net.kernelpanicsoft.archie.data.ADataGenerator.Client.blockStates]
+ */
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 abstract class ABlockStateProvider(
 	final override val output: PackOutput,
@@ -88,8 +99,13 @@ abstract class ABlockStateProvider(
 		return CompletableFuture.allOf(*futures)
 	}
 
+	/** Called once during [run] to register blockstates via [getVariantBuilder]/[getMultipartBuilder]. */
 	protected abstract fun generate()
 
+	/**
+	 * Gets (or creates) the [AVariantBlockStateBuilder] for block [b], applying [block] to it.
+	 * Throws if [b] was already registered with [getMultipartBuilder] instead.
+	 */
 	fun getVariantBuilder(b: Block, block: AVariantBlockStateBuilder.() -> Unit = {}): AVariantBlockStateBuilder
 	{
 		if (registeredBlocks.containsKey(b))
@@ -105,6 +121,10 @@ abstract class ABlockStateProvider(
 		}
 	}
 
+	/**
+	 * Gets (or creates) the [AMultiPartBlockStateBuilder] for block [b], applying [block] to it.
+	 * Throws if [b] was already registered with [getVariantBuilder] instead.
+	 */
 	fun getMultipartBuilder(b: Block, block: AMultiPartBlockStateBuilder.() -> Unit = {}): AMultiPartBlockStateBuilder
 	{
 		if (registeredBlocks.containsKey(b))
@@ -120,6 +140,7 @@ abstract class ABlockStateProvider(
 		}
 	}
 
+	/** Applies [block] to the block model provider embedded in this blockstate provider. */
 	fun blockModels(block: ABlockModelProvider.() -> Unit = {}): ABlockModelProvider
 	{
 		return runCatching {
@@ -136,6 +157,7 @@ abstract class ABlockStateProvider(
 		}
 	}
 
+	/** Applies [block] to the item model provider embedded in this blockstate provider. */
 	fun itemModels(block: AItemModelProvider.() -> Unit = {}): AItemModelProvider
 	{
 		return runCatching {
@@ -162,6 +184,7 @@ abstract class ABlockStateProvider(
 		return key(block).path
 	}
 
+	/** Returns the conventional `block/<path>` texture location for [block]. */
 	fun blockTexture(block: Block): ResourceLocation
 	{
 		val name = key(block)
@@ -176,11 +199,13 @@ abstract class ABlockStateProvider(
 		return ResourceLocation.fromNamespaceAndPath(rl.namespace, rl.path + suffix)
 	}
 
+	/** Creates a `block/cube_all` model for [block] using [blockTexture] on every face. */
 	fun cubeAll(block: Block): AModelFile
 	{
 		return blockModels().cubeAll(name(block), blockTexture(block))
 	}
 
+	/** Registers a single-variant blockstate for [block] using [expander] to derive [AConfiguredModel]s from [cubeAll]. */
 	fun simpleBlock(
 		block: Block,
 		expander: Function<AModelFile, Array<AConfiguredModel>>
@@ -189,23 +214,27 @@ abstract class ABlockStateProvider(
 		simpleBlock(block, *expander.apply(cubeAll(block)))
 	}
 
+	/** Registers a single-variant blockstate for [block] pointing at [model] (defaults to [cubeAll]). */
 	@JvmOverloads
 	fun simpleBlock(block: Block, model: AModelFile = cubeAll(block))
 	{
 		simpleBlock(block, AConfiguredModel(model))
 	}
 
+	/** Sets [block]'s item model to inherit from [model] with no extra elements/overrides. */
 	fun simpleBlockItem(block: Block, model: AModelFile)
 	{
 		itemModels().getBuilder(key(block).path).parent(model)
 	}
 
+	/** Combines [simpleBlock] and [simpleBlockItem] for [block] against the same [model]. */
 	fun simpleBlockWithItem(block: Block, model: AModelFile = cubeAll(block))
 	{
 		simpleBlock(block, model)
 		simpleBlockItem(block, model)
 	}
 
+	/** Registers a single-variant blockstate for [block] that randomly picks between [models]. */
 	fun simpleBlock(block: Block, vararg models: AConfiguredModel)
 	{
 		getVariantBuilder(block)

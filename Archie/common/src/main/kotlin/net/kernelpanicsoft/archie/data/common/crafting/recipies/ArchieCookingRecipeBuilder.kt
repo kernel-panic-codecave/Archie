@@ -16,6 +16,13 @@ import net.minecraft.world.item.crafting.SmokingRecipe
 import net.minecraft.world.level.ItemLike
 import kotlin.properties.Delegates
 
+/**
+ * DSL builder for a [T] cooking recipe (smelting/blasting/smoking/campfire), wrapping vanilla's
+ * [SimpleCookingRecipeBuilder]. Set [category], [result], [ingredient], [experience], and
+ * [cookingTime], then save with [IARecipeBuilder.save]/[net.minecraft.data.recipes.RecipeBuilder.save].
+ * Build via the type-specific [smelting]/[blasting]/[smoking]/[cooking] factories, or the
+ * corresponding methods on [net.kernelpanicsoft.archie.data.common.crafting.ARecipeProvider].
+ */
 class ArchieCookingRecipeBuilder<T : AbstractCookingRecipe>(
 	private val factory: AbstractCookingRecipe.Factory<T>,
 	private val serializer: RecipeSerializer<T>
@@ -82,15 +89,19 @@ class ArchieCookingRecipeBuilder<T : AbstractCookingRecipe>(
 
 	companion object
 	{
+		/** Builds a furnace smelting recipe. */
 		fun smelting(block: ArchieCookingRecipeBuilder<SmeltingRecipe>.() -> Unit): ArchieCookingRecipeBuilder<SmeltingRecipe> =
 			ArchieCookingRecipeBuilder<SmeltingRecipe>(::SmeltingRecipe, RecipeSerializer.SMELTING_RECIPE).apply(block)
 
+		/** Builds a blast furnace recipe. */
 		fun blasting(block: ArchieCookingRecipeBuilder<BlastingRecipe>.() -> Unit): ArchieCookingRecipeBuilder<BlastingRecipe> =
 			ArchieCookingRecipeBuilder<BlastingRecipe>(::BlastingRecipe, RecipeSerializer.BLASTING_RECIPE).apply(block)
 
+		/** Builds a smoker recipe. */
 		fun smoking(block: ArchieCookingRecipeBuilder<SmokingRecipe>.() -> Unit): ArchieCookingRecipeBuilder<SmokingRecipe> =
 			ArchieCookingRecipeBuilder<SmokingRecipe>(::SmokingRecipe, RecipeSerializer.SMOKING_RECIPE).apply(block)
 
+		/** Builds a campfire cooking recipe. */
 		fun cooking(block: ArchieCookingRecipeBuilder<CampfireCookingRecipe>.() -> Unit): ArchieCookingRecipeBuilder<CampfireCookingRecipe> =
 			ArchieCookingRecipeBuilder<CampfireCookingRecipe>(::CampfireCookingRecipe, RecipeSerializer.CAMPFIRE_COOKING_RECIPE).apply(block)
 	}

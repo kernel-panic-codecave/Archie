@@ -1,8 +1,11 @@
 package net.kernelpanicsoft.archie.registries
 
+import dev.architectury.event.events.common.LifecycleEvent
 import dev.architectury.platform.Mod
 import dev.architectury.registry.registries.DeferredRegister
 import dev.architectury.registry.registries.RegistrySupplier
+import net.kernelpanicsoft.archie.util.onClient
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -40,19 +43,34 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 
 	private val registry: DeferredRegister<T> = DeferredRegister.create(mod.modId, registryKey)
 
+	/**
+	 * Registers the underlying [DeferredRegister], then schedules [initClient] to run on
+	 * [LifecycleEvent.SETUP] when on the client. Must be called once during mod initialization.
+	 */
 	fun init()
 	{
 		registry.register()
+		onClient {
+			LifecycleEvent.SETUP.register {
+				initClient()
+			}
+		}
 	}
 
-	operator fun get(id: String): RegistrySupplier<out T>? = map[ResourceLocation.fromNamespaceAndPath(mod.modId, id)]
+	/** Client-only setup run after [init], during [LifecycleEvent.SETUP]. No-op by default. */
+	open fun initClient() = Unit
+
+	/** Looks up a registered entry by its unqualified [id] (namespaced under [mod] automatically). */
+	operator fun get(id: String): RegistrySupplier<out T>? = map[mod % id]
 
 
+	/** Property delegate operator that unwraps a [RegistrySupplier] to its concrete value. */
 	operator fun <R : T> RegistrySupplier<R>.getValue(any: Any?, property: KProperty<*>): R
 	{
 		return get()
 	}
 
+	/** Registers an entry under [id] (namespaced under [mod]) and records it in [map]. */
 	protected fun <R : T> register(id: String, supplier: () -> R): RegistrySupplier<R>
 	{
 		val ret = registry.register(id, supplier)
@@ -60,6 +78,7 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 		return ret
 	}
 
+	/** Registers an entry under the fully-qualified [id] and records it in [map]. */
 	protected fun <R : T> register(id: ResourceLocation, supplier: () -> R): RegistrySupplier<R>
 	{
 		val ret = registry.register(id, supplier)

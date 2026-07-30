@@ -20,12 +20,26 @@ private object CursorCache {
 }
 
 private fun setHandCursor(enabled: Boolean) {
-    val window = Minecraft.getInstance().window.window
-    GLFW.glfwSetCursor(window, if (enabled) CursorCache.handCursor else 0L)
+    // GLFW calls must happen on the render thread; DisposableEffect callbacks run on the
+    // recomposition dispatcher, so hop over via Minecraft's thread-safe task queue.
+    Minecraft.getInstance().execute {
+        val window = Minecraft.getInstance().window.window
+        GLFW.glfwSetCursor(window, if (enabled) CursorCache.handCursor else 0L)
+    }
 }
 
 /**
- * Low-level unstyled clickable container used by higher-level inputs.
+ * Low-level unstyled clickable container used by higher-level inputs like [ButtonCore].
+ *
+ * Tracks hover/press state and fires [onClick] on press (not release), showing the system
+ * hand cursor on hover when [showHandCursor] is `true`. Applies no visual styling itself -
+ * that is entirely up to [content].
+ *
+ * @param onClick        Invoked with the receiving [AUINode] on press.
+ * @param modifier       Additional modifiers applied to the outer [Box].
+ * @param enabled        When `false`, pointer events are ignored and no cursor change occurs.
+ * @param showHandCursor Whether to switch to the hand cursor while hovered.
+ * @param content        The visual content; receives `isHovered`/`isPressed` for styling.
  */
 @Composable
 fun Clickable(

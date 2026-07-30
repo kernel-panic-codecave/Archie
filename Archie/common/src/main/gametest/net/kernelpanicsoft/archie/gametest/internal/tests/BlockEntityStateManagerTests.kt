@@ -9,11 +9,16 @@ import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.ChestBlockEntity
 
+/**
+ * GameTest coverage for [BlockEntityStateManager]: container identity on repeated registration,
+ * that dirty containers stay dirty when there are no tracked players to sync to, and that
+ * unregistering/clearing correctly drops tracked containers.
+ */
 @Suppress("unused")
 class BlockEntityStateManagerTests
 {
 	@GameTest(template = EMPTY)
-	fun testRegisterReturnsStableContainer(helper: GameTestHelper)
+	fun GameTestHelper.testRegisterReturnsStableContainer()
 	{
 		BlockEntityStateManager.clear()
 		val blockEntity = ChestBlockEntity(BlockPos(1, 2, 3), Blocks.CHEST.defaultBlockState())
@@ -21,14 +26,14 @@ class BlockEntityStateManagerTests
 		val first = BlockEntityStateManager.registerBlockEntity(blockEntity)
 		val second = BlockEntityStateManager.registerBlockEntity(blockEntity)
 
-		assertTrue(helper, first === second) { "Expected the same container instance for repeated registration" }
-		assertTrue(helper, BlockEntityStateManager.getContainer(blockEntity) != null) { "Expected container to be retrievable" }
+		assertTrue(first === second) { "Expected the same container instance for repeated registration" }
+		assertTrue(BlockEntityStateManager.getContainer(blockEntity) != null) { "Expected container to be retrievable" }
 		BlockEntityStateManager.clear()
-		helper.succeed()
+		succeed()
 	}
 
 	@GameTest(template = EMPTY)
-	fun testSyncSkipsWithoutTrackedPlayers(helper: GameTestHelper)
+	fun GameTestHelper.testSyncSkipsWithoutTrackedPlayers()
 	{
 		BlockEntityStateManager.clear()
 		val blockEntity = ChestBlockEntity(BlockPos(2, 2, 3), Blocks.CHEST.defaultBlockState())
@@ -39,14 +44,14 @@ class BlockEntityStateManagerTests
 		var packetsSent = 0
 		BlockEntityStateManager.syncDirtyEntities(40L) { _, _ -> packetsSent++ }
 
-		assertEquals(helper, 0, packetsSent)
-		assertTrue(helper, container.isDirty) { "Container should remain dirty until a packet is sent" }
+		assertEquals(0, packetsSent)
+		assertTrue(container.isDirty) { "Container should remain dirty until a packet is sent" }
 		BlockEntityStateManager.clear()
-		helper.succeed()
+		succeed()
 	}
 
 	@GameTest(template = EMPTY)
-	fun testUnregisterRemovesContainer(helper: GameTestHelper)
+	fun GameTestHelper.testUnregisterRemovesContainer()
 	{
 		BlockEntityStateManager.clear()
 		val blockEntity = ChestBlockEntity(BlockPos(3, 2, 3), Blocks.CHEST.defaultBlockState())
@@ -56,13 +61,13 @@ class BlockEntityStateManagerTests
 		container.updateProperty("progress", 3)
 
 		BlockEntityStateManager.unregisterBlockEntity(blockEntity)
-		assertEquals(helper, null, BlockEntityStateManager.getContainer(blockEntity))
+		assertEquals(null, BlockEntityStateManager.getContainer(blockEntity))
 		BlockEntityStateManager.clear()
-		helper.succeed()
+		succeed()
 	}
 
 	@GameTest(template = EMPTY)
-	fun testClearRemovesAllTrackedEntities(helper: GameTestHelper)
+	fun GameTestHelper.testClearRemovesAllTrackedEntities()
 	{
 		BlockEntityStateManager.clear()
 		val first = ChestBlockEntity(BlockPos(4, 2, 3), Blocks.CHEST.defaultBlockState())
@@ -72,9 +77,8 @@ class BlockEntityStateManagerTests
 		BlockEntityStateManager.registerBlockEntity(second)
 		BlockEntityStateManager.clear()
 
-		assertEquals(helper, null, BlockEntityStateManager.getContainer(first))
-		assertEquals(helper, null, BlockEntityStateManager.getContainer(second))
-		helper.succeed()
+		assertEquals(null, BlockEntityStateManager.getContainer(first))
+		assertEquals(null, BlockEntityStateManager.getContainer(second))
+		succeed()
 	}
 }
-

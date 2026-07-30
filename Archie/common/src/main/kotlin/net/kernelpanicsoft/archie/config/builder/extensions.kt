@@ -19,6 +19,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import java.lang.reflect.Field
 import kotlin.reflect.KClass
 
+/**
+ * A [DropdownBoxEntry] cell creator that renders each [BlockEntityType] option as its owning
+ * block's item icon plus registry name, for use with a dropdown field over block entity types.
+ */
 fun ofBlockEntityTypeObject(): DropdownBoxEntry.SelectionCellCreator<BlockEntityType<*>>
 {
 	return object : DropdownBoxEntry.DefaultSelectionCellCreator<BlockEntityType<*>>({
@@ -85,15 +89,23 @@ fun ofBlockEntityTypeObject(): DropdownBoxEntry.SelectionCellCreator<BlockEntity
 	}
 }
 
+/** Reflectively exposes Cloth Config's private `alpha` flag on [ColorFieldBuilder], since it has no public getter/setter. */
 var ColorFieldBuilder.alphaMode: Boolean
 	get() = getReflection("alpha")
 	set(value) = setReflection("alpha", value)
 
+/**
+ * The `start*Field`/`start*List`/`start*Map` functions below extend [ConfigEntryBuilder] the same
+ * way Cloth Config's own built-ins do (`startBooleanToggle`, `startIntField`, ...), so the field
+ * types Archie adds - nested specs, registry entries, keybind/color lists and maps - are used the
+ * same way. Each one just forwards to the matching builder class's constructor.
+ */
 fun <T : CategorySpec> ConfigEntryBuilder.startSpecField(fieldNameKey: Component, value: T): SpecFieldBuilder<T>
 {
 	return SpecFieldBuilder(resetButtonKey, fieldNameKey, value)
 }
 
+/** See [startSpecField]. Builds a single registry-entry field, resolved against [registry] and optionally narrowed to [subclass]. */
 fun <T : Any, R : T> ConfigEntryBuilder.startRegistryField(
 	fieldNameKey: Component,
 	value: T,
@@ -104,6 +116,7 @@ fun <T : Any, R : T> ConfigEntryBuilder.startRegistryField(
 	return RegistryFieldBuilder(resetButtonKey, fieldNameKey, subclass, registry, value)
 }
 
+/** See [startSpecField]. Builds a dropdown field over arbitrary [selections], accepting free-text input for a `String` value. */
 fun ConfigEntryBuilder.startStringDropdownField(
 	fieldNameKey: Component,
 	value: String,
@@ -115,6 +128,7 @@ fun ConfigEntryBuilder.startStringDropdownField(
 	}
 }
 
+/** See [startSpecField]. Builds a dropdown field over arbitrary [selections] of any type [T]. */
 fun <T : Any> ConfigEntryBuilder.startDropdownField(
 	fieldNameKey: Component,
 	value: T,
@@ -124,6 +138,7 @@ fun <T : Any> ConfigEntryBuilder.startDropdownField(
 	return DropdownFieldBuilder(resetButtonKey, fieldNameKey, value, selections)
 }
 
+/** See [startSpecField]. Builds a list of nested [CategorySpec] entries. */
 fun <T : CategorySpec> ConfigEntryBuilder.startSpecList(
 	fieldNameKey: Component,
 	value: List<T>,
@@ -133,6 +148,7 @@ fun <T : CategorySpec> ConfigEntryBuilder.startSpecList(
 	return SpecListBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
+/** See [startSpecField]. Builds a list of [registry] entries; [factory] supplies a value for newly-inserted rows. */
 fun <T : Any, R : T> ConfigEntryBuilder.startRegistryList(
 	fieldNameKey: Component,
 	value: List<T>,
@@ -144,6 +160,7 @@ fun <T : Any, R : T> ConfigEntryBuilder.startRegistryList(
 	return RegistryListBuilder(resetButtonKey, fieldNameKey, value, factory, subclass, registry)
 }
 
+/** See [startSpecField]. Builds a list of keybind entries; [factory] supplies a value for newly-inserted rows. */
 fun ConfigEntryBuilder.startKeycodeList(
 	fieldNameKey: Component,
 	value: List<ModifierKeyCode>,
@@ -153,6 +170,7 @@ fun ConfigEntryBuilder.startKeycodeList(
 	return KeycodeListBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
+/** See [startSpecField]. Builds a list of color entries; [factory] supplies a value for newly-inserted rows. */
 fun ConfigEntryBuilder.startColorList(
 	fieldNameKey: Component,
 	value: List<Color>,
@@ -162,6 +180,7 @@ fun ConfigEntryBuilder.startColorList(
 	return ColorListBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of nested [CategorySpec] entries. */
 fun <T : CategorySpec> ConfigEntryBuilder.startSpecMap(
 	fieldNameKey: Component,
 	value: Map<String, T>,
@@ -171,6 +190,7 @@ fun <T : CategorySpec> ConfigEntryBuilder.startSpecMap(
 	return SpecMapBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of [registry] entries; [factory] supplies a value for newly-inserted rows. */
 fun <T : Any, R : T> ConfigEntryBuilder.startRegistryMap(
 	fieldNameKey: Component,
 	value: Map<String, T>,
@@ -182,6 +202,7 @@ fun <T : Any, R : T> ConfigEntryBuilder.startRegistryMap(
 	return RegistryMapBuilder(resetButtonKey, fieldNameKey, value, factory, subclass, registry)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of keybind entries; [factory] supplies a value for newly-inserted rows. */
 fun ConfigEntryBuilder.startKeycodeMap(
 	fieldNameKey: Component,
 	value: Map<String, ModifierKeyCode>,
@@ -191,6 +212,7 @@ fun ConfigEntryBuilder.startKeycodeMap(
 	return KeycodeMapBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of color entries; [factory] supplies a value for newly-inserted rows. */
 fun ConfigEntryBuilder.startColorMap(
 	fieldNameKey: Component,
 	value: Map<String, Color>,
@@ -200,26 +222,31 @@ fun ConfigEntryBuilder.startColorMap(
 	return ColorMapBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of `Int` entries. */
 fun ConfigEntryBuilder.startIntMap(fieldNameKey: Component, value: Map<String, Int>): IntegerMapBuilder
 {
 	return IntegerMapBuilder(resetButtonKey, fieldNameKey, value)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of `Long` entries. */
 fun ConfigEntryBuilder.startLongMap(fieldNameKey: Component, value: Map<String, Long>): LongMapBuilder
 {
 	return LongMapBuilder(resetButtonKey, fieldNameKey, value)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of `Float` entries. */
 fun ConfigEntryBuilder.startFloatMap(fieldNameKey: Component, value: Map<String, Float>): FloatMapBuilder
 {
 	return FloatMapBuilder(resetButtonKey, fieldNameKey, value)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of `Double` entries. */
 fun ConfigEntryBuilder.startDoubleMap(fieldNameKey: Component, value: Map<String, Double>): DoubleMapBuilder
 {
 	return DoubleMapBuilder(resetButtonKey, fieldNameKey, value)
 }
 
+/** See [startSpecField]. Builds a `String`-keyed map of `String` entries. */
 fun ConfigEntryBuilder.startStrMap(fieldNameKey: Component, value: Map<String, String>): StringMapBuilder
 {
 	return StringMapBuilder(resetButtonKey, fieldNameKey, value)

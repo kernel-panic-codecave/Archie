@@ -20,6 +20,8 @@ class ComposeBlockEntityState(
 ) {
     /** Map of property names to their Compose state values */
     val propertyStates = mutableMapOf<String, MutableState<Any?>>()
+
+    /** Serializers used to encode/decode each observed property, keyed by property name. */
     val propertySerializers = mutableMapOf<String, KSerializer<out Any>>()
 
     @Suppress("UNCHECKED_CAST")
@@ -52,6 +54,10 @@ class ComposeBlockEntityState(
         return getOrCreateState(propertyName, initialValue)
     }
 
+    /**
+     * A [MutableState] delegate that forwards writes to [ComposeBlockEntityState.sendUpdatedProperty],
+     * so setting [value] from a composable both updates local state and pushes the change to the server.
+     */
     class PropertyState<T>(private val state: ComposeBlockEntityState, private val propertyName: String, internal val mutableState: MutableState<T>) : MutableState<T> by mutableState
     {
         override var value: T
@@ -71,7 +77,6 @@ class ComposeBlockEntityState(
      * @param propertyName The name of the property.
      * @param value The new serialized value from the network packet.
      */
-    @OptIn(ExperimentalSerializationApi::class)
     fun updateProperty(propertyName: String, value: BlockEntityStatePacket.SerializedValue) {
         val deserializedValue = value.deserialize(propertySerializers[propertyName])
         val state = propertyStates.computeIfAbsent(propertyName) {
@@ -88,7 +93,6 @@ class ComposeBlockEntityState(
      * @param propertyName The name of the property.
      * @param value The new value.
      */
-    @OptIn(ExperimentalSerializationApi::class)
     fun <T> sendUpdatedProperty(propertyName: String, value: T) {
         val serializer = typedSerializer<T>(propertyName) ?: run {
             println("No serializer found for property $propertyName. Cannot send update to server.")

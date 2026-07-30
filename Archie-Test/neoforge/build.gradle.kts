@@ -2,7 +2,9 @@ import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import net.fabricmc.loom.util.ModPlatform
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+import net.kernelpanicsoft.archie.plugin.runtimeLibrary
 import org.jetbrains.compose.compose
+import org.jetbrains.kotlin.konan.properties.loadProperties
 
 
 plugins {
@@ -20,16 +22,50 @@ actualizer {
 	actualizes("net.kernelpanicsoft:common")
 }
 
+val localProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("local.properties")
+	val sharedPropsFile = rootDir.resolve("../local.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val sharedProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("gradle.properties")
+	val sharedPropsFile = rootDir.resolve("../gradle.properties")
+	when {
+		localPropsFile.exists() -> loadProperties(localPropsFile.path)
+		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
+		else -> null
+	}
+}.getOrNull()
+
+val String.prop: String?
+	get() = sharedProperties?.get(this)?.toString()
+
+val String.local: String?
+	get() = localProperties?.get(this)?.toString()
+
+val String.env: String?
+	get() = System.getenv(this)
+
+val String.localOrEnv: String?
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
+
+
 configurations {
 	create("common")
+	create("archie")
 	create("shadowCommon")
 	configureEach {
 		// Keep NeoForge Kotlin runtime provided by KotlinLangForge only.
 		exclude(group = "thedarkcolour", module = "kotlinforforge-neoforge")
 		exclude(group = "remapped.thedarkcolour", module = "kotlinforforge-neoforge-1d1bcbf2")
 	}
-	compileClasspath.get().extendsFrom(configurations["common"])
-	runtimeClasspath.get().extendsFrom(configurations["common"])
+	compileClasspath.get().extendsFrom(configurations["common"], configurations["archie"])
+	runtimeClasspath.get().extendsFrom(configurations["common"], configurations["archie"])
 	testCompileClasspath.get().extendsFrom(compileClasspath.get())
 	testRuntimeClasspath.get().extendsFrom(runtimeClasspath.get())
 //	getByName("developmentNeoForge").extendsFrom(configurations["common"])
@@ -50,10 +86,12 @@ loom {
 			name = "Minecraft Client"
 			source(sourceSets.main.get())
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
+			property("kotlinx.coroutines.debug", "off")
 		}
 		getByName("server") {
 			name = "Minecraft Server"
 			source(sourceSets.main.get())
+			property("kotlinx.coroutines.debug", "off")
 			vmArgs("-XX:+AllowEnhancedClassRedefinition")
 		}
 		create("datagen") {
@@ -62,6 +100,7 @@ loom {
 			property("archie.datagen", "true")
 			property("archie.datagen.client", providers.gradleProperty("client_datagen").orElse("true").get())
 			property("archie.datagen.server", providers.gradleProperty("server_datagen").orElse("true").get())
+			property("kotlinx.coroutines.debug", "off")
 			programArgs("--all", "--mod", providers.gradleProperty("mod_id").orElse("archie").get())
 			programArgs("--output", file("src/main/generated").absolutePath)
 		}
@@ -71,6 +110,8 @@ loom {
 			name = "Minecraft GameTest"
 			property("neoforge.enableGameTest", "true")
 			property("neoforge.gameTestServer", "true")
+			property("archie.gametest", "true")
+			property("kotlinx.coroutines.debug", "off")
 			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
 
@@ -79,6 +120,8 @@ loom {
 			name = "Minecraft GameTest Client"
 			property("neoforge.enableGameTest", "true")
 			property("archie.gametest.side", "client")
+			property("archie.gametest", "true")
+			property("kotlinx.coroutines.debug", "off")
 			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
 	}
@@ -99,50 +142,24 @@ sourceSets {
 	}
 }
 
-//val bundleRuntimeLibrary: Configuration by configurations.creating {
-//	exclude(group = "com.mojang")
-//	exclude(group = "org.jetbrains.kotlin")
-//	exclude(group = "org.jetbrains.kotlinx")
-//}
-
 dependencies {
-	modApi("net.kernelpanicsoft:neoforge:1.0.0") { isTransitive = false }
-	"neoForge"(libs.neoforge)
+	"archie"("net.kernelpanicsoft:neoforge") {
+		targetConfiguration = "namedElements"
+	}
+	neoForge(libs.neoforge)
 	modApi(libs.architectury.neoforge)
 	implementation(libs.kotlin.neoforge)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
-	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
-	bundleRuntimeLibrary(compose.runtime)
 	modRuntimeOnly(libs.rei.neoforge)
-	modCompileOnlyApi(libs.catalogue.neoforge)
 	modRuntimeOnly(libs.catalogue.neoforge)
-	modCompileOnlyApi(libs.clothConfig.neoforge)
 	modRuntimeOnly(libs.clothConfig.neoforge)
-	modCompileOnlyApi(libs.yacl.neoforge)
-//	modRuntimeOnly(libs.yacl.neoforge)
-//	modRuntimeOnly(libs.quilt.parsers.json)
-//	modRuntimeOnly(libs.quilt.parsers.gson)
-//	runtimeOnly(libs.quilt.parsers.json)
-//	runtimeOnly(libs.quilt.parsers.gson)
+
 	bundleMod(libs.storage.neoforge) {
 		exclude(group = "curse.maven")
 	}
 
-
-
 	"common"(project(":common-test", "namedElements")) { isTransitive = false }
+	"common"("net.kernelpanicsoft:common") { targetConfiguration = "namedElements" }
 	"shadowCommon"(project(":common-test", "transformProductionNeoForge")) { isTransitive = false }
-//	bundleRuntimeLibrary.resolvedConfiguration.resolvedArtifacts.forEach {
-//		include(it.moduleVersion.id.toString())
-//		implementation(it.moduleVersion.id.toString())
-//		localRuntime(it.moduleVersion.id.toString()) {
-//			attributes {
-//				attribute(patchedFMLModType, true)
-//			}
-//		}
-//	}
 }
 
 modResources {
@@ -158,9 +175,11 @@ tasks {
 
 	processResources {
 		from(project(":common-test").sourceSets.main.get().resources) {
-			include("assets/${project.properties["mod_id"]}/**")
-			include("data/${project.properties["mod_id"]}/**")
-			include("archie-common.mixins.json")
+			include("assets/${"mod_id".prop}/**")
+			include("data/${"mod_id".prop}/**")
+			include("${"mod_id".prop}-common.mixins.json")
+			include("${"mod_id".prop}.common.json")
+			include("${"mod_id".prop}.accesswidener")
 		}
 		dependsOn(processTestResources)
 	}

@@ -18,6 +18,19 @@ import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 
 
+/**
+ * A [Box]-like layout node that paints a themed background texture behind its children.
+ *
+ * The texture is resolved from the current [LocalTheme] by [texture] key and [variant], and
+ * is drawn nine-sliced if the theme defines it as such, otherwise stretched to fit like a
+ * simple sprite (in which case the surface has a minimum size matching the sprite's own).
+ * [Panel] builds on top of this to add content padding.
+ *
+ * @param contentAlignment Alignment of [content] within the surface, as in [Box].
+ * @param modifier         Additional modifiers applied to the layout node.
+ * @param texture          The themed texture key to look up via [LocalTheme].
+ * @param variant          The theme variant of [texture] to use. See [ThemeVariants].
+ */
 @Composable
 fun Surface(
 	contentAlignment: Alignment = Alignment.TopStart,

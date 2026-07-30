@@ -12,17 +12,26 @@ import java.util.*
 import java.util.function.Function
 import java.util.function.Predicate
 
+/**
+ * Builds a `variants`-style blockstate JSON for [owner], mapping [PartialBlockstate] property
+ * combinations to one or more [AConfiguredModel]s. Obtain via
+ * [ABlockStateProvider.getVariantBuilder]; every possible [BlockState] of [owner] must end up
+ * covered by some registered [PartialBlockstate] before [toJson] is called (e.g. via
+ * [forAllStates]/[forAllStatesExcept], or individual [partialState] + [setModels] calls).
+ */
 class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGeneratedBlockState
 {
 	private val models: MutableMap<PartialBlockstate, ABlockStateProvider.ConfiguredModelList> =
 		LinkedHashMap<PartialBlockstate, ABlockStateProvider.ConfiguredModelList>()
 	private val coveredStates: MutableSet<BlockState> = HashSet()
 
+	/** The configured models, keyed by the partial state they apply to. */
 	fun getModels(): Map<PartialBlockstate, ABlockStateProvider.ConfiguredModelList>
 	{
 		return models
 	}
 
+	/** Serializes to the `{"variants": {...}}` blockstate JSON. Throws if any state of [owner] is uncovered. */
 	override fun toJson(): JsonObject
 	{
 		val missingStates: MutableList<BlockState> = Lists.newArrayList(
@@ -47,6 +56,7 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 		return main
 	}
 
+	/** Adds [models] as (further) choices for [state], appending if [state] was already configured. */
 	fun addModels(
 		state: PartialBlockstate,
 		vararg models: AConfiguredModel
@@ -84,6 +94,7 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 		return this
 	}
 
+	/** Sets [model] as the choices for [state]. Throws if [state] was already configured. */
 	fun setModels(
 		state: PartialBlockstate,
 		vararg model: AConfiguredModel
@@ -103,16 +114,19 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 		return coveredStates.stream().noneMatch(newState)
 	}
 
+	/** Starts a new [PartialBlockstate] with no properties set yet, to be refined via [PartialBlockstate.with]. */
 	fun partialState(): PartialBlockstate
 	{
 		return PartialBlockstate(owner, this)
 	}
 
+	/** Configures every possible [BlockState] of [owner] individually via [mapper]. */
 	fun forAllStates(mapper: Function<BlockState, Array<AConfiguredModel>>): AVariantBlockStateBuilder
 	{
 		return forAllStatesExcept(mapper)
 	}
 
+	/** Like [forAllStates], but groups states that only differ in [ignored] properties under one partial state. */
 	fun forAllStatesExcept(
 		mapper: Function<BlockState, Array<AConfiguredModel>>,
 		vararg ignored: Property<*>
@@ -137,6 +151,11 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 		return this
 	}
 
+	/**
+	 * An immutable, partially or fully specified combination of block properties, matching every
+	 * [BlockState] of [owner] that agrees with [setStates] (unset properties match any value).
+	 * Refine with [with]; assign models with [addModels]/[setModels]/[modelForState].
+	 */
 	class PartialBlockstate internal constructor(
 		val owner: Block,
 		setStates: Map<Property<*>, Comparable<*>>,
@@ -173,6 +192,7 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 			this.setStates.putAll(setStates)
 		}
 
+		/** Returns a new [PartialBlockstate] with [prop] additionally pinned to [value]. Throws if [prop] is already set. */
 		fun <T : Comparable<T>> with(prop: Property<T>, value: T): PartialBlockstate
 		{
 			Preconditions.checkArgument(!setStates.containsKey(prop), "Property %s has already been set", prop)
@@ -189,12 +209,14 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 			)
 		}
 
+		/** Starts an [AConfiguredModel.Builder] whose [AConfiguredModel.Builder.addModel] assigns the result to this state. */
 		fun modelForState(): AConfiguredModel.Builder<AVariantBlockStateBuilder>
 		{
 			checkValidOwner()
 			return AConfiguredModel.builder(outerBuilder, this)
 		}
 
+		/** Adds [models] as (further) choices for this state; see [AVariantBlockStateBuilder.addModels]. */
 		fun addModels(vararg models: AConfiguredModel): PartialBlockstate
 		{
 			checkValidOwner()
@@ -202,12 +224,14 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 			return this
 		}
 
+		/** Sets [models] as the choices for this state; see [AVariantBlockStateBuilder.setModels]. */
 		fun setModels(vararg models: AConfiguredModel): AVariantBlockStateBuilder
 		{
 			checkValidOwner()
 			return outerBuilder!!.setModels(this, *models)
 		}
 
+		/** Starts a new, unrelated [PartialBlockstate] on the same owning builder; see [AVariantBlockStateBuilder.partialState]. */
 		fun partialState(): PartialBlockstate
 		{
 			checkValidOwner()
@@ -266,6 +290,7 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 
 		companion object
 		{
+			/** Comparator ordering states by property values, approximating vanilla's blockstate JSON ordering. */
 			fun comparingByProperties(): Comparator<PartialBlockstate>
 			{
 				// Sort variants inversely by property values, to approximate vanilla style

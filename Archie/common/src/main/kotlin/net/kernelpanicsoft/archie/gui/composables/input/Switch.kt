@@ -20,6 +20,7 @@ private const val SWITCH_MIN_HEIGHT = 18
 private const val SWITCH_PADDING = 2
 private const val SWITCH_THUMB_SIZE = 14
 
+/** Clamps a raw thumb x-offset so the thumb stays within the track, respecting [SWITCH_PADDING]. */
 internal fun resolveSwitchThumbOffset(thumbOffset: Int, trackWidth: Int): Int {
     val minOffset = SWITCH_PADDING
     val maxOffset = (trackWidth - SWITCH_THUMB_SIZE - SWITCH_PADDING).coerceAtLeast(minOffset)

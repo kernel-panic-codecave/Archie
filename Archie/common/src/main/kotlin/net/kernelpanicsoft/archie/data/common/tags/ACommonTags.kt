@@ -14,9 +14,16 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.Fluid
 
+/**
+ * Constants for the `c` (common) convention tags shared across the modding ecosystem, grouped by
+ * registry ([Blocks], [Items], [Fluids], [EntityTypes], [Biomes]). Each constant is a [TagKey]
+ * that can be used directly when building recipes/tags; entries not documented inline are
+ * self-explanatory from their name.
+ */
 @Suppress("unused")
 object ACommonTags
 {
+	/** Registers every group's tags (currently a no-op per group; tag keys are created eagerly as constants). */
 	fun init()
 	{
 		Blocks.init()
@@ -26,19 +33,24 @@ object ACommonTags
 		Biomes.init()
 	}
 
+	/** Base for a group of [TagKey] constants in a single [registry], tracked in [tags] for lookup by id. */
 	abstract class Tags<T> private constructor(
 		private val registry: ResourceKey<out Registry<T>>,
 		private val tags: MutableMap<ResourceLocation, TagKey<T>>
 	) : Map<ResourceLocation, TagKey<T>> by tags
 	{
 		constructor(registry: ResourceKey<out Registry<T>>) : this(registry, mutableMapOf())
+
+		/** Creates (and tracks) a `c:<name>` tag key. */
 		protected fun tag(name: String): TagKey<T> = tag("c", name)
 
+		/** Creates (and tracks) a `<namespace>:<name>` tag key. */
 		protected fun tag(namespace: String, name: String): TagKey<T>
 		{
 			return TagKey.create(registry, ResourceLocation.fromNamespaceAndPath(namespace, name)).also { tags[it.location] = it }
 		}
 
+		/** Tracks a pre-existing [tag] key (e.g. a vanilla tag) alongside this group's own tags. */
 		protected fun existing(tag: TagKey<T>): TagKey<T>
 		{
 			return tag.also { tags[it.location] = it }

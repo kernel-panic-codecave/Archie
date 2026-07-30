@@ -12,6 +12,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import java.nio.file.Path
 
 
+/** [IConfigSerializer] for the JSON5 format (JSON with comments). Archie's default on Fabric. */
 object Json5ConfigSerializer : IConfigSerializer
 {
 	private val json5 = Json5 {

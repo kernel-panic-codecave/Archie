@@ -65,8 +65,12 @@ subprojects {
         mavenCentral()
         mavenLocal()
         maven {
-            name = "kernelpanic"
+            name = "kernelpanic releases"
             url = uri("https://maven.kernelpanicsoft.net/releases")
+        }
+        maven {
+            name = "kernelpanic snapshots"
+            url = uri("https://maven.kernelpanicsoft.net/snapshots")
         }
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         maven("https://maven.parchmentmc.org")

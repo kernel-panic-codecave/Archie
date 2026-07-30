@@ -11,6 +11,7 @@ import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that holds when every id in [entries] is registered in the registry keyed by [registry]. */
 data class ARegistryCondition(private val registry: @Serializable(with = ResourceLocationSerializer::class) ResourceLocation, private val entries: List<@Serializable(with = ResourceLocationSerializer::class) ResourceLocation>) :
 	IACondition
 {
@@ -20,7 +21,7 @@ data class ARegistryCondition(private val registry: @Serializable(with = Resourc
 	{
 		val registryRef: ResourceKey<out Registry<Any>> = ResourceKey.createRegistryKey(registry)
 		val registry: Registry<Any> = context.getRegistry(registryRef)
-		return registry.keySet().map { entries.contains(it) }.reduce { a, b -> a && b }
+		return entries.all { registry.keySet().contains(it) }
 	}
 
 	@Transient

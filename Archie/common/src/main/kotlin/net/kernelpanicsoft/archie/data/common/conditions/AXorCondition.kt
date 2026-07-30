@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that holds when an odd number of [children] hold (logical XOR, folded pairwise). */
 data class AXorCondition(override val children: List<IACondition>) :
 	AGroupCondition()
 {

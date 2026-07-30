@@ -10,8 +10,21 @@ import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform.isDataGen
 import net.kernelpanicsoft.archie.events.AEvents
 import net.minecraft.core.RegistrySetBuilder
 
+/**
+ * Backs `FabricDataGenHelperMixin`, which calls [addEntrypoints] mid-way through
+ * `FabricDataGenHelper.runInternal()` to splice in synthetic datagen entrypoints.
+ *
+ * Archie mods don't declare a `fabric-datagen` entrypoint in `fabric.mod.json`; instead they
+ * register with [AEvents.MODS] at init time. This object bridges that registration into the
+ * `EntrypointContainer<DataGeneratorEntrypoint>` list Fabric's data generator actually consumes.
+ */
 internal object ADataGeneratorPlatformInternal
 {
+	/**
+	 * Appends one [EntrypointContainer] per mod in [AEvents.MODS] to [dataGeneratorInitializers],
+	 * each of which fires [AEvents.GATHER_DATA] with an [ADataGeneratorFabric] for that mod. No-op
+	 * outside a datagen run ([ADataGeneratorPlatform.isDataGen] false).
+	 */
 	@JvmStatic
 	@JvmName("addEntrypoints")
 	internal fun addEntrypoints(dataGeneratorInitializers: LocalRef<MutableList<EntrypointContainer<DataGeneratorEntrypoint>>>)

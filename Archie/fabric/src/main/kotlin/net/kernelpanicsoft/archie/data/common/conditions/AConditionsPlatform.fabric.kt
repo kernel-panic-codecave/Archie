@@ -26,10 +26,19 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.crafting.Recipe
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Fabric implementation of [AConditionsPlatform], adapting Archie's platform-neutral [IACondition]
+ * onto Fabric's `ResourceCondition` API (`fabric-resource-conditions-api-v1`).
+ *
+ * Every [IACondition] is wrapped as a [FabricCondition] to cross into Fabric's condition system,
+ * and unwrapped again via [ResourceCondition.archie] when Archie code needs the original back.
+ */
 actual object AConditionsPlatform
 {
+	/** Fabric condition types registered via [register], keyed by their [IACondition.identifier]. */
 	private val registry: MutableMap<ResourceLocation, ResourceConditionType<FabricCondition>> = mutableMapOf()
 
+	/** Registers [identifier] as a Fabric [ResourceConditionType], backed by [codec] via the [FabricCondition] wrapper. */
 	actual fun register(identifier: ResourceLocation, codec: MapCodec<out IACondition>)
 	{
 		@Suppress("UNCHECKED_CAST")
@@ -41,6 +50,7 @@ actual object AConditionsPlatform
 		ResourceConditions.register(registry[identifier])
 	}
 
+	/** Attaches [condition] to whatever [output] accepts next, via [FabricDataGenHelper.addConditions]. */
 	actual fun withCondition(output: RecipeOutput, condition: IACondition): RecipeOutput
 	{
 		return object : RecipeOutput
@@ -60,6 +70,7 @@ actual object AConditionsPlatform
 		}
 	}
 
+	/** Codec for [IACondition] backed by [ResourceCondition.CODEC], round-tripping through [fabric]/[archie]. */
 	actual fun codec(): Codec<IACondition>
 	{
 		return ResourceCondition.CODEC.xmap(
@@ -71,6 +82,7 @@ actual object AConditionsPlatform
 		)
 	}
 
+	/** Wraps [child] in a [FabricRecipeProvider] so its recipes go through Fabric's condition-aware output. */
 	actual fun fabricRecipeProvider(
 		child: ARecipeProvider,
 		registries: CompletableFuture<HolderLookup.Provider>
@@ -85,12 +97,15 @@ actual object AConditionsPlatform
 		}
 	}
 
+	/** Wraps this condition as a Fabric [ResourceCondition]. */
 	val IACondition.fabric
 		get() = FabricCondition(this)
 
+	/** Unwraps a Fabric [ResourceCondition] back to its originating [IACondition]. Throws if it wasn't created via [fabric]. */
 	val ResourceCondition.archie
 		get() = ((this as? FabricCondition) ?: throw AssertionError()).condition
 
+	/** Adapts an [IACondition] to Fabric's [ResourceCondition] interface, delegating [getType] and [test] to it. */
 	class FabricCondition(
 		val condition: IACondition
 	) : ResourceCondition
@@ -108,6 +123,7 @@ actual object AConditionsPlatform
 		}
 	}
 
+	/** [IACondition.IContext] backed directly by a Fabric registry lookup, used when Fabric evaluates a condition. */
 	class ConditionContext(private val registryLookup: HolderLookup.Provider) :
 		IACondition.IContext
 	{

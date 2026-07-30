@@ -1,4 +1,4 @@
-package net.kernelpanicsoft.archie.test
+package net.kernelpanicsoft.archie.test.data
 
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.ADataGenerator
@@ -6,6 +6,9 @@ import net.kernelpanicsoft.archie.data.ADatagenEventObject
 import net.kernelpanicsoft.archie.data.client.ALanguageProvider
 import net.kernelpanicsoft.archie.data.client.model.ABlockStateProvider
 import net.kernelpanicsoft.archie.data.client.model.AItemModelProvider
+import net.kernelpanicsoft.archie.test.ArchieTest
+import net.kernelpanicsoft.archie.test.BlockRegistry
+import net.kernelpanicsoft.archie.test.ItemRegistry
 
 /** Datagen for the test showcase blocks/items so resource files can be regenerated automatically. */
 internal object ArchieTestDatagen : ADatagenEventObject(ArchieTest.MOD) {

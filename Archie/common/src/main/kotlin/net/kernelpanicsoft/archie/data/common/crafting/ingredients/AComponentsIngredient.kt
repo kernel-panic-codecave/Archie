@@ -16,8 +16,14 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+/**
+ * Custom ingredient that matches stacks accepted by [base] and additionally requires their data
+ * components to match [components] (present components must equal the patch's value; absent
+ * components must stay absent). Build via [of].
+ */
 class AComponentsIngredient private constructor(val base: Ingredient, components: DataComponentPatch) : IACustomIngredient
 {
+	/** Non-empty patch of component values a matching stack must satisfy. */
 	val components: DataComponentPatch
 
 	init
@@ -100,7 +106,10 @@ class AComponentsIngredient private constructor(val base: Ingredient, components
 
 	companion object
 	{
+		/** Creates a vanilla [Ingredient] matching [base] stacks whose components satisfy [components]. */
 		fun of(base: Ingredient, components: DataComponentPatch): Ingredient = AComponentsIngredient(base, components).vanilla
+
+		/** [of] overload that builds the component patch with [builderAction]. */
 		@OptIn(ExperimentalContracts::class)
 		fun of(base: Ingredient, builderAction: DataComponentPatch.Builder.() -> Unit): Ingredient
 		{

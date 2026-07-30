@@ -8,6 +8,7 @@ import net.kernelpanicsoft.archie.APlatform
 import kotlinx.serialization.Transient
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that holds when the running loader's [APlatform.platform] id equals [platform]. */
 data class APlatformCondition(val platform: String) : IACondition
 {
 	override fun test(context: IACondition.IContext): Boolean

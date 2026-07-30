@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation
 
 /**
  * A [Modifier.Element] that overrides the texture used by certain theme-aware composables
- * (such as [net.kernelpanicsoft.archie.gui.composables.data.Slot]).
+ * (such as [net.kernelpanicsoft.archie.gui.Slot]).
  *
  * Only the last applied [TextureModifier] on a node takes effect.
  *

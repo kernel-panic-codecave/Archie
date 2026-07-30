@@ -17,22 +17,22 @@ val LocalBlockEntityState = compositionLocalOf<ComposeBlockEntityState?> { null 
  * Observes a property on the block entity in the current composition context.
  *
  * Returns a [MutableState] that automatically triggers recomposition when the property changes.
- * If no block entity state is available in the composition, returns null.
+ * Must be called where [LocalBlockEntityState] has been provided (e.g. inside a block entity's
+ * screen composition) — otherwise it throws.
  *
  * ### Example
  * ```kotlin
  * @Composable
  * fun MyComponent() {
- *     val powerState = observeBlockEntityProperty<Int>("power")
- *     if (powerState != null) {
- *         Text("Power: ${powerState.value}")
- *     }
+ *     val powerState = observeProperty<Int>("power")
+ *     Text("Power: ${powerState.value}")
  * }
  * ```
  *
  * @param propertyName The name of the property to observe.
  * @param T The expected type of the property.
- * @return A [MutableState] of type T, or null if no block entity state is available.
+ * @return A [MutableState] of type T reflecting the property's current value.
+ * @throws RuntimeException if no [ComposeBlockEntityState] is available in the current composition.
  */
 @Composable
 inline fun <reified T> observeProperty(

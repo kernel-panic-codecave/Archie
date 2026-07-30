@@ -8,8 +8,10 @@ import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 import java.util.stream.Stream
 
+/** NeoForge implementation of [ACustomIngredientSerializerPlatform], adapting [IACustomIngredientSerializer] onto NeoForge's `IngredientType` registry. */
 actual object ACustomIngredientSerializerPlatform
 {
+	/** Registers [serializer] as a NeoForge [IngredientType] via [neoforge]. */
 	actual fun <T : IACustomIngredient> register(serializer: IACustomIngredientSerializer<T>)
 	{
 		val registry = DeferredRegister.create(NeoForgeRegistries.INGREDIENT_TYPES, serializer.identifier.namespace)
@@ -17,9 +19,11 @@ actual object ACustomIngredientSerializerPlatform
 		registry.register(MOD_BUS)
 	}
 
+	/** Wraps this serializer as a NeoForge [IngredientType], backed by [NeoForgeCustomIngredientCodec]. */
 	val <T : IACustomIngredient> IACustomIngredientSerializer<T>.neoforge: IngredientType<ACustomIngredientPlatform.NeoForgeCustomIngredient<T>>
 		get() = IngredientType(NeoForgeCustomIngredientCodec(this))
 
+	/** Adapts an [IACustomIngredientSerializer]'s codec to one producing/consuming [ACustomIngredientPlatform.NeoForgeCustomIngredient] wrappers; no packet codec since NeoForge derives sync from the data codec. */
 	class NeoForgeCustomIngredientCodec<A : IACustomIngredient>(
 		custom: IACustomIngredientSerializer<A>
 	) : MapCodec<ACustomIngredientPlatform.NeoForgeCustomIngredient<A>>()

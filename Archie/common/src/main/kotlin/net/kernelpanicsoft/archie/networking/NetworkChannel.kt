@@ -231,12 +231,11 @@ open class NetworkChannel(private val id: ResourceLocation) {
         vararg packets: T,
     ) {
         require(packets.isNotEmpty()) { "You need to specify one or more packets to send" }
-        createPayloads(packets).also {
-            level.server.playerList.broadcast(
-                exclude, x, y, z, radius, level.dimension(),
-                makeClientboundPacket(it as CustomPacketPayload),
-            )
-        }
+        val payloads = createPayloads(packets)
+        level.server.playerList.broadcast(
+            exclude, x, y, z, radius, level.dimension(),
+            makeClientboundPacket(*payloads.toTypedArray()),
+        )
     }
 
     /**
@@ -251,12 +250,11 @@ open class NetworkChannel(private val id: ResourceLocation) {
      */
     fun <T : Any> toPlayersTrackingEntity(entity: Entity, self: Boolean = false, vararg packets: T) {
         require(packets.isNotEmpty()) { "You need to specify one or more packets to send" }
-        createPayloads(packets).also {
-            val chunk = entity.level().chunkSource as? ServerChunkCache
-                ?: throw IllegalStateException("Cannot send clientbound payloads on the client")
-            if (self) chunk.broadcastAndSend(entity, makeClientboundPacket(it as CustomPacketPayload))
-            else chunk.broadcast(entity, makeClientboundPacket(it as CustomPacketPayload))
-        }
+        val payloads = createPayloads(packets)
+        val chunk = entity.level().chunkSource as? ServerChunkCache
+            ?: throw IllegalStateException("Cannot send clientbound payloads on the client")
+        if (self) chunk.broadcastAndSend(entity, makeClientboundPacket(*payloads.toTypedArray()))
+        else chunk.broadcast(entity, makeClientboundPacket(*payloads.toTypedArray()))
     }
 
     /**

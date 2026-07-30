@@ -22,6 +22,13 @@ import net.kernelpanicsoft.archie.serialization.kSerializer
 import net.minecraft.world.item.Item
 import kotlin.math.min
 
+/**
+ * A single resource-backed slot inside an [ArchieFluidStorage], capped at [limit]. Tracks a
+ * [FluidResource] + amount internally while exposing plain [FluidStack] access via
+ * [getFluid]/[set].
+ *
+ * @param onUpdate Invoked by [update] whenever this slot's contents should be persisted/synced.
+ */
 @Serializable(with = ArchieFluidSlot.Serializer::class)
 class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit = {}) : StorageSlot<FluidResource>, UpdateManager<NbtTag>
 {
@@ -61,7 +68,9 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 		this.resourceStack = resourceStack
 	}
 
+	/** The [FluidStack] currently held in this slot (a copy; mutate via [set]). */
 	fun getFluid(): FluidStack = stack
+	/** Replaces this slot's contents with [value]. */
 	fun set(value: FluidStack)
 	{
 		stack = value
@@ -71,7 +80,7 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 
 	override fun insert(unit: FluidResource, amount: Long, simulate: Boolean): Long
 	{
-		if (!isResourceValid(resource)) return 0
+		if (!isResourceValid(unit)) return 0
 		if (this.resource.isBlank())
 		{
 			val inserted = min(amount, limit)
@@ -134,6 +143,7 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 		this.stack = NBT.decodeFromNbtTagRootless(serializer(), snapshot).stack
 	}
 
+	/** Serializes an [ArchieFluidSlot] as its [limit] followed by its [ResourceStack] (or `null` when blank). */
 	object Serializer : KSerializer<ArchieFluidSlot>
 	{
 		private val surrogate = ResourceStack.FLUID_CODEC.kSerializer

@@ -19,6 +19,19 @@ import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 
+/**
+ * A standard themed checkbox.
+ *
+ * Renders the themed [texture] state - a combined checked+hovered state is used when both
+ * apply and the theme defines it. Built on top of [CheckboxCore]; use that directly for
+ * fully custom visuals.
+ *
+ * @param checked         The current checked state.
+ * @param modifier        Additional modifiers applied to the outer container.
+ * @param texture         The themed texture key to look up via [LocalTheme].
+ * @param variant         The theme variant of [texture] to use. See [ThemeVariants].
+ * @param onCheckedChange Called with the new checked value when the user clicks.
+ */
 @Composable
 fun Checkbox(
     checked: Boolean = false,

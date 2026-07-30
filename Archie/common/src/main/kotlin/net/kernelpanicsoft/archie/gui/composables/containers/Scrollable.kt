@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.gui.composables.containers
 
 import androidx.compose.runtime.*
 import net.kernelpanicsoft.archie.gui.LocalSlotClipBounds
+import net.kernelpanicsoft.archie.gui.SlotClipSource
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
@@ -108,12 +109,7 @@ fun Scrollable(
     state: ScrollableState = rememberScrollableState(),
     content: @Composable () -> Unit,
 ) {
-    var clipOrigin by remember { mutableStateOf(IntCoordinates(0, 0)) }
-    var clipSize by remember { mutableStateOf(Size(0, 0)) }
-    val clipBounds = remember(clipOrigin, clipSize) {
-        if (clipSize.width <= 0 || clipSize.height <= 0) null
-        else IntRect.fromPositionAndSize(clipOrigin, clipSize)
-    }
+    val clipSource = remember { SlotClipSource() }
 
     val measurePolicy = remember(direction) {
         object : MeasurePolicy {
@@ -157,7 +153,7 @@ fun Scrollable(
         }
     }
 
-    CompositionLocalProvider(LocalSlotClipBounds provides clipBounds) {
+    CompositionLocalProvider(LocalSlotClipBounds provides clipSource) {
         Layout(
             name = "Scrollable",
             measurePolicy = measurePolicy,
@@ -200,10 +196,10 @@ fun Scrollable(
             },
             modifier = modifier
             .onGloballyPositioned { coords ->
-                clipOrigin = coords
+                clipSource.updateOrigin(coords)
             }
             .onSizeChanged { size ->
-                clipSize = size
+                clipSource.updateSize(size)
             }
             .onScroll<AUINode> { _, event ->
                 state.scrollBy(-event.scrollY * SCROLL_SENSITIVITY)

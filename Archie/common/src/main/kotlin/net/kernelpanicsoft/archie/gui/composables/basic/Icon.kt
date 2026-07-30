@@ -7,6 +7,15 @@ import net.minecraft.resources.ResourceLocation
 
 /**
  * Convenience wrapper around [Texture] for fixed-size icon sprites.
+ *
+ * @param texture The sprite sheet/texture location.
+ * @param size The icon's rendered width and height, in pixels.
+ * @param uOffset The sprite's left edge within [texture], in texture pixels.
+ * @param vOffset The sprite's top edge within [texture], in texture pixels.
+ * @param u The sprite's source width within [texture]. Defaults to [size].
+ * @param v The sprite's source height within [texture]. Defaults to [size].
+ * @param textureWidth The full width of [texture], in pixels.
+ * @param textureHeight The full height of [texture], in pixels.
  */
 @Composable
 fun Icon(

@@ -16,11 +16,30 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
 
+/**
+ * A section of a [ConfigSpec], declared by subclassing this and adding fields with the
+ * `by boolean(...)`, `by int(...)`, etc. delegates below.
+ *
+ * Each delegate call registers a field under an id derived from the *property* name
+ * (snake_cased), stores the field's [FieldType] and default value, and - on the client - mirrors
+ * the field into [ClientCategorySpec] so Cloth Config can render it. The delegate itself just
+ * reads the current value back out of this category's backing maps, so config values are read
+ * with plain property access (e.g. `MyConfig.General.enableFeature`).
+ *
+ * Nest categories with [subcategories] for grouping in the UI, or use `spec`/`specList`/`specMap`
+ * to embed other [CategorySpec] instances as fields.
+ *
+ * @param title Display title shown in the Cloth Config UI.
+ * @param id Stable identifier used as this category's key in its parent and in the serialized
+ * file. Defaults to the snake_cased [title].
+ */
 @Suppress("unused")
 abstract class CategorySpec(val title: Component, val id: String = title.string.toSnakeCase())
 {
+	/** Client-side mirror of this category, used to build the Cloth Config UI. */
 	val client by lazy { ClientCategorySpec(this) }
 
+	/** Runs [block] only when called on the client; a no-op on a dedicated server. */
 	inline fun onClient(block: () -> Unit) = if (Platform.getEnvironment() == Env.CLIENT) block() else Unit
 
 	internal val types: MutableMap<String, FieldType<*>> = linkedMapOf()
@@ -56,10 +75,17 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 	internal val keycodeMaps: MutableMap<String, Map<String, CommonKeyCode>> = mutableMapOf()
 	internal val colorMaps: MutableMap<String, Map<String, Color>> = mutableMapOf()
 
+	/** Nested categories shown as sub-sections of this one in the UI. Empty by default. */
 	open val subcategories: List<CategorySpec> = listOf()
 
+	/**
+	 * Whether this category is currently active. When `false`, Cloth Config hides/disables the
+	 * category's fields in the UI. Override with a `get()` that reads another field (e.g. a
+	 * parent toggle) to make this category conditional.
+	 */
 	open val isEnabled: Boolean = true
 
+	/** Registers [subcategories] as fields on this category, recursively. */
 	internal fun init()
 	{
 		subcategories.forEach { cat ->
@@ -69,6 +95,19 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 		}
 	}
 
+	/**
+	 * Declares a `Boolean` config field, e.g. `val enableFeature by boolean(...)`.
+	 *
+	 * The field's id is the delegated property's name, snake_cased. On the client, the field is
+	 * also registered with [ClientCategorySpec] so it renders as a toggle in the Cloth Config UI.
+	 *
+	 * @param title Display title shown in the Cloth Config UI.
+	 * @param comment Optional comment written next to the field in the serialized file (JSON5/TOML)
+	 * and used as the UI tooltip.
+	 * @param default Value used until a stored/loaded value overrides it.
+	 * @param resetKey Optional label for the UI's "reset to default" control.
+	 * @return A read-only property delegate exposing the field's current value.
+	 */
 	protected fun boolean(
 		title: Component,
 		comment: Component? = null,
@@ -93,6 +132,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares an `Int` config field. See [boolean] for parameter semantics. */
 	protected fun int(
 		title: Component,
 		comment: Component? = null,
@@ -117,6 +157,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Long` config field. See [boolean] for parameter semantics. */
 	protected fun long(
 		title: Component,
 		comment: Component? = null,
@@ -141,6 +182,14 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares an `Int` config field rendered as a slider bounded by [min]/[max]. See [boolean]
+	 * for the remaining parameter semantics.
+	 *
+	 * @param min Minimum value the slider allows.
+	 * @param max Maximum value the slider allows.
+	 * @param default Defaults to the midpoint of [min] and [max] if not given.
+	 */
 	protected fun intSlider(
 		title: Component,
 		comment: Component? = null,
@@ -167,6 +216,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Long` config field rendered as a slider. See [intSlider] for parameter semantics. */
 	protected fun longSlider(
 		title: Component,
 		comment: Component? = null,
@@ -193,6 +243,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Float` config field. See [boolean] for parameter semantics. */
 	protected fun float(
 		title: Component,
 		comment: Component? = null,
@@ -217,6 +268,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Double` config field. See [boolean] for parameter semantics. */
 	protected fun double(
 		title: Component,
 		comment: Component? = null,
@@ -241,6 +293,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `String` config field. See [boolean] for parameter semantics. */
 	protected fun string(
 		title: Component,
 		comment: Component? = null,
@@ -265,11 +318,21 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a field that embeds another [CategorySpec] as a nested, serializable section. See
+	 * [boolean] for the remaining parameter semantics.
+	 *
+	 * @param default Instance used until a stored/loaded value overrides it. Never mutated in
+	 * place - deserialization always builds a fresh instance via [factory].
+	 * @param factory Creates a new instance of the nested spec; used by the deserializer so
+	 * loading a saved value never mutates [default].
+	 */
 	@Suppress("UNCHECKED_CAST")
 	protected fun <T : CategorySpec> spec(
 		title: Component,
 		comment: Component? = null,
 		default: T,
+		factory: () -> T,
 		resetKey: Component? = null
 	): PropertyDelegateProvider<CategorySpec, ReadOnlyProperty<CategorySpec, T>> =
 		PropertyDelegateProvider { _, property ->
@@ -281,7 +344,10 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			onClient {
 				client.spec(id, title, comment, default, resetKey)
 			}
-			types[id] = FieldType.Spec { default } as FieldType<T>
+			// factory() must be used instead of returning `default` directly - the deserializer
+			// stores its result back into `specs[id]`, so reusing `default` would let a saved
+			// value mutate the shared default instance in place (breaking reset-to-default).
+			types[id] = FieldType.Spec { factory() } as FieldType<T>
 			(specs as MutableMap<String, T>).putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
 				(specs as MutableMap<String, T>).getOrPut(id) {
@@ -290,6 +356,14 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a field whose value is an entry of a vanilla [Registry], stored as the entry's
+	 * [ResourceLocation] key. See [boolean] for the remaining parameter semantics.
+	 *
+	 * @param registry Registry the field's value is looked up in.
+	 * @param subclass If given, narrows the entries offered in the UI to this runtime type; the
+	 * stored key is still resolved against the full [registry].
+	 */
 	protected fun <T : Any, R : T> registry(
 		title: Component,
 		comment: Component? = null,
@@ -311,12 +385,16 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			registries.putIfAbsent(id, registry.getKey(default)!!)
 			ReadOnlyProperty { _, _ ->
 				@Suppress("UNCHECKED_CAST")
-				registry.get(registries.getOrPut(id) {
+				(registry.get(registries.getOrPut(id) {
 					registry.getKey(default)!!
-				})!! as R
+				}) ?: default) as R
 			}
 		}
 
+	/**
+	 * Declares a [CommonKeyCode] config field, rendered as a keybind picker. See [boolean] for
+	 * the remaining parameter semantics.
+	 */
 	protected fun keycode(
 		title: Component,
 		comment: Component? = null,
@@ -341,6 +419,12 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a [Color] (ARGB) config field, rendered as a color picker. See [boolean] for the
+	 * remaining parameter semantics.
+	 *
+	 * @param alpha Whether the picker allows editing the alpha channel.
+	 */
 	protected fun color(
 		title: Component,
 		comment: Component? = null,
@@ -366,6 +450,13 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a field whose value is one entry of the enum [kclass], rendered as a cycling
+	 * selector over all of the enum's entries. See [boolean] for the remaining parameter
+	 * semantics.
+	 *
+	 * @param kclass The enum type to select from.
+	 */
 	@Suppress("UNCHECKED_CAST")
 	protected fun <T : Enum<T>> enumSelector(
 		title: Component,
@@ -380,6 +471,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.enumSelector(id, title, comment, kclass, default, resetKey)
+			}
 			types[id] = FieldType.EnumSelector(kclass)
 			enums.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -389,6 +483,14 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a field whose value is one of an arbitrary fixed set of [entries], rendered as a
+	 * cycling selector. Unlike [enumSelector], the value type isn't required to be an `enum
+	 * class`. See [boolean] for the remaining parameter semantics.
+	 *
+	 * @param kclass Runtime type of the selectable values.
+	 * @param entries The fixed set of values the selector cycles through.
+	 */
 	@Suppress("UNCHECKED_CAST")
 	protected fun <T : Any> selector(
 		title: Component,
@@ -404,6 +506,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.selector(id, title, comment, kclass, default, entries, resetKey)
+			}
 			types[id] = FieldType.Selector(kclass)
 			selectors.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -413,6 +518,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List<Int>` config field. See [boolean] for parameter semantics. */
 	protected fun intList(
 		title: Component,
 		comment: Component? = null,
@@ -425,6 +531,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.intList(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.IntList
 			intLists.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -434,6 +543,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List<Long>` config field. See [boolean] for parameter semantics. */
 	protected fun longList(
 		title: Component,
 		comment: Component? = null,
@@ -446,6 +556,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.longList(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.LongList
 			longLists.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -455,6 +568,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List<Float>` config field. See [boolean] for parameter semantics. */
 	protected fun floatList(
 		title: Component,
 		comment: Component? = null,
@@ -467,6 +581,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.floatList(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.FloatList
 			floatLists.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -476,6 +593,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List<Double>` config field. See [boolean] for parameter semantics. */
 	protected fun doubleList(
 		title: Component,
 		comment: Component? = null,
@@ -488,6 +606,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.doubleList(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.DoubleList
 			doubleLists.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -497,6 +618,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List<String>` config field. See [boolean] for parameter semantics. */
 	protected fun stringList(
 		title: Component,
 		comment: Component? = null,
@@ -509,6 +631,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.stringList(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.StringList
 			stringLists.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -518,6 +643,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List` of nested [CategorySpec] entries. See [spec] for parameter semantics. */
 	@Suppress("UNCHECKED_CAST")
 	protected fun <T : CategorySpec> specList(
 		title: Component,
@@ -532,6 +658,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.specList(id, title, comment, default, factory, resetKey)
+			}
 			types[id] = FieldType.SpecList(factory) as FieldType<List<T>>
 			(specLists).putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -541,6 +670,13 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a `List` of [Registry] entries, stored as a list of [ResourceLocation] keys. See
+	 * [registry] for parameter semantics.
+	 *
+	 * @param factory Used to produce a fallback value if a stored key no longer resolves in
+	 * [registry] (e.g. the entry was removed by a datapack/mod update).
+	 */
 	protected fun <T : Any, R : T> registryList(
 		title: Component,
 		comment: Component? = null,
@@ -556,16 +692,20 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.registryList(id, title, comment, default, factory, registry, resetKey, subclass)
+			}
 			types[id] = FieldType.RegistryList
 			registryLists.putIfAbsent(id, default.map { registry.getKey(it)!! })
 			ReadOnlyProperty { _, _ ->
 				@Suppress("UNCHECKED_CAST")
 				registryLists.getOrPut(id) {
 					default.map { registry.getKey(it)!! }
-				}.map { registry.get(it)!! } as List<R>
+				}.map { registry.get(it) ?: factory() } as List<R>
 			}
 		}
 
+	/** Declares a `List<CommonKeyCode>` config field. See [keycode] for parameter semantics. */
 	protected fun keycodeList(
 		title: Component,
 		comment: Component? = null,
@@ -579,6 +719,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.keycodeList(id, title, comment, default, factory, resetKey)
+			}
 			types[id] = FieldType.KeyCodeList
 			keycodeLists.putIfAbsent(id, default )
 			ReadOnlyProperty { _, _ ->
@@ -588,6 +731,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `List<Color>` config field. See [color] for parameter semantics. */
 	protected fun colorList(
 		title: Component,
 		comment: Component? = null,
@@ -601,6 +745,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.colorList(id, title, comment, default, factory, resetKey)
+			}
 			types[id] = FieldType.ColorList
 			colorLists.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -610,6 +757,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map<String, Int>` config field. See [boolean] for parameter semantics. */
 	protected fun intMap(
 		title: Component,
 		comment: Component? = null,
@@ -622,6 +770,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.intMap(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.IntMap
 			intMaps.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -631,6 +782,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map<String, Long>` config field. See [boolean] for parameter semantics. */
 	protected fun longMap(
 		title: Component,
 		comment: Component? = null,
@@ -643,6 +795,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.longMap(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.LongMap
 			longMaps.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -652,6 +807,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map<String, Float>` config field. See [boolean] for parameter semantics. */
 	protected fun floatMap(
 		title: Component,
 		comment: Component? = null,
@@ -664,6 +820,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.floatMap(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.FloatMap
 			floatMaps.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -673,6 +832,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map<String, Double>` config field. See [boolean] for parameter semantics. */
 	protected fun doubleMap(
 		title: Component,
 		comment: Component? = null,
@@ -685,6 +845,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.doubleMap(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.DoubleMap
 			doubleMaps.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -694,6 +857,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map<String, String>` config field. See [boolean] for parameter semantics. */
 	protected fun stringMap(
 		title: Component,
 		comment: Component? = null,
@@ -706,6 +870,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.stringMap(id, title, comment, default, resetKey)
+			}
 			types[id] = FieldType.StringMap
 			stringMaps.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -715,6 +882,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map` of nested [CategorySpec] entries. See [spec] for parameter semantics. */
 	@Suppress("UNCHECKED_CAST")
 	protected fun <T : CategorySpec> specMap(
 		title: Component,
@@ -729,6 +897,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.specMap(id, title, comment, default, factory, resetKey)
+			}
 			types[id] = FieldType.SpecMap(factory) as FieldType<Map<String, T>>
 			(specMaps as MutableMap<String, Map<String, T>>).putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -738,6 +909,10 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/**
+	 * Declares a `Map` of [Registry] entries, stored as a map of [ResourceLocation] keys. See
+	 * [registryList] for parameter semantics.
+	 */
 	protected fun <T : Any, R : T> registryMap(
 		title: Component,
 		comment: Component? = null,
@@ -753,16 +928,20 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.registryMap(id, title, comment, default, factory, registry, resetKey, subclass)
+			}
 			types[id] = FieldType.RegistryMap
 			registryMaps.putIfAbsent(id, default.mapValues { registry.getKey(it.value)!! })
 			ReadOnlyProperty { _, _ ->
 				@Suppress("UNCHECKED_CAST")
 				registryMaps.getOrPut(id) {
 					default.mapValues { registry.getKey(it.value)!! }
-				}.mapValues { registry.get(it.value)!! } as Map<String, R>
+				}.mapValues { registry.get(it.value) ?: factory() } as Map<String, R>
 			}
 		}
 
+	/** Declares a `Map<String, CommonKeyCode>` config field. See [keycode] for parameter semantics. */
 	protected fun keycodeMap(
 		title: Component,
 		comment: Component? = null,
@@ -776,6 +955,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			{
 				comments[id] = comment.string
 			}
+			onClient {
+				client.keycodeMap(id, title, comment, default, factory, resetKey)
+			}
 			types[id] = FieldType.KeyCodeMap
 			keycodeMaps.putIfAbsent(id, default)
 			ReadOnlyProperty { _, _ ->
@@ -785,6 +967,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 			}
 		}
 
+	/** Declares a `Map<String, Color>` config field. See [color] for parameter semantics. */
 	protected fun colorMap(
 		title: Component,
 		comment: Component? = null,
@@ -798,6 +981,9 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 		{
 			comments[id] = comment.string
 		}
+		onClient {
+			client.colorMap(id, title, comment, default, factory, resetKey)
+		}
 		types[id] = FieldType.ColorMap
 		colorMaps.putIfAbsent(id, default)
 		ReadOnlyProperty { _, _ ->
@@ -807,11 +993,19 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 		}
 	}
 
+	/**
+	 * Serializes/deserializes a [CategorySpec] by walking its registered [types] and reading from
+	 * or writing into the corresponding backing map (e.g. [booleans], [ints]).
+	 */
 	internal class ConfigCategorySerializer(val factory: () -> CategorySpec) :
 		KSerializer<CategorySpec>
 	{
 		override val descriptor: SerialDescriptor by lazy {
-			with(factory())
+			// init() must run before reading `types` - it's what registers this spec's own
+			// subcategories (if any) into `types`; without it, a nested CategorySpec used as a
+			// spec()/specList()/specMap() default that declares subcategories would silently
+			// omit them from serialization.
+			with(factory().also { it.init() })
 			{
 				buildClassSerialDescriptor(title.string)
 				{
@@ -836,7 +1030,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 		{
 			return decoder.decodeStructure(descriptor)
 			{
-				val spec = factory()
+				val spec = factory().also { it.init() }
 				with(spec)
 				{
 					while (true)
@@ -954,6 +1148,7 @@ abstract class CategorySpec(val title: Component, val id: String = title.string.
 
 		override fun serialize(encoder: Encoder, value: CategorySpec)
 		{
+			value.init()
 			encoder.encodeStructure(descriptor)
 			{
 				value.types.entries.forEachIndexed { index, (key, type) ->

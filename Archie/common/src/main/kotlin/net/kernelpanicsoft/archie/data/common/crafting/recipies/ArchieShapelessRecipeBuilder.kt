@@ -11,6 +11,12 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.level.ItemLike
 
+/**
+ * DSL builder for a shapeless crafting recipe, wrapping vanilla's [ShapelessRecipeBuilder]. Set
+ * [category], [result], and (optionally) [count], declare inputs with [ingredients], and save
+ * with [IARecipeBuilder.save]/[net.minecraft.data.recipes.RecipeBuilder.save]. Build via
+ * [net.kernelpanicsoft.archie.data.common.crafting.ARecipeProvider.shapeless].
+ */
 class ArchieShapelessRecipeBuilder : IARecipeBuilder
 {
 	private val builder: ShapelessRecipeBuilder by lazy { ShapelessRecipeBuilder(category, result, count) }
@@ -24,11 +30,13 @@ class ArchieShapelessRecipeBuilder : IARecipeBuilder
 
 	var group: String? = null
 
+	/** Declares input ingredients via [Ingredients.of], e.g. `2 of Items.STICK`. */
 	fun ingredients(block: Ingredients.() -> Unit)
 	{
 		Ingredients().apply(block)
 	}
 
+	/** DSL scope for adding input ingredients by quantity; see [ingredients]. */
 	inner class Ingredients
 	{
 		infix fun Int.of(tag: TagKey<Item>)

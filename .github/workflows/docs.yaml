@@ -31,12 +31,13 @@ jobs:
       - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
-          path: .cache
+          path: Archie/.cache
           restore-keys: |
             mkdocs-material-
       - run: pip install mkdocs-material mike mkdocs-rss-plugin cairosvg pngquant
       - run: git fetch origin gh-pages --depth=1
       - name: Build Documentation
-        run: cd Archie && ./gradlew publishDocs
+        run: ./gradlew publishDocs
+        working-directory: Archie
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

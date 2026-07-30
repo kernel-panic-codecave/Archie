@@ -26,7 +26,7 @@ public class ArchieMixinPlugin implements IMixinConfigPlugin
 	@Override
 	public boolean shouldApplyMixin(String targetClassName, String mixinClassName)
 	{
-		if (Objects.equals(targetClassName, "ModMenu"))
+		if (Objects.equals(targetClassName, "com.terraformersmc.modmenu.ModMenu"))
 			return Platform.isModLoaded("modmenu");
 		return true;
 	}

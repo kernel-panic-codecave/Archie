@@ -30,6 +30,7 @@ class BlockEntityStateContainer(
     /** Map of property names to their current values. */
     private val propertyValues = mutableMapOf<String, Any?>()
 
+    /** Serializers used to encode dirty properties into a [BlockEntityStatePacket], keyed by property name. */
     internal val propertySerializers = mutableMapOf<String, KSerializer<out Any>>()
 
     @Suppress("UNCHECKED_CAST")
@@ -78,6 +79,15 @@ class BlockEntityStateContainer(
         return changed
     }
 
+    /**
+     * Registers a serializer for [propertyName] if one isn't already known.
+     *
+     * Only needed for properties whose type can't be resolved automatically via
+     * [kotlinx.serialization.serializerOrNull] (see the `init` block).
+     *
+     * @param propertyName The name of the property.
+     * @param serializer The serializer to use when encoding this property.
+     */
     fun <T> setPropertySerializer(propertyName: String, serializer: KSerializer<T>) {
         propertySerializers.putIfAbsent(propertyName, anySerializer(serializer))
     }

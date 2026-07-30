@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.maven
+
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -8,8 +10,12 @@ pluginManagement {
         maven("https://maven.neoforged.net/releases/")
         maven("https://maven.firstdarkdev.xyz/releases")
         maven {
-            name = "kernelpanic"
+            name = "kernelpanic releases"
             url = uri("https://maven.kernelpanicsoft.net/releases")
+        }
+        maven {
+            name = "kernelpanic snapshots"
+            url = uri("https://maven.kernelpanicsoft.net/snapshots")
         }
         gradlePluginPortal()
         mavenLocal()

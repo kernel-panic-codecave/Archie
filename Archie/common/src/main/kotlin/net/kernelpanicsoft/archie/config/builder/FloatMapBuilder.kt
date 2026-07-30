@@ -8,6 +8,7 @@ import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
 import net.minecraft.network.chat.Component
 
+/** [MapFieldBuilder] for `Float` values, using Cloth Config's `startFloatField` per row. */
 class FloatMapBuilder(resetButtonKey: Component, fieldNameKey: Component, value: Map<String, Float>) : MapFieldBuilder<Float, FloatListEntry, FloatMapBuilder>(
 	resetButtonKey, fieldNameKey, value
 )

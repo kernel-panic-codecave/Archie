@@ -7,16 +7,20 @@ import net.minecraft.network.codec.StreamCodec
 import net.minecraft.resources.ResourceLocation
 import java.util.stream.Stream
 
+/** Fabric implementation of [ACustomIngredientSerializerPlatform], adapting [IACustomIngredientSerializer] onto Fabric's `CustomIngredientSerializer` API. */
 actual object ACustomIngredientSerializerPlatform
 {
+	/** Registers [serializer] with Fabric's [CustomIngredientSerializer] registry via [fabric]. */
 	actual fun <T : IACustomIngredient> register(serializer: IACustomIngredientSerializer<T>)
 	{
 		CustomIngredientSerializer.register(serializer.fabric)
 	}
 
+	/** Wraps this serializer as a Fabric [CustomIngredientSerializer]. */
 	val <T : IACustomIngredient> IACustomIngredientSerializer<T>.fabric: CustomIngredientSerializer<ACustomIngredientPlatform.FabricCustomIngredient<T>>
 		get() = FabricCustomIngredientSerializer(this)
 
+	/** Adapts an [IACustomIngredientSerializer] to Fabric's [CustomIngredientSerializer] interface, wrapping/unwrapping [ACustomIngredientPlatform.FabricCustomIngredient] around the shared codec/packet codec. */
 	class FabricCustomIngredientSerializer<A : IACustomIngredient>(
 		private val custom: IACustomIngredientSerializer<A>
 	) : CustomIngredientSerializer<ACustomIngredientPlatform.FabricCustomIngredient<A>>

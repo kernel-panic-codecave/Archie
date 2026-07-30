@@ -19,6 +19,13 @@ import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import net.minecraft.core.NonNullList
 import kotlin.math.min
 
+/**
+ * The fluid analogue of [ArchieItemStorage]: a fixed-size list of [ArchieFluidSlot]s, each
+ * capped at [limit], implementing Common Storage Lib's [CommonStorage] and Archie's NBT
+ * serialization (via [Serializer]) for save/load.
+ *
+ * @param onUpdate Invoked by [update] whenever the storage's contents should be persisted/synced.
+ */
 @Serializable(with = ArchieFluidStorage.Serializer::class)
 open class ArchieFluidStorage private constructor(
 	protected val limit: Long,
@@ -26,6 +33,7 @@ open class ArchieFluidStorage private constructor(
 	protected val onUpdate: () -> Unit = {}
 ) : CommonStorage<FluidResource>, UpdateManager<NbtTag>
 {
+	/** Creates a storage with [size] empty slots, each capped at [limit]. */
 	constructor(limit: Long, size: Int, onUpdate: () -> Unit = {}) : this(
 		limit,
 		NonNullList.createWithCapacity<ArchieFluidSlot>(size).apply {
@@ -46,8 +54,10 @@ open class ArchieFluidStorage private constructor(
 		return TransferUtil.extractSlots(this, unit, amount, simulate)
 	}
 
+	/** The number of slots in this storage. */
 	override fun size(): Int = slots.size
 
+	/** The [ArchieFluidSlot] at [slot]. */
 	override fun get(slot: Int): ArchieFluidSlot
 	{
 		return slots[slot]
@@ -72,6 +82,7 @@ open class ArchieFluidStorage private constructor(
 		}
 	}
 
+	/** Serializes an [ArchieFluidStorage] as its [limit] followed by the list of its [ArchieFluidSlot]s. */
 	object Serializer : KSerializer<ArchieFluidStorage>
 	{
 		private val surrogate = ListSerializer(ArchieFluidSlot.serializer())

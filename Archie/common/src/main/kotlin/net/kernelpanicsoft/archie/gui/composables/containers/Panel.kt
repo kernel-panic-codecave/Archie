@@ -9,7 +9,14 @@ import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 
 /**
- * A padded themed surface used as a general-purpose container for grouped UI content.
+ * A padded themed [Surface] used as a general-purpose container for grouped UI content.
+ *
+ * @param contentAlignment Alignment of [content] within the panel.
+ * @param contentWidth When non-null, the panel's inner content area is fixed to this width
+ *   (in pixels); the panel itself is sized to fit that plus [contentPadding] on both sides.
+ * @param texture The themed texture/style key drawn as the panel's background. See [Surface].
+ * @param variant The theme variant of [texture] to use. See [ThemeVariants].
+ * @param contentPadding Padding (in pixels) inserted between the panel edge and [content].
  */
 @Composable
 fun Panel(

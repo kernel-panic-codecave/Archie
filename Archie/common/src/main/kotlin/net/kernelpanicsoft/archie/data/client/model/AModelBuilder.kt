@@ -42,6 +42,12 @@ import kotlin.checkNotNull
 import kotlin.floatArrayOf
 import kotlin.toString
 
+/**
+ * Base fluent builder for a block/item model JSON at [location], mirroring NeoForge's vanilla
+ * `ModelBuilder` datagen helper 1:1. Set [parent], [texture]s, [renderType], [ao]/[guiLight], and
+ * either inline [element]s or [customLoader] data, plus display [transforms]/[rootTransforms].
+ * Subclassed by [ABlockModelBuilder] and [AItemModelBuilder]; obtained via [AModelProvider].
+ */
 @Suppress("unused")
 open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AModelFile(location)
 {
@@ -65,6 +71,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 
 	operator fun invoke(block: AModelBuilder<T>.() -> Unit) = apply(block)
 
+	/** Sets the model's `parent` reference to [parent]. */
 	fun parent(parent: AModelFile): T
 	{
 		Preconditions.checkNotNull(parent, "Parent must not be null")
@@ -72,6 +79,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return self
 	}
 
+	/** Binds texture variable [key] to [texture] (a texture id, or a `#other_key` reference). */
 	fun texture(key: String, texture: String): T
 	{
 		Preconditions.checkNotNull(key, "Key must not be null")
@@ -93,6 +101,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		}
 	}
 
+	/** Binds texture variable [key] to [texture]. */
 	fun texture(key: String, texture: ResourceLocation): T
 	{
 		Preconditions.checkNotNull(key, "Key must not be null")
@@ -101,12 +110,14 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return self
 	}
 
+	/** Sets the render type (parsed as a [ResourceLocation]) used to draw this model. */
 	fun renderType(renderType: String): T
 	{
 		Preconditions.checkNotNull(renderType, "Render type must not be null")
 		return renderType(ResourceLocation.parse(renderType))
 	}
 
+	/** Sets the render type used to draw this model. */
 	fun renderType(renderType: ResourceLocation): T
 	{
 		Preconditions.checkNotNull(renderType, "Render type must not be null")
@@ -114,23 +125,27 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return self
 	}
 
+	/** Configures the vanilla per-[ItemDisplayContext] `display` transforms via [block]. */
 	fun transforms(block: TransformsBuilder.() -> Unit = {}): TransformsBuilder
 	{
 		return transforms.apply(block)
 	}
 
+	/** Sets whether ambient occlusion is used when rendering this model. */
 	fun ao(ao: Boolean): T
 	{
 		this.ambientOcclusion = ao
 		return self
 	}
 
+	/** Sets whether this model is lit from the front (GUI-style) or diagonally (3D-style); `null` to inherit from [parent]. */
 	fun guiLight(light: BlockModel.GuiLight?): T
 	{
 		this.guiLight = light
 		return self
 	}
 
+	/** Adds a new inline cuboid element, configured by [block]. Throws if [customLoader] disallows inline elements. */
 	fun element(block: ElementBuilder.() -> Unit = {}): ElementBuilder
 	{
 		Preconditions.checkState(
@@ -143,6 +158,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return ret
 	}
 
+	/** Reconfigures the existing element at [index] with [block]. */
 	fun element(index: Int, block: ElementBuilder.() -> Unit = {}): ElementBuilder
 	{
 		Preconditions.checkState(
@@ -154,14 +170,16 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return elements[index].apply(block)
 	}
 
-	/**
-	 * {@return the number of elements in this model builder}
-	 */
+	/** The number of inline [element]s configured so far. */
 	fun getElementCount(): Int
 	{
 		return elements.size
 	}
 
+	/**
+	 * Builds and attaches an [ACustomLoaderBuilder] via [customLoaderFactory], replacing vanilla
+	 * element-based geometry with a custom loader's own JSON. Forge-like loaders only.
+	 */
 	fun <L : ACustomLoaderBuilder<T>?> customLoader(customLoaderFactory: Function<T, L>): L
 	{
 		check(Platform.isForgeLike()) { "Custom Loader only supported on forge like loaders" }
@@ -175,6 +193,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return customLoader
 	}
 
+	/** Configures NeoForge's extended root-level (pre-display) transform via [block]. */
 	fun rootTransforms(block: RootTransformsBuilder.() -> Unit = {}): RootTransformsBuilder
 	{
 		return rootTransforms.apply(block)
@@ -431,6 +450,7 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 		return f
 	}
 
+	/** Builder for one inline cuboid `elements` entry, added via [element]. */
 	inner class ElementBuilder
 	{
 		private var from = Vector3f()

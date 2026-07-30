@@ -46,11 +46,13 @@ abstract class NBTBlockEntity(type: BlockEntityType<*>, pos: BlockPos, blockStat
 		saveToTag(compoundTag)
 	}
 
+	/** Returns the [NBTHolder] sync tag sent to tracking clients; see [NBTHolder.getSyncTag]. */
 	override fun getUpdateTag(provider: HolderLookup.Provider): CompoundTag
 	{
 		return getSyncTag()
 	}
 
+	/** Builds the block entity update packet carrying [getUpdateTag]'s data. */
 	override fun getUpdatePacket(): Packet<ClientGamePacketListener>?
 	{
 		return ClientboundBlockEntityDataPacket.create(this)

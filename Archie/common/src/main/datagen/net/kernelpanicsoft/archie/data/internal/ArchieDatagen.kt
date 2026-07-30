@@ -14,6 +14,11 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.level.block.Blocks
 
+/**
+ * Archie's own datagen registration, used both to populate the vanilla-derived common ("c") tags
+ * ([AInternalBlockTagsProvider] and friends) that ship with the library and as a smoke test for
+ * the datagen DSL itself (e.g. the emerald-from-diamond shapeless recipe below).
+ */
 internal object ArchieDatagen : ADatagenEventObject(Archie.MOD)
 {
 	override fun ADataGenerator.handler()

@@ -19,6 +19,13 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import kotlin.math.min
 
+/**
+ * A single resource-backed slot inside an [ArchieItemStorage]. Tracks an [ItemResource] +
+ * amount internally (for Common Storage Lib's resource-based [insert]/[extract]) while exposing
+ * plain [ItemStack] access via [getItem]/[set].
+ *
+ * @param onUpdate Invoked by [update] whenever this slot's contents should be persisted/synced.
+ */
 @Serializable(with = ArchieItemSlot.Serializer::class)
 class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemResource>, UpdateManager<NbtTag>
 {
@@ -58,12 +65,15 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 		this.resourceStack = resourceStack
 	}
 
+	/** The [ItemStack] currently held in this slot (a copy; mutate via [set]). */
 	fun getItem(): ItemStack = stack
+	/** Replaces this slot's contents with [value]. */
 	fun set(value: ItemStack)
 	{
 		stack = value
 	}
 
+	/** Splits up to [amount] items off this slot's stack and returns them, leaving the rest in place. */
 	fun remove(amount: Int): ItemStack
 	{
 		return if (!stack.isEmpty && amount > 0) stack.let {
@@ -73,6 +83,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 		} else ItemStack.EMPTY
 	}
 
+	/** The maximum stack size for the resource currently held (or [Item.ABSOLUTE_MAX_STACK_SIZE] if empty). */
 	fun getMaxStackSize(): Int = getLimit(resource).toInt()
 
 
@@ -146,6 +157,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 		this.stack = NBT.decodeFromNbtTagRootless(serializer(), snapshot).stack
 	}
 
+	/** Serializes an [ArchieItemSlot] as its underlying [ResourceStack], or `null` when blank. */
 	object Serializer : KSerializer<ArchieItemSlot>
 	{
 		private val surrogate = ResourceStack.ITEM_CODEC.kSerializer

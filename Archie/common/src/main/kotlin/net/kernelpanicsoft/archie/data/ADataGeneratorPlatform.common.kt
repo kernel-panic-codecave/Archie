@@ -1,9 +1,10 @@
 package net.kernelpanicsoft.archie.data
 
 /**
- * Cross-loader datagen switch.
+ * Cross-loader switch reporting whether the current run is a datagen run.
  *
- * Loader implementations resolve this from run configuration system properties.
+ * Loader implementations resolve [isDataGen] from run configuration system properties set by
+ * the `runDatagen` Gradle tasks.
  */
 expect object ADataGeneratorPlatform
 {

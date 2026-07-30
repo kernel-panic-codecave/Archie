@@ -31,6 +31,22 @@ import kotlin.time.Duration.Companion.milliseconds
 
 private const val DIALOG_ANIMATION_MS = 180L
 
+/**
+ * A generic confirm/cancel modal with custom [content] and a slide/fade dismiss animation.
+ *
+ * Unlike [AlertDialog]/[PromptDialog]/[ChoiceDialog], [content] is fully custom rather than a
+ * fixed message layout. [dismiss] is deferred until the close animation finishes so the modal
+ * doesn't disappear abruptly.
+ *
+ * @param title       The dialog's header text.
+ * @param confirmText Label for the confirm button.
+ * @param cancelText  Label for the cancel button.
+ * @param onConfirm   Called immediately when the confirm button is pressed, before the close
+ *   animation plays.
+ * @param onCancel    Called immediately when the cancel button is pressed, before the close
+ *   animation plays.
+ * @param content     The dialog body, shown above the action row.
+ */
 @Composable
 fun ModalScope.ConfirmDialog(
 	title: Component = Component.literal("Confirm Dialog"),

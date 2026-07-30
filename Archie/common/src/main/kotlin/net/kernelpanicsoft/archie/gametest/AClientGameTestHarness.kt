@@ -3,6 +3,8 @@ package net.kernelpanicsoft.archie.gametest
 import com.mojang.realmsclient.RealmsMainScreen
 import dev.architectury.platform.Mod
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.gui.ComposeIdleAware
+import net.kernelpanicsoft.archie.gui.LayerManagerProvider
 import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.Screenshot
@@ -13,11 +15,13 @@ import net.minecraft.client.gui.screens.TitleScreen
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.levelgen.presets.WorldPreset
 import net.minecraft.world.level.levelgen.presets.WorldPresets
 import org.apache.commons.lang3.function.FailableConsumer
@@ -40,6 +44,8 @@ private const val DEFAULT_TICK_MILLIS = 50L
 private const val CLIENT_EXEC_TIMEOUT_SECONDS = 10L
 private const val WORLD_BUILDER_EXEC_TIMEOUT_SECONDS = 300L
 private const val SCREEN_SET_TIMEOUT_TICKS = 40
+private const val COMPOSE_IDLE_TIMEOUT_TICKS = 20
+private const val COMPOSE_IDLE_CONSECUTIVE_CHECKS = 2
 private const val CLIENT_GAMETEST_MOD_ID_FILTER_PROPERTY = "fabric.client.gametest.modid"
 
 private object DedicatedServerLifecycleTracker {
@@ -74,6 +80,61 @@ private object DedicatedServerLifecycleTracker {
         activeServers.removeIf { server ->
             runCatching { !ADedicatedServerPlatform.isAlive(server) }.getOrDefault(true)
         }
+    }
+}
+
+/**
+ * Vanilla's dedicated-server bootstrap (`Main.main`) always reads `server.properties`/`eula.txt`
+ * from the process's current working directory, regardless of the `--universe` argument - so
+ * per-test isolation there isn't possible without spawning a separate process. This captures
+ * whatever was there before the first override (once) and restores it once the harness run
+ * finishes, so the repo's own working directory isn't left permanently polluted with test
+ * artifacts. Deliberately not a blocking lock: a leaked dedicated server (one whose context is
+ * never explicitly closed) is already recovered via [DedicatedServerLifecycleTracker], and a
+ * blocking acquire here that's never released on that path would deadlock every later
+ * dedicated-server test instead of just risking a rare overlapping-write race.
+ */
+private object CwdBootstrapFileGuard {
+    private var captured = false
+    private var originalServerProperties: ByteArray? = null
+    private var originalEula: ByteArray? = null
+
+    @Synchronized
+    fun writeOverride(properties: Properties) {
+        val cwd = Path.of(".")
+        val propertiesPath = cwd.resolve("server.properties")
+        val eulaPath = cwd.resolve("eula.txt")
+
+        if (!captured) {
+            originalServerProperties = if (Files.exists(propertiesPath)) Files.readAllBytes(propertiesPath) else null
+            originalEula = if (Files.exists(eulaPath)) Files.readAllBytes(eulaPath) else null
+            captured = true
+        }
+
+        Files.newBufferedWriter(propertiesPath).use { writer ->
+            properties.store(writer, "Archie GameTest dedicated server properties")
+        }
+        Files.newBufferedWriter(eulaPath).use { writer ->
+            writer.write("eula=true")
+            writer.newLine()
+        }
+    }
+
+    @Synchronized
+    fun restoreIfCaptured() {
+        if (!captured) return
+        runCatching {
+            val cwd = Path.of(".")
+            val propertiesPath = cwd.resolve("server.properties")
+            val eulaPath = cwd.resolve("eula.txt")
+            originalServerProperties?.let { Files.write(propertiesPath, it) } ?: Files.deleteIfExists(propertiesPath)
+            originalEula?.let { Files.write(eulaPath, it) } ?: Files.deleteIfExists(eulaPath)
+        }.onFailure { error ->
+            Archie.LOGGER.warn("Failed to restore original server.properties/eula.txt in working directory: ${error.message}")
+        }
+        captured = false
+        originalServerProperties = null
+        originalEula = null
     }
 }
 
@@ -203,6 +264,10 @@ interface TestServerContext {
     fun <E : Throwable> runOnServer(action: FailableConsumer<MinecraftServer, E>)
 
     fun <T, E : Throwable> computeOnServer(function: FailableFunction<MinecraftServer, T, E>): T
+
+    fun runOnServer(action: (MinecraftServer) -> Unit)
+
+    fun <T> computeOnServer(function: (MinecraftServer) -> T): T
 }
 
 /** Minimal assertion/report API passed to client harness test methods. */
@@ -258,7 +323,8 @@ interface ClientGameTestContext {
 
     fun waitFor(predicate: Predicate<Minecraft>, timeout: Int): Int
 
-    fun waitForScreen(screenClass: Class<out Screen>?): Int
+    fun <S : LayerManagerProvider> waitForScreen(screenClass: Class<S>?): Int
+    fun <S : LayerManagerProvider> waitForScreen(screenClass: Class<S>, block: ComposeScreenTestContext<S>.() -> Unit): Int
 
     fun waitTick()
 
@@ -677,7 +743,35 @@ internal class DefaultClientGameTestContext(
         }
     }
 
+    /**
+     * Waits for asynchronous Compose recomposition (state write -> apply notification ->
+     * frame request -> recompose job -> next-frame join, see [ComposeIdleAware]) to settle
+     * before capturing a screenshot, so a `click()` (or similar) immediately followed by a
+     * screenshot assertion doesn't race the still-in-flight visual update.
+     *
+     * Requires two consecutive idle reads, since a single idle read can still land in the
+     * narrow window between a state mutation and the snapshot write observer's callback firing.
+     * Not a hard guarantee under extreme scheduler starvation, but turns an always-racy check
+     * into one that's reliable in practice. No-ops for screens that aren't Compose-driven.
+     */
+    private fun waitForComposeIdle() {
+        var consecutiveIdle = 0
+        repeat(COMPOSE_IDLE_TIMEOUT_TICKS) {
+            val idle = computeOnClient("compose-idle-check", CLIENT_EXEC_TIMEOUT_SECONDS) { client ->
+                (client.screen as? ComposeIdleAware)?.isComposeIdle() ?: true
+            }
+            if (idle) {
+                consecutiveIdle++
+                if (consecutiveIdle >= COMPOSE_IDLE_CONSECUTIVE_CHECKS) return
+            } else {
+                consecutiveIdle = 0
+            }
+            waitTick()
+        }
+    }
+
     override fun takeScreenshot(options: TestScreenshotOptions): Path {
+        waitForComposeIdle()
         val capturePath = ScreenshotManager.generateCapturePath(testId, options.name)
         computeOnClient("take-screenshot", CLIENT_EXEC_TIMEOUT_SECONDS) { client ->
             try {
@@ -740,10 +834,23 @@ internal class DefaultClientGameTestContext(
         return timeout
     }
 
-    override fun waitForScreen(screenClass: Class<out Screen>?): Int {
+    override fun <S : LayerManagerProvider> waitForScreen(screenClass: Class<S>?): Int
+    {
         return waitFor { client ->
             val current = client.screen
             if (screenClass == null) current == null else current != null && screenClass.isInstance(current)
+        }
+    }
+
+    override fun <S : LayerManagerProvider> waitForScreen(
+        screenClass: Class<S>,
+        block: ComposeScreenTestContext<S>.() -> Unit
+    ): Int
+    {
+        return waitForScreen(screenClass).also {
+            computeOnClient { screenClass.cast(it.screen) }.also {
+                ComposeScreenTestContext(this, it).block()
+            }
         }
     }
 
@@ -948,6 +1055,10 @@ private class DefaultTestServerContext(
         return result as T
     }
 
+    override fun runOnServer(action: (MinecraftServer) -> Unit) = runOnServer(FailableConsumer(action))
+
+    override fun <T> computeOnServer(function: (MinecraftServer) -> T): T = computeOnServer(FailableFunction(function))
+
     private fun requireSingleplayerServer(): MinecraftServer {
         return clientContext.computeOnClient { client ->
             client.singleplayerServer ?: throw IllegalStateException("No integrated server is running")
@@ -1027,11 +1138,15 @@ private class DefaultServerWorldBuilder(
         merged.putIfAbsent("online-mode", "false")
         merged.putIfAbsent("spawn-protection", "0")
         merged.putIfAbsent("max-players", "1")
+        // This dedicated server shares the JVM with the client under test (no subprocess
+        // isolation). ServerWatchdog calls System.exit(1) if a single tick exceeds
+        // max-tick-time, which would kill the whole test JVM - disable it by default.
+        merged.putIfAbsent("max-tick-time", "0")
 
         // The dedicated-server launcher reads these files from the process working directory,
         // while the harness also keeps an isolated copy under the generated per-test server dir.
         writeBootstrapFiles(serverDirectory, merged)
-        writeBootstrapFiles(Path.of("."), merged)
+        CwdBootstrapFileGuard.writeOverride(merged)
     }
 
     private fun writeBootstrapFiles(targetDirectory: Path, properties: Properties) {
@@ -1382,6 +1497,8 @@ object AClientGameTestHarness {
         // Safety net: if a test aborted before context.close(), force-stop leaked dedicated servers
         // before the client begins shutdown to avoid dedicated tick crashes against torn-down GLFW.
         DedicatedServerLifecycleTracker.stopAllLeakedServers()
+        // Always runs, even if some test leaked its server context - see CwdBootstrapFileGuard.
+        CwdBootstrapFileGuard.restoreIfCaptured()
 
         val minecraft = Minecraft.getInstance()
         minecraft.execute {

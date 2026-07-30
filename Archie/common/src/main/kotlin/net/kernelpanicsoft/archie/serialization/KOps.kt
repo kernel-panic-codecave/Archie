@@ -18,8 +18,16 @@ import java.util.stream.IntStream
 import java.util.stream.LongStream
 import java.util.stream.Stream
 
+/**
+ * Mojang [DynamicOps] implementations for the tree formats used elsewhere in this package
+ * ([kotlinx.serialization.json.JsonElement], [net.peanuuutz.tomlkt.TomlElement], and knbt's
+ * [net.benwoodworth.knbt.NbtTag]), so [com.mojang.serialization.Codec]s can operate on them
+ * directly. Registered with [SerializationManager] and used internally by [SerializerCodec]
+ * and [CodecSerializer]; not usually needed directly.
+ */
 object KOps
 {
+	/** [DynamicOps] over [JsonElement]. */
 	object Json : DynamicOps<JsonElement>
 	{
 		override fun empty(): JsonElement = JsonNull
@@ -218,6 +226,7 @@ object KOps
 		}
 	}
 
+	/** [DynamicOps] over [TomlElement]. */
 	object Toml : DynamicOps<TomlElement>
 	{
 		private fun Number.toTomlElement(): TomlElement
@@ -436,6 +445,7 @@ object KOps
 		}
 	}
 
+	/** [DynamicOps] over knbt's [NbtTag]. */
 	object Nbt : DynamicOps<NbtTag>
 	{
 		override fun empty(): NbtTag? = null

@@ -7,6 +7,7 @@ import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 
+/** Custom ingredient that matches a stack only when every one of its sub-ingredients matches it. Build via [of]. */
 class AAllIngredient private constructor(ingredients: List<Ingredient>) :
 	ACombinedIngredient(ingredients)
 {
@@ -37,6 +38,7 @@ class AAllIngredient private constructor(ingredients: List<Ingredient>) :
 
 	companion object
 	{
+		/** Creates a vanilla [Ingredient] that matches only when every one of [ingredients] matches. */
 		fun of(vararg ingredients: Ingredient): Ingredient = AAllIngredient(ingredients.toList()).vanilla
 		private val ALLOW_EMPTY_CODEC = createCodec(Ingredient.CODEC)
 		private val DISALLOW_EMPTY_CODEC = createCodec(Ingredient.CODEC_NONEMPTY)

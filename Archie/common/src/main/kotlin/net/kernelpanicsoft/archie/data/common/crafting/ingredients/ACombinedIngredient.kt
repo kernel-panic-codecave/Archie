@@ -10,11 +10,13 @@ import java.util.function.Function
 
 
 /**
- * Base class for ALL and ANY ingredients.
+ * Base class for [IACustomIngredient]s that combine multiple sub-[ingredients], e.g. [AAllIngredient]
+ * (matches when every sub-ingredient matches) and [AAnyIngredient] (matches when any does).
  */
 abstract class ACombinedIngredient protected constructor(ingredients: List<Ingredient>) :
 	IACustomIngredient
 {
+	/** The sub-ingredients being combined; always non-empty. */
 	val ingredients: List<Ingredient>
 
 	init
@@ -24,6 +26,7 @@ abstract class ACombinedIngredient protected constructor(ingredients: List<Ingre
 		this.ingredients = ingredients
 	}
 
+	/** `true` if any sub-ingredient is a custom ingredient that itself requires testing. */
 	override val requiresTesting: Boolean
 		get()
 		{
@@ -38,6 +41,7 @@ abstract class ACombinedIngredient protected constructor(ingredients: List<Ingre
 			return false
 		}
 
+	/** Generic [IACustomIngredientSerializer] for [ACombinedIngredient] subtypes, built from a [factory] and empty/non-empty codecs. */
 	class Serializer<I : ACombinedIngredient>(
 		override val identifier: ResourceLocation,
 		private val factory: Function<List<Ingredient>, I>,

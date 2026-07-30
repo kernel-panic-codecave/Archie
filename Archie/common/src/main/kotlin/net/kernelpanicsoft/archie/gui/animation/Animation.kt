@@ -11,6 +11,7 @@ import kotlin.math.roundToInt
 
 /** Describes a time-based interpolation used by Archie GUI animations. */
 fun interface Easing {
+    /** Maps a linear progress [fraction] in `0f..1f` to an eased progress value. */
     fun transform(fraction: Float): Float
 }
 
@@ -20,11 +21,16 @@ fun interface Easing {
  * The curves are intentionally lightweight so they can run smoothly in frequent recompositions.
  */
 object Easings {
+    /** No easing; progress is directly proportional to elapsed time. */
     val Linear = Easing { it }
+
+    /** Starts fast and decelerates into the target value, with no overshoot. */
     val OutCubic = Easing { t ->
         val inv = 1f - t
         1f - inv * inv * inv
     }
+
+    /** Like [OutCubic] but overshoots the target slightly before settling. */
     val OutBack = Easing { t ->
         val c1 = 1.70158f
         val c3 = c1 + 1f
@@ -33,7 +39,12 @@ object Easings {
     }
 }
 
-/** Timing parameters for float/int animations. */
+/**
+ * Timing parameters for float/int animations.
+ *
+ * @param durationMillis How long the animation takes to reach its target value.
+ * @param easing The curve applied to progress over that duration.
+ */
 data class AnimationSpec(
     val durationMillis: Int = 220,
     val easing: Easing = Easings.OutCubic,

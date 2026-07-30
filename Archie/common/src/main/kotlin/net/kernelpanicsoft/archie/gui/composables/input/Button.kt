@@ -20,6 +20,20 @@ import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 
+/**
+ * A standard themed, clickable button.
+ *
+ * Renders the themed [texture] state ([TextureStates.DEFAULT]/[TextureStates.HOVERED]/
+ * [TextureStates.CLICKED]/[TextureStates.DISABLED]) behind [content], animating a 1px press
+ * offset while held. For fully custom visuals, use [ButtonCore] directly instead.
+ *
+ * @param onClick  Invoked with the receiving [AUINode] when the button is pressed.
+ * @param modifier Additional modifiers applied to the outer clickable container.
+ * @param enabled  When `false`, the disabled state is drawn and pointer events are ignored.
+ * @param texture  The themed texture key to look up via [LocalTheme].
+ * @param variant  The theme variant of [texture] to use. See [ThemeVariants].
+ * @param content  The button's foreground content (e.g. a [net.kernelpanicsoft.archie.gui.composables.basic.Text]).
+ */
 @Composable
 fun Button(
     onClick: (AUINode) -> Unit,
@@ -108,7 +122,7 @@ fun Button(
  * but applies no visual styling of its own — that is left entirely to [content].
  *
  * Use [ButtonCore] when you need custom button visuals. For a standard themed button, use
- * the higher-level `Button` composable in your theme-aware composables package.
+ * [Button] instead.
  *
  * ### Example
  * ```kotlin

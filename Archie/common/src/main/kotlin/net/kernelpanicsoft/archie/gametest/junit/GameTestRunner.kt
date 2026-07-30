@@ -10,15 +10,36 @@ import java.nio.file.Path
 import java.time.Duration
 import kotlin.collections.forEach
 
+/**
+ * Bridges Archie's Loom-driven GameTests into a regular JUnit 5 run, so `./gradlew test` (or an
+ * IDE test runner) can launch `runGametest`/`runGametestClient` for a `loader:side` matrix and
+ * report each declared test as its own JUnit [DynamicTest], parsed from the launched process's
+ * log output.
+ *
+ * Disabled by default (opt-in via [PROP_ENABLED]) since it shells out to Gradle and boots a full
+ * Minecraft process per matrix entry.
+ */
 object GameTestRunner
 {
+	/** System property (`-D...=true`) that must be set to enable [tests]; otherwise it reports a single skipped test. */
 	const val PROP_ENABLED = "archie.junit.gametest"
+	/** System property overriding [DEFAULT_MATRIX], a comma-separated list of `loader:side` pairs to launch. */
 	const val PROP_MATRIX = "archie.junit.gametest.matrix"
+	/** System property overriding the per-invocation timeout, in minutes (default 20, minimum 1). */
 	const val PROP_TIMEOUT_MINUTES = "archie.junit.gametest.timeoutMinutes"
+	/** System property overriding the auto-detected workspace root (the directory containing `settings.gradle.kts`). */
 	const val PROP_WORKSPACE_ROOT = "archie.junit.gametest.root"
 
+	/** The default `loader:side` matrix launched by [tests] when [PROP_MATRIX] isn't set. */
 	const val DEFAULT_MATRIX = "fabric:server,fabric:client,neoforge:server,neoforge:client"
 
+	/**
+	 * Builds the JUnit dynamic test tree for [modID]: one container per `loader:side` invocation
+	 * in the configured matrix, each running the loader's GameTest Gradle task once and then
+	 * reporting one [DynamicTest] per test method declared via [tests] (an
+	 * [AEvents.ArchieGameTestBuilder] receiver, same DSL as [AEvents.REGISTER_GAME_TEST]) whose
+	 * side matches that invocation.
+	 */
 	fun tests(modID: String, tests: AEvents.ArchieGameTestBuilder.() -> Unit): Collection<DynamicContainer>
 	{
 		val enabled = System.getProperty(PROP_ENABLED)?.toBooleanStrictOrNull() == true

@@ -16,6 +16,12 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.Function
 import kotlin.system.exitProcess
 
+/**
+ * Datagen provider that builds model JSON files of builder type [T] (block or item models)
+ * under [folder], mirroring NeoForge's vanilla `ModelProvider` datagen helpers 1:1 in name and
+ * parameters (e.g. `cube`, `cubeAll`, `door*`, `fence*`, `pane*`, `trapdoor*`, `torch*`). Start a
+ * model with [getBuilder] or [withExistingParent], or use one of the vanilla-shape helpers.
+ */
 abstract class AModelProvider<T : AModelBuilder<T>>(
 	final override val output: PackOutput,
 	final override val mod: Mod,
@@ -27,11 +33,13 @@ abstract class AModelProvider<T : AModelBuilder<T>>(
 	@VisibleForTesting
 	val generatedModels: MutableMap<ResourceLocation, T> = mutableMapOf()
 
+	/** Called once during [generateAll] to register models via [getBuilder]/the shape helpers. */
 	protected abstract fun generate()
 
 	override fun getName(): String = format("Models")
 
 
+	/** Gets (or creates) the builder for the model at [path] (in [mod]'s namespace under [folder] unless [path] has its own namespace/subfolder), applying [block]. */
 	fun getBuilder(path: String, block: T.() -> Unit = {}): T
 	{
 		Preconditions.checkNotNull(path, "Path must not be null")
@@ -49,11 +57,13 @@ abstract class AModelProvider<T : AModelBuilder<T>>(
 		return ResourceLocation.fromNamespaceAndPath(rl.namespace, folder + "/" + rl.path)
 	}
 
+	/** [withExistingParent] with [parent] resolved as a `minecraft`-namespaced id. */
 	fun withExistingParent(name: String, parent: String, block: T.() -> Unit = {}): T
 	{
 		return withExistingParent(name, mcLoc(parent)).apply(block)
 	}
 
+	/** Gets (or creates) the builder for the model named [name], with its `parent` set to the existing model at [parent]. */
 	fun withExistingParent(name: String, parent: ResourceLocation, block: T.() -> Unit = {}): T
 	{
 		return getBuilder(name).parent(getExistingFile(parent)).apply(block)
@@ -418,14 +428,13 @@ abstract class AModelProvider<T : AModelBuilder<T>>(
 		return singleTexture(name, "$BLOCK_FOLDER/carpet", "wool", wool)
 	}
 
-	/**
-	 * {@return a model builder that's not directly saved to disk. Meant for use in custom model loaders.}
-	 */
+	/** A model builder that's not registered/saved to disk, meant for inline use inside a custom model loader's JSON. */
 	fun nested(): T
 	{
 		return factory.apply(ResourceLocation.parse("dummy:dummy"))
 	}
 
+	/** References the model at [path] (extended with [folder] if it has no subfolder) without requiring it to already be built by this provider. */
 	fun getExistingFile(path: ResourceLocation): AModelFile
 	{
 		val ret =
@@ -435,6 +444,7 @@ abstract class AModelProvider<T : AModelBuilder<T>>(
 		return ret
 	}
 
+	/** Discards every model registered so far via [getBuilder]. */
 	fun clear()
 	{
 		generatedModels.clear()
@@ -455,6 +465,7 @@ abstract class AModelProvider<T : AModelBuilder<T>>(
 		return generateAll(cache)
 	}
 
+	/** Writes every model currently registered via [getBuilder] to disk under [cache]. */
 	fun generateAll(cache: CachedOutput): CompletableFuture<*>
 	{
 		val futures: Array<CompletableFuture<*>?> = arrayOfNulls(

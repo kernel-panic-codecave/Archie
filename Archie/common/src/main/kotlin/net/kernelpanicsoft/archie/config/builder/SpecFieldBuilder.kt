@@ -9,6 +9,10 @@ import java.util.*
 import java.util.function.Supplier
 import kotlin.jvm.optionals.getOrNull
 
+/**
+ * Cloth Config builder for a nested [CategorySpec] field, rendered as a collapsible group
+ * containing [value]'s own fields and subcategories (via [CategorySpec.client]).
+ */
 class SpecFieldBuilder<T : CategorySpec>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,
@@ -17,6 +21,7 @@ class SpecFieldBuilder<T : CategorySpec>(
 	resetButtonKey, fieldNameKey
 )
 {
+	/** Whether the group starts expanded in the UI. */
 	var isExpanded: Boolean = false
 	init
 	{

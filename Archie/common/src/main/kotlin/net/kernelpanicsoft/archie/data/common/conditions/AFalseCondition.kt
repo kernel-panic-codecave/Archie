@@ -5,6 +5,7 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that never holds. */
 data object AFalseCondition :
 	IACondition
 {

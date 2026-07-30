@@ -56,7 +56,6 @@ interface IATagBuilder<T : Any>
 	 * Add an element to the tag.
 	 *
 	 * @return the [IATagBuilder] instance
-	 * @see .add
 	 */
 	fun add(registryKey: ResourceKey<T>): IATagBuilder<T>
 
@@ -81,19 +80,15 @@ interface IATagBuilder<T : Any>
 	 */
 	fun addOptional(registryKey: ResourceKey<T>): IATagBuilder<T>
 
+	/** Add multiple optional [ResourceLocation]s to the tag. */
 	fun addOptionals(vararg ids: ResourceLocation): IATagBuilder<T>
 
+	/** Add multiple optional [ResourceKey]s to the tag. */
 	fun addOptionals(vararg keys: ResourceKey<T>): IATagBuilder<T>
 
 	/**
-	 * Add another tag to this tag.
-	 *
-	 *
-	 * **Note:** any vanilla tags can be added to the builder,
-	 * but other tags can only be added if it has a builder registered in the same provider.
-	 *
-	 *
-	 * Use [.forceAddTag] to force add any tag.
+	 * Add all elements of [tag] to this tag, unconditionally (unlike [addTags], this does not
+	 * require [tag] to be defined by a known builder or vanilla tag).
 	 *
 	 * @return the [IATagBuilder] instance
 	 * @see BlockTags
@@ -122,8 +117,10 @@ interface IATagBuilder<T : Any>
 	 */
 	fun addOptionalTag(tag: TagKey<T>): IATagBuilder<T>
 
+	/** Add multiple optional tags, by id, to this tag. */
 	fun addOptionalTags(vararg ids: ResourceLocation): IATagBuilder<T>
 
+	/** Add multiple optional tags to this tag. */
 	fun addOptionalTags(vararg tags: TagKey<T>): IATagBuilder<T>
 
 	/**

@@ -6,9 +6,19 @@ import net.kernelpanicsoft.archie.events.AEvents
 import net.minecraft.client.Minecraft
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * Kicks off the client GameTest run once the client has finished loading past its title-screen
+ * overlay, called from `MinecraftClientMixin.onTick` on every client tick.
+ */
 internal object AGameTestClientHarnessInternal {
     private val hasRun = AtomicBoolean(false)
 
+    /**
+     * No-ops unless this is a client-side GameTest run ([AGameTestPlatform.isGameTest] and
+     * [AGameTestPlatform.side] `== CLIENT`) that hasn't started yet. Otherwise registers each mod's
+     * test classes, runs them via [AClientGameTestHarness.run] on the dedicated test thread, and
+     * either throws with a failure summary or stops the client on success.
+     */
     @JvmStatic
     fun runIfNeeded()
     {

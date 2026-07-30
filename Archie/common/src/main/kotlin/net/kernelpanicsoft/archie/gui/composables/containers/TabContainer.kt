@@ -32,9 +32,12 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.client.gui.GuiGraphics
 
+/** Built-in themed texture keys for [Tab]/[TabContainer], matching vanilla tab styles. */
 object TabTextures
 {
+    /** The in-game pause-menu tab style (e.g. Create World screen). */
     const val GAME = "tab_game"
+    /** The main-menu tab style. */
     const val MENU = "tab_menu"
 }
 
@@ -124,7 +127,14 @@ fun TabContainer(
     }
 }
 
-/** DSL overload allowing tabs to be declared inline without manually building a list. */
+/**
+ * DSL overload allowing tabs to be declared inline via [TabContainerScope.tab] without
+ * manually building a [TabSpec] list.
+ *
+ * @param contentWrapper Wraps each tab's content composable, e.g. to add common padding.
+ *   Defaults to rendering the content unwrapped.
+ * @param builder Declares the tabs, in order, via [TabContainerScope.tab].
+ */
 @Composable
 fun TabContainer(
     modifier: Modifier = Modifier,
@@ -157,6 +167,14 @@ fun TabContainer(
     )
 }
 
+/**
+ * A [TabContainer] whose selected tab content is wrapped in a [Panel] by default, elevated
+ * (drawn above neighboring tabs) when selected. Used by [TabContainerPanel].
+ *
+ * @param contentWrapper Wraps each tab's content; defaults to a [Panel] offset to sit flush
+ *   under the tab row.
+ * @param builder Declares the tabs, in order, via [TabContainerScope.tab].
+ */
 @Composable
 fun TabPanel(
     modifier: Modifier = Modifier,
@@ -191,13 +209,16 @@ fun TabPanel(
     )
 }
 
+/** Restricts the [TabContainerScope.tab] DSL to its own receiver scope. */
 @DslMarker
 annotation class TabContainerDsl
 
+/** Receiver scope for the [TabContainer]/[TabPanel] DSL `builder` lambda. */
 @TabContainerDsl
 class TabContainerScope internal constructor(val contentWrapper: @Composable (@Composable () -> Unit) -> Unit = {it()}) {
     private val specs = mutableListOf<TabSpec>()
 
+    /** Declares a tab with the given [id], [title], and [content]. */
     fun tab(
         id: String,
         title: Component,
@@ -214,6 +235,7 @@ class TabContainerScope internal constructor(val contentWrapper: @Composable (@C
         )
     }
 
+    /** Declares a tab from a pre-built [TabSpec], bypassing [contentWrapper]. */
     fun tab(spec: TabSpec) {
         specs += spec
     }
@@ -245,18 +267,29 @@ data class TabIcon(
     val displayHeight: Int = regionHeight,
 )
 
+/**
+ * Tracks which tab id is selected in a [TabContainer]. Create via [rememberTabContainerState].
+ */
 @Stable
 class TabContainerState internal constructor(initialSelectedId: String?) {
     private var selectedId by mutableStateOf(initialSelectedId)
 
+    /** The currently selected tab's id, or `null` if nothing is selected yet. */
     val selectedTabId: String? get() = selectedId
 
+    /** Whether [tabId] is the currently selected tab. */
     fun isSelected(tabId: String): Boolean = selectedId == tabId
 
+    /** Selects the tab with the given [tabId]. */
     fun select(tabId: String) {
         selectedId = tabId
     }
 
+    /**
+     * Ensures the selection is valid for [tabs]: falls back to the first enabled tab (or the
+     * very first tab, if none are enabled) when there's no selection or the selected id no
+     * longer exists/is disabled among [tabs].
+     */
     fun ensureSelection(tabs: List<TabSpec>) {
         if (tabs.isEmpty()) {
             selectedId = null
@@ -268,19 +301,27 @@ class TabContainerState internal constructor(initialSelectedId: String?) {
         selectedId = tabs.firstOrNull { it.enabled }?.id ?: tabs.first().id
     }
 
+    /** The index of the selected tab within [tabs], or -1 if none is selected. */
     fun selectedIndex(tabs: List<TabSpec>): Int =
         tabs.indexOfFirst { it.id == selectedId }
 
+    /** The [TabSpec] currently selected within [tabs], or `null` if none is selected. */
     fun selectedTab(tabs: List<TabSpec>): TabSpec? =
         tabs.firstOrNull { it.id == selectedId }
 }
 
+/** Creates and remembers a [TabContainerState], initially selecting [initialSelectedId]. */
 @Composable
 fun rememberTabContainerState(
     tabs: List<TabSpec>,
     initialSelectedId: String? = tabs.firstOrNull { it.enabled }?.id,
 ): TabContainerState = remember(initialSelectedId) { TabContainerState(initialSelectedId) }
 
+/**
+ * A single clickable tab button, rendering [spec]'s icon/title and switching its themed
+ * texture state based on [selected]/hover/press. Used internally by [TabContainer]; use that
+ * (or the DSL/[TabPanel] variants) rather than calling this directly in most cases.
+ */
 @Composable
 fun Tab(
     spec: TabSpec,

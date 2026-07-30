@@ -14,12 +14,15 @@ import net.kernelpanicsoft.archie.data.common.tags.ACommonTags
 import net.kernelpanicsoft.archie.data.internal.ArchieDatagen
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
+import net.kernelpanicsoft.archie.gametest.AGameTestSide
 import net.kernelpanicsoft.archie.gametest.internal.ArchieGameTest
 import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
 import net.kernelpanicsoft.archie.gui.theme.ThemeManifestResourceListener
 import net.kernelpanicsoft.archie.gui.theme.ThemeResourceListener
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.util.buildArray
+import net.kernelpanicsoft.archie.util.onClient
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.server.packs.PackType
@@ -28,28 +31,47 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.entity.BlockEntityType
 import org.slf4j.Logger
 
+/**
+ * Archie's mod object and library entrypoint.
+ *
+ * Downstream mods should call [init] (and, on the client, [initClient]) from their own
+ * loader entrypoint after their own registries have been created but before they are
+ * frozen, mirroring the call order used by `ArchieFabric`/`ArchieNeoForge`.
+ */
 object Archie
 {
+	/** Archie's own mod id, used as the namespace for its resources and network channel. */
 	const val MOD_ID = "archie"
 
 
+	/** The Architectury [Mod] descriptor for Archie itself. */
 	@JvmField
 	val MOD: Mod = Platform.getMod(MOD_ID)
 
+	/** Shared SLF4J logger for Archie's own internal logging. */
 	@JvmField
 	val LOGGER: Logger = LogUtils.getLogger()
 
+	/**
+	 * Initializes Archie's shared (loader-independent) systems.
+	 *
+	 * Registers Archie with [AEvents], wires up networking (skipped only for a server-only
+	 * gametest run, since Architectury's networking registration touches client-only classes),
+	 * initializes block entity state syncing, built-in data providers, and Archie's own config,
+	 * and activates the datagen/gametest code paths when running under those tasks.
+	 *
+	 * Must be called once, on both physical sides, before any other Archie API is used.
+	 *
+	 * @throws IllegalStateException if running on LexForge, which is not supported.
+	 */
 	@JvmStatic
 	fun init()
 	{
 
 		if (Platform.isMinecraftForge())
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
-		// Register mod-scoped hooks first so downstream modules can subscribe during init.
 		AEvents += MOD
-		// Register packet handlers before any features try to send packets.
-		// Skip in gametest mode where Architectury networking has issues.
-		if (!AGameTestPlatform.isGameTest)
+		if (!AGameTestPlatform.isGameTest || AGameTestPlatform.side == AGameTestSide.CLIENT)
 		{
 			ArchieNetworkChannel.init()
 		}
@@ -66,27 +88,36 @@ object Archie
 			ArchieGameTest.init()
 		if (ADataGeneratorPlatform.isDataGen)
 			ArchieDatagen.init()
+		onClient {
+			ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeManifestResourceListener(), Archie % "theme_manifest")
+			ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeResourceListener(), Archie % "theme")
+		}
 	}
 
+	/**
+	 * Initializes Archie's client-only systems. Must be called from client entrypoints only,
+	 * after [init].
+	 */
 	@JvmStatic
 	fun initClient()
 	{
 		Config.initClient()
-		ReloadListenerRegistry.register(
-			PackType.CLIENT_RESOURCES,
-			ThemeManifestResourceListener()
-		)
-		ReloadListenerRegistry.register(
-			PackType.CLIENT_RESOURCES,
-			ThemeResourceListener()
-		)
 	}
 
+	/**
+	 * Reserved for common-side initialization that must run after both [init] and platform
+	 * bootstrap. Currently a no-op.
+	 */
 	@JvmStatic
 	fun initCommon()
 	{
 	}
 
+	/**
+	 * Archie's own config, registered under the "Config" title. `General` holds Archie's real
+	 * settings; `Test` is a self-test fixture exercising every [CategorySpec] value type
+	 * supported by the config system and is not meant to be user-facing.
+	 */
 	object Config : ConfigSpec(MOD, Component.literal("Config"))
 	{
 		override val categories: List<CategorySpec> = buildList {
@@ -98,7 +129,7 @@ object Archie
 		{
 			val tests by boolean(
 				title = Component.literal("Tests"),
-								 default = false
+				default = false
 			)
 		}
 
@@ -110,11 +141,11 @@ object Archie
 			}
 
 			override val isEnabled: Boolean
-			get() = General.tests
+				get() = General.tests
 
 			val testBoolean by boolean(
 				title = Component.literal("Test Boolean"),
-									   comment = Component.literal("Test Comment")
+				comment = Component.literal("Test Comment")
 			)
 
 			val testInt by int(
@@ -127,14 +158,14 @@ object Archie
 
 			val testIntSlider by intSlider(
 				title = Component.literal("Test Int Slider"),
-										   min = Int.MIN_VALUE / 2 + 1,
-								  max = Int.MAX_VALUE / 2
+				min = Int.MIN_VALUE / 2 + 1,
+				max = Int.MAX_VALUE / 2
 			)
 
 			val testLongSlider by longSlider(
 				title = Component.literal("Test Long Slider"),
-											 min = Long.MIN_VALUE / 2 + 1,
-									max = Long.MAX_VALUE / 2,
+				min = Long.MIN_VALUE / 2 + 1,
+				max = Long.MAX_VALUE / 2,
 			)
 
 			val testFloat by float(
@@ -151,14 +182,15 @@ object Archie
 
 			val testSpec by spec(
 				title = Component.literal("Test Spec"),
-								 default = TestSpec()
+				default = TestSpec(),
+				factory = ::TestSpec
 			)
 
 			val testRegistry: BlockItem by registry(
 				title = Component.literal("Test Registry"),
-													default = Items.COBBLESTONE,
-										   subclass = BlockItem::class,
-										   registry = BuiltInRegistries.ITEM
+				default = Items.COBBLESTONE,
+				subclass = BlockItem::class,
+				registry = BuiltInRegistries.ITEM
 			)
 
 			val testKeycode by keycode(
@@ -167,23 +199,23 @@ object Archie
 
 			val testColor by color(
 				title = Component.literal("Test Color"),
-								   alpha = true
+				alpha = true
 			)
 
 			val testEnumSelector by enumSelector(
 				title = Component.literal("Test Enum Selector"),
-												 kclass = TestEnum::class,
-										default = TestEnum.Foo
+				kclass = TestEnum::class,
+				default = TestEnum.Foo
 			)
 
 			val testSelector by selector(
 				title = Component.literal("Test Selector"),
-										 kclass = String::class,
-								default = "foo",
-								entries = buildArray {
-									add("foo")
-									add("bar")
-								}
+				kclass = String::class,
+				default = "foo",
+				entries = buildArray {
+					add("foo")
+					add("bar")
+				}
 			)
 
 			val testIntList by intList(
@@ -208,14 +240,14 @@ object Archie
 
 			val testSpecList by specList(
 				title = Component.literal("Test Spec List"),
-										 factory = ::TestSpec
+				factory = ::TestSpec
 			)
 
 			val testRegistryList: List<BlockItem> by registryList(
 				title = Component.literal("Test Registry List"),
-																  factory = Items::COBBLESTONE,
-														 subclass = BlockItem::class,
-														 registry = BuiltInRegistries.ITEM
+				factory = Items::COBBLESTONE,
+				subclass = BlockItem::class,
+				registry = BuiltInRegistries.ITEM
 			)
 
 			val testKeycodeList by keycodeList(
@@ -248,14 +280,14 @@ object Archie
 
 			val testSpecMap by specMap(
 				title = Component.literal("Test Spec Map"),
-									   factory = ::TestSpec
+				factory = ::TestSpec
 			)
 
 			val testRegistryMap: Map<String, BlockItem> by registryMap(
 				title = Component.literal("Test Registry Map"),
-																	   factory = Items::COBBLESTONE,
-															  subclass = BlockItem::class,
-															  registry = BuiltInRegistries.ITEM
+				factory = Items::COBBLESTONE,
+				subclass = BlockItem::class,
+				registry = BuiltInRegistries.ITEM
 			)
 
 			val testKeycodeMap by keycodeMap(
@@ -268,7 +300,8 @@ object Archie
 
 			val testNestedSpec by spec(
 				title = Component.literal("Test Nested Spec"),
-									   default = TestNestedSpec()
+				default = TestNestedSpec(),
+				factory = ::TestNestedSpec
 			)
 
 			@Serializable
@@ -289,12 +322,12 @@ object Archie
 			{
 				val childrenList by specList(
 					title = Component.literal("Children List"),
-											 factory = ::TestNestedSpec
+					factory = ::TestNestedSpec
 				)
 
 				val childrenMap by specMap(
 					title = Component.literal("Children Map"),
-										   factory = ::TestNestedSpec
+					factory = ::TestNestedSpec
 				)
 			}
 
@@ -306,8 +339,8 @@ object Archie
 
 				val testRegistry by registry(
 					title = Component.literal("Test Registry"),
-											 default = BlockEntityType.CHEST,
-								 registry = BuiltInRegistries.BLOCK_ENTITY_TYPE
+					default = BlockEntityType.CHEST,
+					registry = BuiltInRegistries.BLOCK_ENTITY_TYPE
 				)
 			}
 		}

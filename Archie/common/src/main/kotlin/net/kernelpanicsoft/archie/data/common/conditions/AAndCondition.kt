@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that holds only when every one of [children] holds (logical AND). */
 data class AAndCondition(override val children: List<IACondition>) :
 	AGroupCondition()
 {

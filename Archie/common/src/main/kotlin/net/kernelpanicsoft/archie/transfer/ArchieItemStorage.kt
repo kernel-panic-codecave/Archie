@@ -17,12 +17,24 @@ import net.benwoodworth.knbt.NbtTag
 import net.minecraft.core.NonNullList
 import kotlin.math.min
 
+/**
+ * Archie's platform-agnostic item container: a fixed-size list of [ArchieItemSlot]s that
+ * implements Common Storage Lib's [CommonStorage] (resource-based [insert]/[extract] for
+ * capability interop) and Archie's NBT serialization (via [Serializer]) for save/load.
+ *
+ * Usually created through [net.kernelpanicsoft.archie.serialization.NBTHolder.itemField] rather
+ * than directly. Its public surface is deliberately small; read or mutate the [ItemStack] in a
+ * slot through the [ArchieItemSlot] returned by [get], not on the storage itself.
+ *
+ * @param onUpdate Invoked by [update] whenever the storage's contents should be persisted/synced.
+ */
 @Serializable(with = ArchieItemStorage.Serializer::class)
 open class ArchieItemStorage private constructor(
 	protected var slots: NonNullList<ArchieItemSlot>,
 	protected val onUpdate: () -> Unit = {}
 ) : CommonStorage<ItemResource>, UpdateManager<NbtTag>
 {
+	/** Creates a storage with [size] empty slots. */
 	constructor(size: Int, onUpdate: () -> Unit = {}) : this(
 		NonNullList.createWithCapacity<ArchieItemSlot>(size).apply {
 			for (i in 0 until size)
@@ -42,8 +54,10 @@ open class ArchieItemStorage private constructor(
 		return TransferUtil.extractSlots(this, unit, amount, simulate)
 	}
 
+	/** The number of slots in this storage. */
 	override fun size(): Int = slots.size
 
+	/** The [ArchieItemSlot] at [slot], for reading/mutating its [ItemStack]. */
 	override fun get(slot: Int): ArchieItemSlot
 	{
 		return slots[slot]
@@ -68,6 +82,7 @@ open class ArchieItemStorage private constructor(
 		}
 	}
 
+	/** Serializes an [ArchieItemStorage] as the plain list of its [ArchieItemSlot]s. */
 	object Serializer : KSerializer<ArchieItemStorage>
 	{
 		private val surrogate = ListSerializer(ArchieItemSlot.serializer())

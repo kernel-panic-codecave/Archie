@@ -8,6 +8,7 @@ import me.shedaniel.clothconfig2.gui.entries.StringListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
 import net.minecraft.network.chat.Component
 
+/** [MapFieldBuilder] for `String` values, using Cloth Config's `startStrField` per row. */
 class StringMapBuilder(resetButtonKey: Component, fieldNameKey: Component, value: Map<String, String>) : MapFieldBuilder<String, StringListEntry, StringMapBuilder>(
 	resetButtonKey, fieldNameKey, value
 )

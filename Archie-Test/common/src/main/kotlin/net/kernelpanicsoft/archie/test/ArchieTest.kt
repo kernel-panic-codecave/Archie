@@ -6,6 +6,10 @@ import dev.architectury.platform.Platform
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform
 import net.kernelpanicsoft.archie.events.AEvents
+import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
+import net.kernelpanicsoft.archie.test.gametest.ArchieTestGameTest
+import net.kernelpanicsoft.archie.test.data.ArchieTestDatagen
+import net.kernelpanicsoft.archie.util.onClient
 import net.minecraft.resources.ResourceLocation
 import org.slf4j.Logger
 
@@ -28,6 +32,8 @@ object ArchieTest
 		AEvents += MOD
 		if (ADataGeneratorPlatform.isDataGen)
 			ArchieTestDatagen.init()
+		if (AGameTestPlatform.isGameTest)
+			ArchieTestGameTest.init()
 		BlockRegistry.init()
 		ItemRegistry.init()
 		TileRegistry.init()
@@ -37,12 +43,10 @@ object ArchieTest
 	@JvmStatic
 	fun initClient()
 	{
-		GuiRegistry.initClient()
 	}
 
 	@JvmStatic
 	fun initCommon()
 	{
 	}
-
 }

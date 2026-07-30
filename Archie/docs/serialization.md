@@ -97,12 +97,12 @@ val CONFIG_CODEC: Codec<Config> = Config.serializer().codec()
 // Equivalent to RecordCodecBuilder.create { ... } but derived from @Serializable
 ```
 
-### `KSerializer<T>.getStreamCodec()`
+### `KSerializer<T>.streamCodec`
 
-Produces a `StreamCodec<RegistryFriendlyByteBuf, T>` backed by CBOR:
+An extension property that produces a `StreamCodec<RegistryFriendlyByteBuf, T>` backed by CBOR:
 
 ```kotlin
-val STREAM_CODEC = MyPacket.serializer().getStreamCodec()
+val STREAM_CODEC = MyPacket.serializer().streamCodec
 ```
 
 ---
@@ -127,22 +127,36 @@ Register contextual serializers for common Minecraft types by including `Minecra
 | `Vec3` | `SVec3` |
 | `Vec3i` | `SVec3i` |
 | `BlockHitResult` | `SBlockHitResult` |
-| `ResourceLocation` | `SerializableResourceLocation` |
+| `ResourceLocation` | `SResourceLocation` |
+| `ItemStack` | `SItemStack` |
 | `FriendlyByteBuf` | `SFriendlyByteBuf` |
 
-Usage:
+Each alias already carries `@Contextual`, so just use it as the field's type directly:
 
 ```kotlin
 @Serializable
 data class MyPacket(
-    val pos: @Contextual BlockPos,
+    val pos: SBlockPos,
     val dir: String,
 )
 ```
 
 ---
 
-## Sync
+## `@Sync`
 
-Archie's `Sync` utility enables automatic client–server synchronization of `@Serializable`
-data classes attached to block entities, using the `NBTHolder` system under the hood.
+`@Sync` is a marker annotation for `NBTHolder`-delegated properties:
+
+```kotlin
+class MyHolder : NBTHolder by NBTHolder.create() {
+    var serverOnly by intField { 0 }
+
+    @Sync
+    var visibleToClient by intField { 0 }
+}
+```
+
+Only `@Sync`-annotated fields are included in `NBTHolder.getSyncTag()`. `NBTBlockEntity` calls
+this to build the tag sent to tracking clients, so annotate exactly the fields a block entity
+needs on the client (e.g. for rendering or GUI display) — everything else stays server-only and
+is only persisted via the normal save/load tag.

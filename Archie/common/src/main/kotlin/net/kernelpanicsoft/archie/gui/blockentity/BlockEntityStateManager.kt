@@ -24,6 +24,11 @@ object BlockEntityStateManager {
     /** Registry of players tracking each block entity, keyed by (level, pos) */
     private val trackedPlayers = ConcurrentHashMap<String, MutableSet<ServerPlayer>>()
 
+    /**
+     * Registers the server tick listener that drives [syncDirtyEntities] every tick.
+     *
+     * Must be called once during mod init.
+     */
     fun init() {
         TickEvent.SERVER_POST.register {
             syncDirtyEntities(it.tickCount.toLong())
@@ -142,9 +147,8 @@ object BlockEntityStateManager {
     }
 
     /**
-     * Default network sender function that does nothing.
-     *
-     * Should be replaced with actual network channel integration.
+     * Default network sender used by [syncDirtyEntities]; sends [BlockEntityStatePacket]s to the
+     * given players via [ArchieNetworkChannel].
      */
     private val DEFAULT_NETWORK_SENDER: (BlockEntityStatePacket, List<ServerPlayer>) -> Unit = { packet, players ->
         ArchieNetworkChannel.toPlayers(players, packet)

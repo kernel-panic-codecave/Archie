@@ -10,6 +10,7 @@ import java.util.function.Function
 import java.util.stream.Collectors
 import java.util.stream.IntStream
 
+/** One weighted, rotated variant entry pointing at a [model], as used in blockstate `variants`. Build via [builder]. */
 class AConfiguredModel @JvmOverloads constructor(
 	model: AModelFile,
 	rotationX: Int = 0,
@@ -48,17 +49,13 @@ class AConfiguredModel @JvmOverloads constructor(
 	}
 
 	/**
-	 * A builder for [AConfiguredModel]s, which can contain a callback for
-	 * processing the finished result. If no callback is available (e.g. in the case
-	 * of [AConfiguredModel.builder]), some methods will not be available.
+	 * A builder for one or more [AConfiguredModel]s, optionally backed by a callback that
+	 * consumes the finished result and returns [T] (the owning builder, e.g. an
+	 * [AVariantBlockStateBuilder.PartialBlockstate]). Without a callback (as from the standalone
+	 * [AConfiguredModel.builder]), [addModel] is unavailable; use [build]/[buildLast] instead.
 	 *
-	 *
-	 * Multiple models can be configured at once through the use of
-	 * [.nextModel].
-	 *
-	 * @param <T> the type of the owning builder, which supplied the callback, and
-	 * will be returned upon completion.
-	</T> */
+	 * Multiple weighted variants can be configured at once through [nextModel]/[model].
+	 */
 	class Builder<T> @JvmOverloads internal constructor(
 		private val callback: Function<Array<AConfiguredModel>, T>? = null,
 		private var otherModels: List<AConfiguredModel> = listOf()
@@ -107,27 +104,32 @@ class AConfiguredModel @JvmOverloads constructor(
 			return this
 		}
 
+		/** Builds only the currently-configured [AConfiguredModel], discarding [otherModels]. */
 		fun buildLast(): AConfiguredModel
 		{
 			return AConfiguredModel(model!!, rotationX, rotationY, uvLock, weight)
 		}
 
+		/** Builds every configured model, including any queued via [nextModel]. */
 		fun build(): Array<AConfiguredModel>
 		{
 			return ObjectArrays.concat(otherModels.toTypedArray(), buildLast())
 		}
 
+		/** Finalizes [build] and hands the result to the owning builder's callback, returning [T]. */
 		fun addModel(): T
 		{
 			Preconditions.checkNotNull(callback, "Cannot use addModel() without an owning builder present")
 			return callback!!.apply(build())
 		}
 
+		/** Starts configuring another weighted variant, keeping models built so far. */
 		fun nextModel(): Builder<T>
 		{
 			return Builder(callback, build().toList())
 		}
 
+		/** Configures the current (or, once already configured, the next) variant with [block]. */
 		fun model(block: Builder<T>.() -> Unit): Builder<T>
 		{
 			if (otherModels.isEmpty())
@@ -147,6 +149,7 @@ class AConfiguredModel @JvmOverloads constructor(
 			return IntStream.range(0, 4).map { i: Int -> i * 90 }
 		}
 
+		/** Builds one [AConfiguredModel] of [model] per valid Y rotation (0/90/180/270), all at fixed X rotation [x]. */
 		@JvmOverloads
 		fun allYRotations(
 			model: AModelFile,
@@ -160,6 +163,7 @@ class AConfiguredModel @JvmOverloads constructor(
 				.collect(Collectors.toList()).toTypedArray()
 		}
 
+		/** Builds one [AConfiguredModel] of [model] for every valid X/Y rotation combination. */
 		@JvmOverloads
 		fun allRotations(
 			model: AModelFile,
@@ -202,6 +206,7 @@ class AConfiguredModel @JvmOverloads constructor(
 			)
 		}
 
+		/** Creates a standalone [Builder] with no owning-builder callback; use [Builder.build]/[Builder.buildLast]. */
 		fun builder(block: Builder<*>.() -> Unit = {}): Builder<*>
 		{
 			return Builder<Any>().apply(block)

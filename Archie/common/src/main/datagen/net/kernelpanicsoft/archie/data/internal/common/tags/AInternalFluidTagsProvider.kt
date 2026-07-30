@@ -8,6 +8,11 @@ import net.minecraft.data.PackOutput
 import net.minecraft.world.level.material.Fluids
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Populates Archie's vanilla-derived common ("c") fluid tags (see [ACommonTags.Fluids]) with
+ * their vanilla fluid members, so downstream mods can depend on the `c` tag convention without
+ * every mod having to redeclare it.
+ */
 class AInternalFluidTagsProvider(output: PackOutput, registriesFuture: CompletableFuture<HolderLookup.Provider>) :
 	ATagsProvider.FluidTagsProvider(
 		output, Archie.MOD,

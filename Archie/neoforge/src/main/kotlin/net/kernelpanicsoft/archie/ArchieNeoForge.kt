@@ -9,7 +9,11 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent
 
 /**
- * Main class for the mod on the NeoForge platform.
+ * NeoForge entrypoint for the mod, registered via the `@Mod` annotation.
+ *
+ * Delegates all real initialization to [Archie], wiring its lifecycle calls into the NeoForge
+ * mod-bus events ([FMLConstructModEvent], [FMLClientSetupEvent], [FMLCommonSetupEvent]) and
+ * registering the client tick pump used by [ThreadingImpl].
  */
 @Mod(Archie.MOD_ID)
 object ArchieNeoForge {

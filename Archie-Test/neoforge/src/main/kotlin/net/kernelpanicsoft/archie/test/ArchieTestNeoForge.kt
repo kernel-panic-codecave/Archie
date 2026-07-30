@@ -1,21 +1,23 @@
 package net.kernelpanicsoft.archie.test
 
-import dev.architectury.event.events.client.ClientLifecycleEvent
-import dev.architectury.event.events.common.LifecycleEvent
 import dev.nyon.klf.MOD_BUS
 import net.neoforged.fml.common.Mod
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
+import net.neoforged.fml.event.lifecycle.FMLConstructModEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 
 @Mod(ArchieTest.MOD_ID)
 object ArchieTestNeoForge
 {
 	init {
-		ArchieTest.init()
-		ClientLifecycleEvent.CLIENT_SETUP.register {
-
+		MOD_BUS.addListener<FMLConstructModEvent> {
+			ArchieTest.init()
+		}
+		MOD_BUS.addListener<FMLClientSetupEvent> {
 			ArchieTest.initClient()
 		}
-		LifecycleEvent.SETUP.register {
+		MOD_BUS.addListener<FMLCommonSetupEvent> {
 			ArchieTest.initCommon()
 		}
 		MOD_BUS.addListener<RegisterMenuScreensEvent> {

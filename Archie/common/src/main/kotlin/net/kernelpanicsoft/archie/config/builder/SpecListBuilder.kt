@@ -7,6 +7,7 @@ import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
 import net.minecraft.network.chat.Component
 
+/** [ListFieldBuilder] for nested [CategorySpec] entries, using [SpecFieldBuilder] per row. */
 class SpecListBuilder<T : CategorySpec>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,

@@ -9,6 +9,11 @@ import net.minecraft.tags.BiomeTags
 import net.minecraft.world.level.biome.Biomes
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Populates Archie's vanilla-derived common ("c") biome tags (see [ACommonTags.Biomes]) with
+ * their vanilla biome members, so downstream mods can depend on the `c` tag convention without
+ * every mod having to redeclare it.
+ */
 class AInternalBiomeTagsProvider(
 	output: PackOutput, registriesFuture: CompletableFuture<HolderLookup.Provider>
 ) : ATagsProvider.BiomeTagsProvider(output, Archie.MOD, registriesFuture, false)

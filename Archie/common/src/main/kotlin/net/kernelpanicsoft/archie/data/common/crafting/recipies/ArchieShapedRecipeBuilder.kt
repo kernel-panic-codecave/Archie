@@ -10,6 +10,12 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.level.ItemLike
 
+/**
+ * DSL builder for a shaped crafting recipe, wrapping vanilla's [ShapedRecipeBuilder]. Set
+ * [category], [result], and (optionally) [count], declare the grid with [pattern] and [key], and
+ * save with [IARecipeBuilder.save]/[net.minecraft.data.recipes.RecipeBuilder.save]. Build via
+ * [net.kernelpanicsoft.archie.data.common.crafting.ARecipeProvider.shaped].
+ */
 class ArchieShapedRecipeBuilder : IARecipeBuilder
 {
 
@@ -27,11 +33,13 @@ class ArchieShapedRecipeBuilder : IARecipeBuilder
 	var group: String? = null
 	var showNotification = true
 
+	/** Declares the recipe's shape via [Pattern.unaryPlus] on each row string, e.g. `+"XXX"`. */
 	fun pattern(block: Pattern.() -> Unit)
 	{
 		Pattern().apply(block)
 	}
 
+	/** Declares the recipe's shape as a sequence of row strings, top to bottom. */
 	fun pattern(
 		vararg lines: String,
 	)
@@ -39,19 +47,23 @@ class ArchieShapedRecipeBuilder : IARecipeBuilder
 		rows.addAll(lines)
 	}
 
+	/** DSL scope for declaring pattern rows one at a time; see [pattern]. */
 	inner class Pattern
 	{
+		/** Adds this string as the next pattern row. */
 		operator fun String.unaryPlus()
 		{
 			rows.add(this)
 		}
 	}
 
+	/** Declares which [Ingredient] each pattern symbol maps to via [Key.to]. */
 	fun key(block: Key.() -> Unit)
 	{
 		Key().apply(block)
 	}
 
+	/** DSL scope for mapping pattern symbols to ingredients; see [key]. */
 	inner class Key
 	{
 		infix fun Char.to(tag: TagKey<Item>)

@@ -28,6 +28,7 @@ data class ModalChoice<T>(
     val enabled: Boolean = true,
 )
 
+/** Shared [Surface] layout (title, body, bottom action row) used by all built-in dialog composables. */
 @Composable
 private fun ModalDialogScaffold(
     title: Component,
@@ -52,7 +53,14 @@ private fun ModalDialogScaffold(
     }
 }
 
-/** Simple one-action modal for acknowledgements and warnings. */
+/**
+ * Simple one-action modal for acknowledgements and warnings.
+ *
+ * @param title       The dialog's header text.
+ * @param message     The body text explaining the alert.
+ * @param confirmText Label for the single dismiss button.
+ * @param onConfirm   Called just before the modal dismisses itself.
+ */
 @Composable
 fun ModalScope.AlertDialog(
     title: Component,
@@ -77,7 +85,19 @@ fun ModalScope.AlertDialog(
     )
 }
 
-/** Input modal with inline text field and explicit confirm/cancel actions. */
+/**
+ * Input modal with an inline text field and explicit confirm/cancel actions.
+ *
+ * @param title        The dialog's header text.
+ * @param initialValue The text field's starting value.
+ * @param prompt       Label text shown above the text field.
+ * @param confirmText  Label for the confirm button.
+ * @param cancelText   Label for the cancel button.
+ * @param validator    The confirm button is only enabled while this returns `true` for the
+ *   current field value.
+ * @param onConfirm    Called with the field's value just before the modal dismisses itself.
+ * @param onCancel     Called just before the modal dismisses itself via the cancel button.
+ */
 @Composable
 fun ModalScope.PromptDialog(
     title: Component,
@@ -124,7 +144,17 @@ fun ModalScope.PromptDialog(
     )
 }
 
-/** Multi-choice modal that maps each option to a button action. */
+/**
+ * Multi-choice modal that maps each option in [choices] to its own button, plus one cancel
+ * action.
+ *
+ * @param title      The dialog's header text.
+ * @param message    Optional body text shown above the choice buttons.
+ * @param choices    The selectable options, one button each, in order.
+ * @param cancelText Label for the cancel button.
+ * @param onSelected Called with the chosen value just before the modal dismisses itself.
+ * @param onCancel   Called just before the modal dismisses itself via the cancel button.
+ */
 @Composable
 fun <T> ModalScope.ChoiceDialog(
     title: Component,

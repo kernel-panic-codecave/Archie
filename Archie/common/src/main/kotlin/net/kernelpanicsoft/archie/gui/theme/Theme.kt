@@ -27,6 +27,15 @@ object ThemeVariants {
     const val DARK = "dark"
 }
 
+/**
+ * Resource-pack-defined metadata for a theme (namespace + type), declaring which variant
+ * names are valid and how requested modes should resolve to them.
+ *
+ * @property variants       The set of variant names this theme actually defines resources for.
+ * @property defaultVariant The variant to fall back to when a requested mode isn't in [variants].
+ * @property aliases        Maps a requested mode name to a canonical variant name before
+ *   validating it against [variants] (e.g. letting a pack expose `"night"` as an alias for `"dark"`).
+ */
 @Serializable
 data class ThemeManifest(
     val variants: Set<String> = setOf(ThemeVariants.DEFAULT),
@@ -34,6 +43,13 @@ data class ThemeManifest(
     val aliases: Map<String, String> = emptyMap(),
 )
 
+/**
+ * Loads `*.theme.json` [ThemeManifest] resources from the `archie_themes` directory on
+ * resource pack reload, keyed by their resource location.
+ *
+ * [resolveMode] is what [ThemeData.resolvedMode] calls to turn a requested variant name into
+ * one the active resource pack(s) actually support.
+ */
 class ThemeManifestResourceListener :
     SerializationReloadListener<ThemeManifest>(
         format = SerializationManager.json,
@@ -46,6 +62,14 @@ class ThemeManifestResourceListener :
     companion object {
         internal val MANIFESTS = mutableMapOf<ResourceLocation, ThemeManifest>()
 
+        /**
+         * Resolves [requestedMode] against the [ThemeManifest] loaded for [namespace]/[type],
+         * applying [ThemeManifest.aliases] then falling back to [ThemeManifest.defaultVariant]
+         * if the (possibly aliased) mode isn't in [ThemeManifest.variants].
+         *
+         * Returns [requestedMode] unchanged when no manifest is registered for that
+         * namespace/type (i.e. the theme doesn't declare one).
+         */
         fun resolveMode(namespace: String, type: String, requestedMode: String): String {
             val key = ResourceLocation.fromNamespaceAndPath(namespace, type.ifEmpty { "default" })
             val manifest = MANIFESTS[key] ?: return requestedMode
@@ -54,6 +78,7 @@ class ThemeManifestResourceListener :
         }
     }
 
+    /** Replaces the registered [MANIFESTS] with the newly loaded [prepared] set. */
     override fun apply(
         prepared: Map<ResourceLocation, ThemeManifest>,
         resourceManager: ResourceManager,
@@ -69,9 +94,11 @@ class ThemeManifestResourceListener :
  *
  * Provided through [LocalTheme] to all composables under a [Theme] wrapper.
  *
- * @property mode      The active variant name (e.g. [ThemeVariants.DARK]). Empty string = default.
- * @property type      The platform type (e.g. `"java"`). Used as a path prefix for theme files.
- * @property namespace The resource namespace to look up theme definitions in.
+ * @property mode           The active variant name (e.g. [ThemeVariants.DARK]). Empty string = default.
+ * @property type           The platform type (e.g. `"java"`). Used as a path prefix for theme files.
+ * @property darkTextColor  The text color used on light/bright surfaces.
+ * @property lightTextColor The text color used on dark surfaces.
+ * @property namespace      The resource namespace to look up theme definitions in.
  */
 @Immutable
 data class ThemeData(
@@ -105,7 +132,8 @@ data class ThemeData(
 val LocalTheme = compositionLocalOf { ThemeData(ThemeVariants.DEFAULT, "java", KColor.DARK_GRAY, KColor.WHITE, Archie.MOD_ID) }
 
 /**
- * Builds the [ResourceLocation] used to look up a composable's theme definition.
+ * Builds the [ResourceLocation] used to look up a composable's default-variant theme
+ * definition.
  *
  * The resulting path is `<namespace>:<composable>` with an optional `<type>/` prefix when
  * [type] is non-empty (e.g. `archie:java/button`).
@@ -118,6 +146,13 @@ inline fun composableThemeLocation(
 ): ResourceLocation = ResourceLocation.fromNamespaceAndPath(namespace, composable)
     .run { if (type.isNotEmpty()) withPrefix("$type/") else this }
 
+/**
+ * Builds the [ResourceLocation] used to look up a composable's theme definition for a
+ * specific non-default [mode] (variant).
+ *
+ * The resulting path is `<namespace>:<composable>` with an optional `<type>/` and `<mode>/`
+ * prefix, in that order, for each that is non-empty (e.g. `archie:java/dark/button`).
+ */
 @Suppress("NOTHING_TO_INLINE")
 inline fun composableThemeLocation(
     namespace: String,

@@ -35,6 +35,7 @@ private const val DEFAULT_CONTENT_WIDTH = 9 * 18
  * └─────────────────────────────────┘
  * ```
  *
+ * @param contentWidth   Width of the panel's content area, in pixels. Defaults to 9 slots wide.
  * @param modifier       Additional modifiers applied to the outer container.
  * @param content        The screen contents composable (container inventory, custom widgets, etc.).
  */
@@ -73,6 +74,14 @@ fun ContainerPanel(
     }
 }
 
+/**
+ * A [ContainerPanel] whose contents are switched between tabs, following the same
+ * container/player-inventory layout as [ContainerPanel].
+ *
+ * @param contentWidth Width of the panel's content area, in pixels. Defaults to 9 slots wide.
+ * @param modifier     Additional modifiers applied to the outer [TabPanel].
+ * @param builder      Declares the tabs; see [TabContainerScope].
+ */
 @Composable
 fun TabContainerPanel(
     contentWidth: Int = DEFAULT_CONTENT_WIDTH,

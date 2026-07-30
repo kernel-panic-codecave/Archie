@@ -3,65 +3,59 @@ package net.kernelpanicsoft.archie.gametest.internal.tests
 import androidx.compose.runtime.LaunchedEffect
 import net.kernelpanicsoft.archie.gametest.ClientGameTest
 import net.kernelpanicsoft.archie.gametest.ClientGameTestContext
+import net.kernelpanicsoft.archie.gametest.LayerSelector
+import net.kernelpanicsoft.archie.gametest.waitForScreen
 import net.kernelpanicsoft.archie.gui.ComposeScreen
-import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.MeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
-import net.kernelpanicsoft.archie.util.getReflection
 import net.minecraft.network.chat.Component
 
 private fun fixedSizeMeasurePolicy(width: Int, height: Int): MeasurePolicy = MeasurePolicy { _, _, _ ->
     MeasureResult(width, height) { }
 }
 
+/**
+ * Client GameTest coverage for [ComposeScreen] rendering: that a [Layout] node is measured
+ * with its policy's reported size, and that a layer pushed via `LocalLayerManager.modal` is
+ * measured independently on top of the base layer.
+ */
 @Suppress("unused")
 class ComposeRenderingTests {
     @ClientGameTest
-    fun testComposeScreenMeasuresRenderableNode(context: ClientGameTestContext) {
-        val screen = RenderProbeScreen()
-        context.setScreen { screen }
-        context.waitForScreen(RenderProbeScreen::class.java)
-
-        val layerManager = context.computeOnClient { screen.layerManager() }
-        context.assertEquals(1, layerManager.layers.size)
-
-        val rootNode = context.computeOnClient { layerManager.layers.first().rootNode }
-        val probeNode = context.computeOnClient { rootNode.findNode(RENDER_PROBE_NAME) }
-        context.assertTrue(probeNode != null) { "Expected render probe node to exist" }
-
-        context.computeOnClient {
-            rootNode.measure(Constraints(maxWidth = 320, maxHeight = 240))
+    fun ClientGameTestContext.testComposeScreenMeasuresRenderableNode() {
+        setScreen { RenderProbeScreen() }
+        waitForScreen<RenderProbeScreen> {
+            waitForLayer(0) {
+                assertTrue(hasNode(RENDER_PROBE_NAME)) { "Expected render probe node to exist" }
+                computeOnClient {
+                    rootNode.measure(Constraints(maxWidth = 320, maxHeight = 240))
+                }
+                node(RENDER_PROBE_NAME) {
+                    assertEquals(120, computeOnClient { node.width })
+                    assertEquals(64, computeOnClient { node.height })
+                }
+            }
         }
-
-        context.assertEquals(120, context.computeOnClient { probeNode!!.width })
-        context.assertEquals(64, context.computeOnClient { probeNode!!.height })
     }
 
     @ClientGameTest
-    fun testComposeScreenPushesModalLayer(context: ClientGameTestContext) {
-        val screen = ModalProbeScreen()
-        context.setScreen { screen }
-        context.waitForScreen(ModalProbeScreen::class.java)
-        context.waitFor { _ -> screen.layerManager().layers.size == 2 }
-
-        val layerManager = context.computeOnClient { screen.layerManager() }
-        context.assertEquals(2, layerManager.layers.size)
-
-        val modalLayer = context.computeOnClient { layerManager.layers.last() }
-        val modalNode = context.computeOnClient { modalLayer.findNode(MODAL_PROBE_NAME) }
-        context.assertTrue(modalNode != null) { "Expected modal probe node to exist" }
-
-        context.computeOnClient {
-            modalLayer.rootNode.measure(Constraints(maxWidth = 320, maxHeight = 240))
+    fun ClientGameTestContext.testComposeScreenPushesModalLayer() {
+        setScreen { ModalProbeScreen() }
+        waitForScreen<ModalProbeScreen> {
+            waitForLayer(1) {
+                assertTrue(hasNode(MODAL_PROBE_NAME, LayerSelector.Top)) { "Expected modal probe node to exist" }
+                computeOnClient {
+                    rootNode.measure(Constraints(maxWidth = 320, maxHeight = 240))
+                }
+                node(MODAL_PROBE_NAME) {
+                    assertEquals(96, computeOnClient { node.width })
+                    assertEquals(48, computeOnClient { node.height })
+                }
+            }
         }
-
-        context.assertEquals(96, context.computeOnClient { modalNode!!.width })
-        context.assertEquals(48, context.computeOnClient { modalNode!!.height })
     }
-
-    private inline fun <reified S : ComposeScreen> S.layerManager(): LayerStackManager = getReflection("layerManager")
 
     private class RenderProbeScreen : ComposeScreen(Component.literal("Compose Render Probe")) {
         override fun init() {

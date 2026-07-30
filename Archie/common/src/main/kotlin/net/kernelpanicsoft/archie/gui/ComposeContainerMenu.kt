@@ -66,12 +66,21 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     var slotData: SlotData = SlotData()
         private set
 
+    /** `true` once [repositionSlots] has run at least once and slot pixel positions are valid. */
     var ready: Boolean = false
         private set
 
     /** Parallel to [slots], stores which compose layer produced each vanilla slot. */
     private var slotLayerDepthByIndex: IntArray = IntArray(0)
     private var slotClipBoundsByIndex: Array<IntRect?> = emptyArray()
+
+    /**
+     * The enabled group ids [rebuildSlots] last ran with, in [SlotData.groups] iteration order.
+     * Used by [applySlotData] to tell a genuine shape change (e.g. switching tabs to a group
+     * backed by different storage) from a mere reposition (scrolling, resizing) that must not
+     * discard existing [Slot] identity.
+     */
+    private var registeredGroupIds: List<String> = emptyList()
 
     val blockEntityState: ComposeBlockEntityState = getOrCreateBlockEntityState(tile.blockPos)
 
@@ -137,8 +146,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
      */
     fun updateSlotData(data: SlotData) {
         slotData = data
-        rebuildSlots()
-        rebuildSlotMetadataMaps()
+        applySlotData()
         broadcastFullState()
         // Notify server of the new layout so it can validate slot indices
         ArchieNetworkChannel.toServer(data)
@@ -148,8 +156,59 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     fun slotClipBounds(slotIndex: Int): IntRect? = slotClipBoundsByIndex.getOrNull(slotIndex)
 
     /**
-     * First-time slot construction: registers all menu slots and player slots.
-     * Must only be called when [slots] is empty.
+     * Whether the slot at [slotIndex] currently overlaps its group's clip bounds (if it has
+     * any, i.e. it sits inside a [net.kernelpanicsoft.archie.gui.composables.containers.Scrollable]).
+     *
+     * Used as this slot's [Slot.isActive] - the same vanilla hook that hides the Donkey/Mule
+     * armor slot - so a slot scrolled out of view stops rendering its item icon and stops being
+     * hoverable/clickable, without needing to remove it from [slots] and break its identity.
+     * A slot with no clip bounds (not inside a scrollable) is always visible.
+     */
+    fun isSlotVisible(slotIndex: Int): Boolean {
+        val clip = slotClipBoundsByIndex.getOrNull(slotIndex) ?: return true
+        val slot = slots.getOrNull(slotIndex) ?: return true
+        val absX = screenLeftPos + slot.x
+        val absY = screenTopPos + slot.y
+        return absX + 16 > clip.minX && absX < clip.maxX && absY + 16 > clip.minY && absY < clip.maxY
+    }
+
+    /**
+     * Re-derives every [Slot]'s pixel position from the current [slotData] without touching
+     * slot identity or [slotHandlers]. Call after [screenLeftPos]/[screenTopPos] change -
+     * slot coordinates have the screen offset baked into their subtraction (see
+     * [repositionSlots]), so they go stale whenever the screen recenters, independent of
+     * whether Compose's own slot layout changed.
+     */
+    fun refreshSlotPositions() {
+        if (slots.isEmpty()) return
+        repositionSlots()
+        rebuildSlotMetadataMaps()
+    }
+
+    /**
+     * Applies the current [slotData]: rebuilds the vanilla [Slot] list from scratch only when
+     * the set of enabled groups actually changed (or on first layout); otherwise repositions
+     * the existing slots in place.
+     *
+     * Every layout pass - including a single frame of scrolling - re-reports the full
+     * [SlotData], so rebuilding unconditionally here would discard and recreate every [Slot]
+     * object on every scroll tick / resize, breaking anything holding a reference to one
+     * (drag-in-progress, vanilla's own hovered-slot tracking, quick-move).
+     */
+    private fun applySlotData() {
+        val enabledGroupIds = slotData.groups.entries.filter { it.value.enabled }.map { it.key }
+        if (slots.isEmpty() || enabledGroupIds != registeredGroupIds) {
+            rebuildSlots()
+            registeredGroupIds = enabledGroupIds
+        } else {
+            repositionSlots()
+        }
+        rebuildSlotMetadataMaps()
+    }
+
+    /**
+     * Full slot-list (re)construction: registers all menu slots and player slots.
+     * Only called by [applySlotData] when the enabled group set actually changed.
      */
     private fun rebuildSlots() {
         registerSlotHandlers()
@@ -220,6 +279,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         val clips = ArrayList<IntRect?>(slots.size)
 
         slotData.groups.forEach { (id, group) ->
+            if (!group.enabled) return@forEach
             if (slotHandlers[id] == null) return@forEach
             val clip = group.clip
             repeat(group.size.width * group.size.height) {
@@ -301,7 +361,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 	    when (storage)
 	    {
 		    is ArchieItemStorage -> slot(storage, filter, slot, x, y)
-		    is AbstractVanillaContainer -> slot(storage as Container, filter, slot, x, y)
+		    is AbstractVanillaContainer -> slot(storage, filter, slot, x, y)
 	    }
     }
 
@@ -309,19 +369,26 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         addSlot(object : Slot(container, slot, x, y)
         {
             override fun mayPlace(itemStack: ItemStack): Boolean = filter.test(itemStack)
+            override fun isActive(): Boolean = isSlotVisible(index)
         })
     }
 
     protected fun slot(storage: ArchieItemStorage, filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) {
-        addSlot(ArchieItemMenuSlot(storage, filter, slot, x, y))
+        addSlot(ArchieItemMenuSlot(storage, filter, slot, x, y, this))
     }
 
     protected fun slot(storage: AbstractVanillaContainer, filter: Predicate<ItemStack> = Predicate { true }, slot: Int, x: Int, y: Int) {
-        addSlot(VanillaMenuSlot(storage, filter, slot, x, y))
+        addSlot(VanillaMenuSlot(storage, filter, slot, x, y, this))
     }
 
     // ── AbstractContainerMenu overrides ────────────────────────────────────
 
+    /**
+     * Shift-click handling: menu slots move into the player inventory/hotbar, and player
+     * slots move into the menu, falling back between main inventory and hotbar when the menu
+     * has no room. Slot ranges are derived from [slots].size rather than hardcoded, since the
+     * number of menu slots varies with which groups are enabled.
+     */
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
         val slot = slots.getOrNull(index) ?: return ItemStack.EMPTY
         if (!slot.hasItem()) return ItemStack.EMPTY
@@ -387,14 +454,18 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
     companion object {
 
+        /**
+         * Registers the serverbound [SlotData] packet handler that keeps the server's slot
+         * positions/clip bounds in sync with whichever [ComposeContainerMenu] the sending
+         * player has open. Call once during network channel setup.
+         */
         fun register() {
             ArchieNetworkChannel.serverbound(SlotData::class) { data, context ->
                  val menu = context.player.containerMenu
                  if (menu is ComposeContainerMenu<*, *>) {
                      menu.slotData = data
-                     // Rebuild slot positions on the server to match the client layout
-                     menu.rebuildSlots()
-                     menu.rebuildSlotMetadataMaps()
+                     // Match slot positions on the server to the client layout
+                     menu.applySlotData()
                      menu.broadcastFullState()
                  }
              }

@@ -5,6 +5,11 @@ import net.kernelpanicsoft.archie.events.AEventObject
 import dev.architectury.event.Event
 import dev.architectury.platform.Mod
 
+/**
+ * Convenience [AEventObject] base for listening to [AEvents.REGISTER_GAME_TEST] for [mod].
+ * Subclass and override [handler] (an [AEvents.ArchieGameTestBuilder] receiver) to declare
+ * gametest classes via `server { register<...>() }` / `client { ... }` / `common { ... }`.
+ */
 abstract class AGameTestEventObject(mod: Mod) :
 	AEventObject<AEvents.ArchieGameTestBuilder, AEvents.RegisterGameTestHandler, AEvents.RegisterGameTestHandler.Companion>(
 		mod

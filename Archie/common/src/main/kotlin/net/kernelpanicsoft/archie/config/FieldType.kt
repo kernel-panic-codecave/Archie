@@ -13,6 +13,12 @@ import net.kernelpanicsoft.archie.serialization.serializers.ResourceLocationSeri
 import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KClass
 
+/**
+ * Tags a [CategorySpec] field with its runtime type and the [KSerializer] used to read/write it,
+ * so [CategorySpec.ConfigCategorySerializer] can (de)serialize each field generically without a
+ * `when` over the raw value type. One subtype per builder function in [CategorySpec] (e.g.
+ * [Boolean] for `boolean()`, [IntList] for `intList()`).
+ */
 internal sealed class FieldType<T>
 {
 	abstract val serializer: KSerializer<T>

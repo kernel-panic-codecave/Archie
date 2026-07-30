@@ -41,11 +41,14 @@ fun removeBlockEntityState(pos: BlockPos) {
 }
 
 /**
- * Registers the [BlockEntityStatePacket] with the Archie network channel.
+ * Registers block entity state packets with [ArchieNetworkChannel].
  *
- * This allows the packet to be sent from server to client for block entity state updates.
+ * Handles both directions: applying incoming [BlockEntityStatePacket]s to the client-side
+ * [ComposeBlockEntityState] registry, and applying incoming [BlockEntityUpdatePacket]s (client
+ * edits) to the server-side [BlockEntityStateManager]-tracked [NBTBlockEntity].
  */
 object BlockEntityStatePacketRegistry {
+    /** Registers the clientbound and serverbound packet handlers described above. */
     fun register() {
         ArchieNetworkChannel.clientbound(BlockEntityStatePacket::class) { packet, context ->
             // Update the client-side state with new values from the packet

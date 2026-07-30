@@ -13,21 +13,43 @@ import net.minecraft.data.PackOutput
 import net.minecraft.data.recipes.RecipeOutput
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Base class for a platform's datagen entrypoint, providing a small DSL for registering
+ * [DataProvider]s without needing to interact with architectury's `DataGeneratorPlugin`
+ * directly.
+ *
+ * Providers are grouped by [client] and [common] since client-only providers (e.g. models,
+ * languages) must be skipped on a dedicated server datagen run and vice versa; [isClient] and
+ * [isServer] gate whether a provider actually runs based on the `archie.datagen.client`/
+ * `archie.datagen.server` system properties set by the datagen run configuration.
+ *
+ * Loader modules implement [addProvider] on top of their platform's data generator and then
+ * invoke this generator, typically as `ArchieDatagen(mod) { client { ... }; common { ... } }`.
+ */
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 abstract class ADataGenerator
 {
+	/** Whether client-only providers should run, from the `archie.datagen.client` system property. */
 	val isClient: Boolean
 		get() = System.getProperty("archie.datagen.client").toBoolean()
+
+	/** Whether server-only providers should run, from the `archie.datagen.server` system property. */
 	val isServer: Boolean
 		get() = System.getProperty("archie.datagen.server").toBoolean()
 
 	abstract val mod: Mod
 
+	/**
+	 * Registers [factory] with the underlying platform data generator, running it only when
+	 * [run] is `true`, and returns the constructed provider so it can be reused (e.g. an item
+	 * tags provider depending on a previously created block tags provider).
+	 */
 	abstract fun <T : DataProvider> addProvider(
 		run: Boolean = true,
 		factory: ARegistryAwareDataProviderFactory<T>
 	): T
 
+	/** [addProvider] overload for providers that don't need access to [HolderLookup.Provider]. */
 	fun <T : DataProvider> addProvider(run: Boolean = true, factory: ADataProviderFactory<T>): T
 	{
 		return addProvider(run) { output, _ ->
@@ -35,11 +57,13 @@ abstract class ADataGenerator
 		}
 	}
 
+	/** Registers client-only providers (models, languages) declared in [block] via [Client]. */
 	fun client(block: Client.() -> Unit)
 	{
 		Client().apply(block)
 	}
 
+	/** Registers server-only providers (tags, recipes) declared in [block] via [Common]. */
 	fun common(block: Common.() -> Unit)
 	{
 		Common().apply(block)
@@ -47,16 +71,19 @@ abstract class ADataGenerator
 
 	operator fun invoke(block: ADataGenerator.() -> Unit) = apply(block)
 
+	/** Factory for a [DataProvider] that only needs a [PackOutput] to be constructed. */
 	fun interface ADataProviderFactory<T : DataProvider>
 	{
 		operator fun invoke(output: PackOutput): T
 	}
 
+	/** Factory for a [DataProvider] that also needs the registry [HolderLookup.Provider] future. */
 	fun interface ARegistryAwareDataProviderFactory<T : DataProvider>
 	{
 		operator fun invoke(output: PackOutput, registries: CompletableFuture<HolderLookup.Provider>): T
 	}
 
+	/** Factory for an [ATagsProvider.ItemTagsProvider] that depends on an existing block tags provider. */
 	fun interface ItemTagsDataProviderFactory
 	{
 		operator fun invoke(
@@ -66,8 +93,10 @@ abstract class ADataGenerator
 		): ATagsProvider.ItemTagsProvider
 	}
 
+	/** DSL scope for registering client-side providers; see [ADataGenerator.client]. */
 	inner class Client
 	{
+		/** Registers an [ALanguageProvider] for [locale] that generates translations in [block]. */
 		fun languages(locale: String = "en_us", block: ALanguageProvider.() -> Unit): ALanguageProvider
 		{
 			return languages { packOutput ->
@@ -86,6 +115,7 @@ abstract class ADataGenerator
 			return addProvider(isClient, constructor)
 		}
 
+		/** Registers an [ABlockModelProvider] that generates block models in [block]. */
 		fun blockModels(block: ABlockModelProvider.() -> Unit): ABlockModelProvider
 		{
 			return blockModels { packOutput ->
@@ -104,6 +134,7 @@ abstract class ADataGenerator
 			return addProvider(isClient, constructor)
 		}
 
+		/** Registers an [AItemModelProvider] that generates item models in [block]. */
 		fun itemModels(block: AItemModelProvider.() -> Unit): AItemModelProvider
 		{
 			return itemModels { packOutput ->
@@ -122,6 +153,7 @@ abstract class ADataGenerator
 			return addProvider(isClient, constructor)
 		}
 
+		/** Registers an [ABlockStateProvider] that generates blockstate JSONs in [block]. */
 		fun blockStates(block: ABlockStateProvider.() -> Unit): ABlockStateProvider
 		{
 			return blockStates { packOutput ->
@@ -141,10 +173,13 @@ abstract class ADataGenerator
 		}
 	}
 
+	/** DSL scope for registering server-side providers; see [ADataGenerator.common]. */
 	inner class Common
 	{
+		/** The block tags provider registered via [blockTags], if any; used by [itemTags] to derive item tags from block tags. */
 		lateinit var blockTagsProvider: ATagsProvider.BlockTagsProvider
 
+		/** Registers an [ATagsProvider.BlockTagsProvider] that declares block tags in [block]. */
 		fun blockTags(block: ATagsProvider.BlockTagsProvider.(registries: HolderLookup.Provider) -> Unit): ATagsProvider.BlockTagsProvider
 		{
 			return blockTags { packOutput, registries ->
@@ -165,6 +200,11 @@ abstract class ADataGenerator
 			}
 		}
 
+		/**
+		 * Registers an [ATagsProvider.ItemTagsProvider] that declares item tags in [block].
+		 * Constructs it with [blockTagsProvider] when a block tags provider was already
+		 * registered via [blockTags], enabling `copy(blockTag, itemTag)`.
+		 */
 		fun itemTags(block: ATagsProvider.ItemTagsProvider.(registries: HolderLookup.Provider) -> Unit): ATagsProvider.ItemTagsProvider
 		{
 			return if (::blockTagsProvider.isInitialized)
@@ -203,6 +243,7 @@ abstract class ADataGenerator
 			}
 		}
 
+		/** Registers an [ATagsProvider.BiomeTagsProvider] that declares biome tags in [block]. */
 		fun biomeTags(block: ATagsProvider.BiomeTagsProvider.(registries: HolderLookup.Provider) -> Unit): ATagsProvider.BiomeTagsProvider
 		{
 			return biomeTags { packOutput, registries ->
@@ -221,6 +262,7 @@ abstract class ADataGenerator
 			return addProvider(isServer, constructor)
 		}
 
+		/** Registers an [ATagsProvider.EntityTypeTagsProvider] that declares entity type tags in [block]. */
 		fun entityTags(block: ATagsProvider.EntityTypeTagsProvider.(registries: HolderLookup.Provider) -> Unit): ATagsProvider.EntityTypeTagsProvider
 		{
 			return entityTags { packOutput, registries ->
@@ -239,6 +281,7 @@ abstract class ADataGenerator
 			return addProvider(isServer, constructor)
 		}
 
+		/** Registers an [ATagsProvider.FluidTagsProvider] that declares fluid tags in [block]. */
 		fun fluidTags(block: ATagsProvider.FluidTagsProvider.(registries: HolderLookup.Provider) -> Unit): ATagsProvider.FluidTagsProvider
 		{
 			return fluidTags { packOutput, registries ->
@@ -257,6 +300,7 @@ abstract class ADataGenerator
 			return addProvider(isServer, constructor)
 		}
 
+		/** Registers an [ARecipeProvider] that declares recipes via [block]. */
 		fun recipes(block: ARecipeProvider.(recipeOutput: RecipeOutput) -> Unit): ARecipeProvider
 		{
 			return addProvider(isServer) { packOutput, registries ->

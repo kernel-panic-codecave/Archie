@@ -3,6 +3,11 @@ package net.kernelpanicsoft.archie.gui.nodes
 import androidx.compose.runtime.AbstractApplier
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 
+/**
+ * Compose [AbstractApplier] that materializes composed UI into the [LayoutNode] tree rooted
+ * at [root]. Used as the applier for each [net.kernelpanicsoft.archie.gui.layer.Layer]'s
+ * [androidx.compose.runtime.Composition].
+ */
 class AUINodeApplier(root: LayoutNode) : AbstractApplier<LayoutNode>(root) {
 	override fun insertTopDown(index: Int, instance: LayoutNode) {
 		// Ignored, we insert bottom-up.

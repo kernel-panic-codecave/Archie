@@ -20,12 +20,9 @@ object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries
 		}
 	}
 
-	fun initClient()
+	override fun initClient()
 	{
-		MenuRegistry.registerScreenFactory(TestMenu) { testMenu: TestMenu, inventory: Inventory, component: Component ->
-			ArchieTest.LOGGER.info("Test menu created")
-			TestScreen(testMenu, inventory, component)
-		}
+		MenuRegistry.registerScreenFactory(TestMenu, ::TestScreen)
 	}
 
 }

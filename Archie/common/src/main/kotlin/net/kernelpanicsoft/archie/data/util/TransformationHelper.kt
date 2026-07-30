@@ -10,8 +10,14 @@ import java.lang.Math
 import java.lang.reflect.Type
 import kotlin.math.acos
 
+/**
+ * Math and JSON-parsing helpers for [Transformation] (translate/rotate/scale/rotate model
+ * transforms), including [Deserializer] for the "TRSR" JSON format used by custom item/block
+ * model transforms.
+ */
 object TransformationHelper
 {
+	/** Builds a quaternion from Euler [xyz] angles (in [degrees] if `true`, else radians). */
 	fun quatFromXYZ(xyz: Vector3f, degrees: Boolean): Quaternionf
 	{
 		return quatFromXYZ(xyz.x, xyz.y, xyz.z, degrees)
@@ -28,11 +34,13 @@ object TransformationHelper
 		return Quaternionf().rotationXYZ(x * conversionFactor, y * conversionFactor, z * conversionFactor)
 	}
 
+	/** Builds a quaternion directly from `[x, y, z, w]` components in [values]. */
 	fun makeQuaternion(values: FloatArray): Quaternionf
 	{
 		return Quaternionf(values[0], values[1], values[2], values[3])
 	}
 
+	/** Linearly interpolates from [from] to [to] by [progress] (0..1). */
 	fun lerp(from: Vector3f?, to: Vector3f?, progress: Float): Vector3f
 	{
 		val res = Vector3f(from)
@@ -42,6 +50,7 @@ object TransformationHelper
 
 	private const val THRESHOLD = 0.9995
 
+	/** Spherically interpolates from [v0] to [v1] by [t] (0..1), falling back to lerp when the inputs are nearly parallel. */
 	fun slerp(v0: Quaternionfc, v1: Quaternionfc, t: Float): Quaternionf
 	{
 		// From https://en.wikipedia.org/w/index.php?title=Slerp&oldid=928959428
@@ -90,6 +99,7 @@ object TransformationHelper
 		)
 	}
 
+	/** Interpolates every component of a [Transformation] (translation/scale linearly, rotations spherically) from [one] to [that] by [progress]. */
 	fun slerp(one: Transformation, that: Transformation, progress: Float): Transformation
 	{
 		return Transformation(
@@ -100,6 +110,7 @@ object TransformationHelper
 		)
 	}
 
+	/** Whether [v1] and [v2] are componentwise equal within [epsilon]. */
 	fun epsilonEquals(v1: Vector4f, v2: Vector4f, epsilon: Float): Boolean
 	{
 		return Mth.abs(v1.x() - v2.x()) < epsilon && Mth.abs(v1.y() - v2.y()) < epsilon && Mth.abs(
@@ -107,6 +118,7 @@ object TransformationHelper
 		) < epsilon && Mth.abs(v1.w() - v2.w()) < epsilon
 	}
 
+	/** Gson deserializer for the "TRSR" [Transformation] JSON format: `"identity"`, a raw 3x4 matrix, or an object with `translation`/`rotation`(`left_rotation`)/`scale`/`right_rotation`(`post-rotation`)/`origin`. */
 	class Deserializer : JsonDeserializer<Transformation>
 	{
 		@Throws(JsonParseException::class)
@@ -349,6 +361,7 @@ object TransformationHelper
 		}
 	}
 
+	/** Named reference points a [Deserializer]-parsed transform's rotation/scale can pivot around. */
 	enum class TransformOrigin(val vector: Vector3f, private val serialName: String) : StringRepresentable
 	{
 		CENTER(Vector3f(.5f, .5f, .5f), "center"),

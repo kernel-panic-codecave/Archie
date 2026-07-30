@@ -13,12 +13,21 @@ import java.util.function.Consumer
 import java.util.function.Supplier
 import kotlin.reflect.KClass
 
+/**
+ * Client-side mirror of a [CategorySpec], built lazily as [CategorySpec.client]. Every `boolean`/
+ * `int`/... method here is called by its [CategorySpec] counterpart (via [CategorySpec.onClient])
+ * with matching parameters, and queues a [ConfigEntryBuilder]-based entry that reads from and
+ * writes back into the same backing maps on [spec]. [buildRoot]/[buildSub] then turn the queued
+ * entries into an actual Cloth Config [ConfigCategory]/[SubCategoryListEntry]. None of this is
+ * called directly by mod authors - see [CategorySpec] for the public DSL.
+ */
 @Suppress("unused")
 class ClientCategorySpec(internal val spec: CategorySpec)
 {
+	/** Queued entry builders, appended to in declaration order by each field-registering method below. */
 	internal val builders: MutableList<ConfigEntryBuilder.() -> AbstractConfigListEntry<*>> = mutableListOf()
 
-
+	/** Builds this category's entries plus its subcategories (as nested [SubCategoryListEntry]s) directly into the top-level [category]. */
 	internal fun buildRoot(category: ConfigCategory, entryBuilder: ConfigEntryBuilder)
 	{
 		builders.forEach { builder ->
@@ -29,6 +38,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		}
 	}
 
+	/** Builds this category (and its subcategories, recursively) as a single [SubCategoryListEntry]. */
 	internal fun buildSub(entryBuilder: ConfigEntryBuilder): SubCategoryListEntry
 	{
 		val category = entryBuilder.startSubCategory(spec.title)
@@ -44,6 +54,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		return category.build()
 	}
 
+	/** Queues a read-only description entry showing [text], used to render a field's `comment` above it. */
 	internal fun comment(text: Component)
 	{
 		builders.add { startTextDescription(text).build() }

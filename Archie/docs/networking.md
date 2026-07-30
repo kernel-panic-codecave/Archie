@@ -13,7 +13,7 @@ server-bound and client-bound packet types.
 
 ```kotlin
 // Create the channel (usually a top-level object or companion property)
-val CHANNEL = NetworkChannel(Archie["network/main"])
+val CHANNEL = NetworkChannel(MyMod.MOD % "main")
 ```
 
 ### Defining packets
@@ -22,7 +22,7 @@ Packet types must be Kotlin **data classes** annotated with `@Serializable`.
 
 ```kotlin
 @Serializable
-data class SyncEnergyPacket(val energy: Int, val pos: @Contextual BlockPos)
+data class SyncEnergyPacket(val energy: Int, val pos: SBlockPos)
 
 @Serializable
 data class RequestDataPacket(val id: Int)
@@ -78,16 +78,17 @@ The `IPacketContext` interface is passed to every packet handler and exposes:
 
 ## Minecraft type serializers
 
-For serializing Minecraft types inside packets, annotate fields with `@Contextual` and use
-the provided type aliases:
+For serializing Minecraft types inside packets, use the provided `S`-prefixed type aliases (each
+one is already `@Contextual`-annotated, so you don't add `@Contextual` yourself):
 
 ```kotlin
 @Serializable
 data class TeleportPacket(
-    val destination: @Contextual BlockPos,
-    val dimension: @Contextual ResourceLocation,
+    val destination: SBlockPos,
+    val dimension: SResourceLocation,
 )
 ```
 
 Available contextual serializers: `BlockPos`, `ChunkPos`, `GlobalPos`, `Vec3`, `Vec3i`,
-`BlockHitResult`, `ResourceLocation`, `FriendlyByteBuf`.
+`BlockHitResult`, `ResourceLocation`, `ItemStack`, `FriendlyByteBuf` — see
+[Serialization](serialization.md#minecraft-type-serializers) for the full alias table.

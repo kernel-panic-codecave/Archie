@@ -20,6 +20,13 @@ import java.util.function.Function
 import java.util.function.Supplier
 import kotlin.jvm.optionals.getOrNull
 
+/**
+ * Base Cloth Config builder for a `String`-keyed map field, rendered as a nested list of
+ * editable key/value rows. Concrete subclasses (e.g. [IntegerMapBuilder]) only need to implement
+ * [valueFactory] (the default for a newly-inserted row) and [valueBuilder] (the field builder for
+ * the value column); this class handles the key column, duplicate-key validation, and row
+ * add/remove wiring.
+ */
 abstract class MapFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : MapFieldBuilder<T, A, SELF>>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,
@@ -40,9 +47,10 @@ abstract class MapFieldBuilder<T, A : AbstractConfigListEntry<T>, SELF : MapFiel
 		this.value = value.entries.toList().map(Map.Entry<String, T>::toMutableEntry)
 	}
 
-
+	/** Value assigned to a row inserted via the UI's "add" button. */
 	abstract fun valueFactory(): T
 
+	/** Builds the Cloth Config field for a row's value column. */
 	abstract fun ConfigEntryBuilder.valueBuilder(title: Component, value: T, list: NestedListListEntry<MutableEntry<String, T>, MultiElementListEntry<MutableEntry<String, T>>>): FieldBuilder<T, A, *>
 
 	override fun build(): NestedListListEntry<MutableEntry<String, T>, MultiElementListEntry<MutableEntry<String, T>>>

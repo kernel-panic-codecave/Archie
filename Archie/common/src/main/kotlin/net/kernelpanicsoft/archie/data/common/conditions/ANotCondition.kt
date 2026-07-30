@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.kernelpanicsoft.archie.Archie
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that inverts the result of [child] (logical NOT). */
 data class ANotCondition(val child: IACondition) :
 	IACondition
 {

@@ -8,6 +8,11 @@ import net.minecraft.data.PackOutput
 import net.minecraft.world.entity.EntityType
 import java.util.concurrent.CompletableFuture
 
+/**
+ * Populates Archie's vanilla-derived common ("c") entity type tags (see [ACommonTags.EntityTypes])
+ * with their vanilla entity type members, so downstream mods can depend on the `c` tag convention
+ * without every mod having to redeclare it.
+ */
 class  AInternalEntityTypeTagsProvider(
 	output: PackOutput,
 	registriesFuture: CompletableFuture<HolderLookup.Provider>

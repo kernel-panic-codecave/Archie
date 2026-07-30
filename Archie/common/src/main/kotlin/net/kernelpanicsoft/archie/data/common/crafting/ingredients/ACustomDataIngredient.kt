@@ -21,12 +21,17 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+/**
+ * Custom ingredient that matches stacks accepted by [base] whose `minecraft:custom_data`
+ * component NBT is matched by [nbt] (a partial/sub-tag match, not exact equality). Build via [of].
+ */
 class ACustomDataIngredient private constructor(
 	val base: Ingredient,
 
 	nbt: CompoundTag
 ) : IACustomIngredient
 {
+	/** Non-empty NBT that a matching stack's custom data must be matched by. */
 	val nbt: CompoundTag
 
 	init
@@ -102,8 +107,10 @@ class ACustomDataIngredient private constructor(
 
 	companion object
 	{
+		/** Creates a vanilla [Ingredient] matching [base] stacks whose custom data is matched by [nbt]. */
 		fun of(base: Ingredient, nbt: CompoundTag): Ingredient = ACustomDataIngredient(base, nbt).vanilla
 
+		/** [of] overload that builds the NBT with [builderAction]. */
 		@OptIn(ExperimentalContracts::class)
 		fun of(base: Ingredient, builderAction: NbtCompoundBuilder.() -> Unit)
 		{

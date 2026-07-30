@@ -8,6 +8,7 @@ import net.kernelpanicsoft.archie.Archie
 import dev.architectury.platform.Platform
 import net.minecraft.resources.ResourceLocation
 
+/** Condition that holds when every mod id in [mods] is loaded, per [Platform.isModLoaded]. */
 data class AModLoadedCondition(val mods: List<String>) : IACondition
 {
 	constructor(vararg mods: String) : this(mods.toList())

@@ -5,6 +5,7 @@ import net.minecraft.data.DataProvider
 import net.minecraft.data.PackOutput
 import net.neoforged.neoforge.data.event.GatherDataEvent
 
+/** NeoForge [ADataGenerator], registering providers with the [GatherDataEvent]'s underlying generator. */
 class ADataGeneratorNeoForge(private val forgeDataGenerator: GatherDataEvent, override val mod: Mod) : ADataGenerator()
 {
 	override fun <T : DataProvider> addProvider(run: Boolean, factory: ARegistryAwareDataProviderFactory<T>): T

@@ -29,8 +29,10 @@ class Layer(
 ) {
     val rootNode = LayoutNode("Root").apply { layer = depth }
 
+    /** The `"RootContainer"` node under [rootNode], if one has been composed. */
     val rootContainerNode by lazy { rootNode.findNode("RootContainer") }
 
+    /** Finds a descendant of [rootNode] by name. See [LayoutNode.findNode]. */
     fun findNode(name: String): LayoutNode? = rootNode.findNode(name)
 
 

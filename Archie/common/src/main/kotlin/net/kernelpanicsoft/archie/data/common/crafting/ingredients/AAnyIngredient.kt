@@ -8,6 +8,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import java.util.*
 
+/** Custom ingredient that matches a stack when at least one of its sub-ingredients matches it. Build via [of]. */
 class AAnyIngredient private constructor(ingredients: List<Ingredient>): ACombinedIngredient(ingredients)
 {
 	override fun test(stack: ItemStack): Boolean
@@ -28,6 +29,7 @@ class AAnyIngredient private constructor(ingredients: List<Ingredient>): ACombin
 
 	companion object
 	{
+		/** Creates a vanilla [Ingredient] that matches when at least one of [ingredients] matches. */
 		fun of(vararg ingredients: Ingredient): Ingredient = AAnyIngredient(ingredients.toList()).vanilla
 		private val ALLOW_EMPTY_CODEC = createCodec(Ingredient.CODEC)
 		private val DISALLOW_EMPTY_CODEC = createCodec(Ingredient.CODEC_NONEMPTY)

@@ -90,16 +90,22 @@ object SerializationManager {
 		serializersModule = sharedModule
 	}
 
+	/** The shared [Cbor] instance, reconfigured with [sharedModule] whenever [overwriteWith] or [invoke] runs. */
 	var cbor: Cbor = createCbor()
 		private set
+	/** The shared [Json] instance (unknown keys ignored, nulls omitted), kept in sync with [sharedModule]. */
 	var json: Json = createJson()
 		private set
+	/** The shared Java-edition, uncompressed [Nbt] instance, kept in sync with [sharedModule]. */
 	var nbt: Nbt = createNbt()
 		private set
 
+	// ConcurrentHashMap/CopyOnWriteArrayList: mods can call registerDynamicOp/registerSerializer
+	// concurrently during parallel mod init, and lookups happen far more often than registrations.
 	private val ops: MutableMap<DynamicOps<*>, DynamicOpRegistryBuilder.Operation<Any>> =
-		mutableMapOf()
-	internal val serializers: MutableList<SerializerRegistryBuilder.Registry> = mutableListOf()
+		java.util.concurrent.ConcurrentHashMap()
+	internal val serializers: MutableList<SerializerRegistryBuilder.Registry> =
+		java.util.concurrent.CopyOnWriteArrayList()
 
 	private fun rebuild() {
 		cbor = createCbor()

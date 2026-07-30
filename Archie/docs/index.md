@@ -29,7 +29,7 @@ It targets both **Fabric** and **NeoForge** via [Architectury](https://github.co
 
 ```kotlin
 repositories {
-    maven("https://repo.kernelpanicsoft.net/maven/releases")
+    maven("https://maven.kernelpanicsoft.net/releases")
 }
 
 dependencies {
@@ -63,7 +63,7 @@ object MyMod {
 
 ## Where to add new code
 
-- Put shared logic in `common/src/main/kotlin/...` first.
+- Put shared logic in `Archie/common/src/main/kotlin/...` first.
 - Add loader differences with `expect/actual` triplets: `*.common.kt`, `*.fabric.kt`, `*.neoforge.kt`.
 - Keep Fabric and NeoForge entrypoints thin (`ArchieFabric`, `ArchieNeoForge`) and delegate to `Archie.init*()`.
 - Register packet handlers before calling `register()` on your `NetworkChannel`.

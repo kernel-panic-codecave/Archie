@@ -7,6 +7,7 @@ import net.peanuuutz.tomlkt.Toml
 import net.peanuuutz.tomlkt.TomlIndentation
 import java.nio.file.Path
 
+/** [IConfigSerializer] for the TOML format. Archie's default on NeoForge. */
 object TomlConfigSerializer : IConfigSerializer
 {
 	private val toml = Toml {

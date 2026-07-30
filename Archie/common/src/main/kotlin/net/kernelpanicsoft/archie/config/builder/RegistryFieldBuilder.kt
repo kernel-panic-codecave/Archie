@@ -15,6 +15,12 @@ import net.kernelpanicsoft.archie.config.builder.ofBlockEntityTypeObject
 import java.lang.reflect.Field
 import kotlin.reflect.KClass
 
+/**
+ * Cloth Config builder for a single [registry] entry, rendered as a dropdown over every entry
+ * (optionally filtered to instances of [subclass]) sorted by registry name. Recognized entry
+ * types (`Item`, `Block`, `BlockEntityType`) get an icon in their dropdown cell; anything else
+ * falls back to a plain text cell.
+ */
 @Suppress("UNCHECKED_CAST")
 class RegistryFieldBuilder<T : Any, R : T>(
 	resetButtonKey: Component,

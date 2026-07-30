@@ -405,7 +405,7 @@ abstract class ATagsProvider<T : Any>(
 	/**
 	 * Extend this class to create [Biome] tags in the "/worldgen/biome" tag directory.
 	 *
-	 * **Note:** Minecraft does not have a biome registry, ao only [ResourceKey] and [TagKey] are allowed as tag entries
+	 * **Note:** Minecraft does not have a biome registry, so only [ResourceKey] and [TagKey] are allowed as tag entries
 	 */
 	abstract class BiomeTagsProvider(
 		output: PackOutput,
