@@ -3,9 +3,9 @@ package net.kernelpanicsoft.archie.config
 import net.kernelpanicsoft.archie.config.serializer.Json5ConfigSerializer
 import net.kernelpanicsoft.archie.config.serializer.TomlConfigSerializer
 import net.kernelpanicsoft.archie.APlatform
+import net.kernelpanicsoft.archie.util.onClient
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
-import dev.architectury.utils.Env
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
@@ -23,8 +23,9 @@ import net.minecraft.network.chat.Component
  *     object Advanced : CategorySpec(Component.literal("Advanced"), "advanced") { ... }
  * }
  * ```
- * Call [init] during mod init to load (or create) the config file, and [initClient] on the client
- * to build the Cloth Config UI screen.
+ * Call [init] once during common mod init (on both physical sides); it loads (or creates) the
+ * config file and, on the client, also registers the Cloth Config UI screen. There is no separate
+ * client-side init step to call.
  *
  * @param mod The owning mod, used to derive the default [filename] and locate the config
  * directory.
@@ -62,19 +63,40 @@ abstract class ConfigSpec(val mod: Mod, val title: Component)
 	val isLoaded: Boolean get() = _isLoaded
 	private var _isLoaded: Boolean = false
 
-	/** Registers all [categories] (and their subcategories) and [load]s the config file. Call once during mod init. */
+	/**
+	 * Registers all [categories] (and their subcategories) and [load]s the config file, then, on
+	 * the client, builds and registers the Cloth Config UI screen via [initClient]. Call once
+	 * during common mod init, on both physical sides.
+	 *
+	 * [initClient] is invoked from here - synchronously, during the common `main` entrypoint -
+	 * rather than being left for callers to invoke from their own client entrypoint. Fabric loader
+	 * runs every mod's `main` entrypoint before any mod's `client` entrypoint, so this guarantees
+	 * the screen is registered with [AConfigPlatform] before Catalogue's own client entrypoint
+	 * takes its one-time snapshot of `configFactory` providers. Registering later (e.g. from a
+	 * `client` entrypoint) races that snapshot: depending on unrelated mods' load order, the
+	 * config button would intermittently be missing from Catalogue's mod list.
+	 */
 	fun init()
 	{
 		categoriesMap.values.forEach { cat ->
 			cat.init()
 		}
 		load()
+		onClient { initClient() }
 	}
 
-	/** Builds the Cloth Config UI screen for this spec, if the `cloth_config` mod is present. Call on the client during init. */
-	fun initClient()
+	/** Builds the Cloth Config UI screen for this spec, if Cloth Config is present. */
+	internal fun initClient()
 	{
-		if (Platform.isModLoaded("cloth_config"))
+		// Cloth Config's mod id differs by loader: Fabric allows hyphens ("cloth-config"), while
+		// NeoForge's mod id charset doesn't, so its variant registers as "cloth_config" instead.
+		val clothConfigModId = when (val platform = APlatform.platform)
+		{
+			"fabric" -> "cloth-config"
+			"neoforge" -> "cloth_config"
+			else -> throw UnsupportedOperationException("Unsupported platform: $platform")
+		}
+		if (Platform.isModLoaded(clothConfigModId))
 			client.initClient()
 	}
 

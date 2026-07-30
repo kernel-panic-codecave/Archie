@@ -95,13 +95,14 @@ object Archie
 	}
 
 	/**
-	 * Initializes Archie's client-only systems. Must be called from client entrypoints only,
-	 * after [init].
+	 * Reserved for client-only initialization that must run after [init], from a client
+	 * entrypoint. Currently a no-op: Archie's own config screen already registers synchronously
+	 * inside [init], since deferring it to a client entrypoint would race Catalogue's config
+	 * screen discovery (see [ConfigSpec.init]).
 	 */
 	@JvmStatic
 	fun initClient()
 	{
-		Config.initClient()
 	}
 
 	/**
