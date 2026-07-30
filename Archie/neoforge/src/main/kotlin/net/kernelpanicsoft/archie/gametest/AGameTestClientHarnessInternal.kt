@@ -16,8 +16,14 @@ internal object AGameTestClientHarnessInternal {
     /**
      * No-ops unless this is a client-side GameTest run ([AGameTestPlatform.isGameTest] and
      * [AGameTestPlatform.side] `== CLIENT`) that hasn't started yet. Otherwise registers each mod's
-     * test classes, runs them via [AClientGameTestHarness.run] on the dedicated test thread, and
-     * either throws with a failure summary or stops the client on success.
+     * test classes and runs them via [AClientGameTestHarness.run] on the dedicated test thread.
+     *
+     * The client process is always terminated afterward, on both success and failure - it must
+     * exit with a non-zero code on failure, since [ThreadingImpl.runTestThread] catches and
+     * stores any thrown exception rather than propagating it, so a plain `error(...)` throw here
+     * would leave the client sitting at the title screen forever instead of failing the run
+     * (which is what CI observed: the game never closed, so the Gradle task - and the whole
+     * CI job - just hung until the outer timeout killed it).
      */
     @JvmStatic
     fun runIfNeeded()
@@ -35,7 +41,8 @@ internal object AGameTestClientHarnessInternal {
                 val details = summary.failedDetails.joinToString("\n") { failure ->
                     " - ${failure.testId}: ${failure.rootCause}"
                 }
-                error("Client GameTests failed: ${summary.failed} failing test(s)\n$details")
+                Archie.LOGGER.error("Client GameTests failed: {} failing test(s)\n{}", summary.failed, details)
+                kotlin.system.exitProcess(1)
             }
             Minecraft.getInstance().stop()
         }
