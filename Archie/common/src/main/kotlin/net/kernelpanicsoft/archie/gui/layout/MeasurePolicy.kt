@@ -1,7 +1,7 @@
 package net.kernelpanicsoft.archie.gui.layout
 
 import androidx.compose.runtime.Stable
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.minecraft.client.gui.GuiGraphics
 
@@ -29,7 +29,7 @@ data class MeasureResult(
 /**
  * Defines how a [LayoutNode] measures itself and its children.
  *
- * The [scope] parameter is the [LayoutNode] currently being measured, allowing
+ * The `scope` parameter is the [LayoutNode] currently being measured, allowing
  * measure policies to read node properties (e.g. padding) during layout.
  */
 @Stable
@@ -70,8 +70,8 @@ interface Renderer {
      * Use this for backgrounds, borders, or content that should appear *below* children.
      */
     fun render(
-        node: AUINode, x: Int, y: Int,
-        guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
+	    node: UINode, x: Int, y: Int,
+	    guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
     ) {}
 
     /**
@@ -80,8 +80,8 @@ interface Renderer {
      * Use this for overlays or post-process effects that should appear *above* children.
      */
     fun renderAfterChildren(
-        node: AUINode, x: Int, y: Int,
-        guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
+	    node: UINode, x: Int, y: Int,
+	    guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
     ) {}
 }
 

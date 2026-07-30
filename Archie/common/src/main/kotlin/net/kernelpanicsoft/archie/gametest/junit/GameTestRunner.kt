@@ -6,6 +6,7 @@ import net.minecraft.gametest.framework.GameTest
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.DynamicContainer
 import org.junit.jupiter.api.DynamicTest
+import java.net.URI
 import java.nio.file.Path
 import java.time.Duration
 import kotlin.collections.forEach
@@ -62,24 +63,18 @@ object GameTestRunner
 		val timeout = Duration.ofMinutes((System.getProperty(PROP_TIMEOUT_MINUTES)?.toLongOrNull() ?: 20L).coerceAtLeast(1L))
 		val root = resolveWorkspaceRoot()
 
-		
-		// Shared map to store invocation results (populated when invocation tests run)
-		val invocationResults = mutableMapOf<GameTestGradleInvocation, GameTestGradleResult>()
+		val handleLazies = invocations.associateWith { invocation ->
+			lazy(LazyThreadSafetyMode.SYNCHRONIZED) { GameTestGradleExecutor.start(invocation, timeout, root) }
+		}
 
 		val containers = mutableListOf<DynamicContainer>()
-		
-		// First, create tests for each invocation itself
-		// These tests run the game and populate invocationResults
+
 		invocations.forEach { invocation ->
+			val handleLazy = handleLazies.getValue(invocation)
 			containers.add(DynamicContainer.dynamicContainer(invocation.id, buildList {
 				val invocationTestName = "GameTest Invocation [${invocation.id}]"
 				val invocationTest = DynamicTest.dynamicTest(invocationTestName) {
-					val result = GameTestGradleExecutor.run(
-						invocation = invocation,
-						timeout = timeout,
-						workspaceRoot = root,
-					)
-					invocationResults[invocation] = result
+					val result = handleLazy.value.result.get()
 
 					// Check if the invocation itself succeeded (exit code 0)
 					if (!result.success) {
@@ -96,7 +91,8 @@ object GameTestRunner
 				}
 				add(invocationTest)
 				AEvents.ArchieGameTestBuilder(true).apply(tests).classes.forEach { clazz ->
-					add(DynamicContainer.dynamicContainer(clazz.simpleName, clazz.declaredMethods.flatMap { method ->
+					val classUri = URI.create("class:${clazz.name}")
+					add(DynamicContainer.dynamicContainer(clazz.simpleName, classUri, clazz.declaredMethods.flatMap { method ->
 						val hasGameTest = method.getAnnotationsByType(GameTest::class.java).isNotEmpty()
 						val hasClientGameTest = method.getAnnotationsByType(ClientGameTest::class.java).isNotEmpty()
 						val tests = mutableListOf<DynamicTest>()
@@ -104,13 +100,11 @@ object GameTestRunner
 							val id = "$modID:${clazz.simpleName.lowercase()}.${method.name.lowercase()}"
 							val displayName = "${method.name}"
 							val testName = "$displayName [${invocation.id}]"
-							val test = DynamicTest.dynamicTest(testName) {
-								val result = invocationResults[invocation]
-									?: error("No result recorded for invocation ${invocation.id}")
-
-								// Check if the individual test passed based on log output
-								val testResult = result.testResults[id]
+							val methodUri = URI.create("method:${clazz.name}#${method.name}")
+							val test = DynamicTest.dynamicTest(testName, methodUri) {
+								val testResult = handleLazy.value.awaitTestResult(id)
 								if (testResult != null && !testResult.passed) {
+									val result = handleLazy.value.result.get()
 									val message = buildString {
 										append("GameTest failed: $testName\n")
 										append("Exit code: ${result.exitCode}\n")
@@ -122,6 +116,7 @@ object GameTestRunner
 									throw AssertionError(message)
 								} else if (testResult == null) {
 									// Test wasn't found in the log output
+									val result = handleLazy.value.result.get()
 									if (!result.success) {
 										// Invocation failed entirely, report that
 										val message = buildString {
@@ -140,7 +135,7 @@ object GameTestRunner
 							tests.add(test)
 						}
 						tests
-					}))
+					}.stream()))
 				}
 			}))
 		}

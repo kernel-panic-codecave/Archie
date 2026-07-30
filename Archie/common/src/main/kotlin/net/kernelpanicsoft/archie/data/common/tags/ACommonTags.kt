@@ -326,12 +326,12 @@ object ACommonTags
 
 		/**
 		 * Does not include entity water buckets.
-		 * If checking for the fluid this bucket holds in code, please use [net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper.getFluid] instead.
+		 * If checking for the fluid this bucket holds in code, please use `net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper.getFluid` instead.
 		 */
 		val BUCKETS_WATER: TagKey<Item> = tag("buckets/water")
 
 		/**
-		 * If checking for the fluid this bucket holds in code, please use [net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper.getFluid] instead.
+		 * If checking for the fluid this bucket holds in code, please use `net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper.getFluid` instead.
 		 */
 		val BUCKETS_LAVA: TagKey<Item> = tag("buckets/lava")
 		val BUCKETS_MILK: TagKey<Item> = tag("buckets/milk")
@@ -381,7 +381,7 @@ object ACommonTags
 		 *
 		 * Note: Use custom ingredients in recipes to do tag intersections and/or tag exclusions
 		 * to make more powerful recipes utilizing multiple tags such as dyed tags for an ingredient.
-		 * See [net.neoforged.neoforge.common.crafting.DifferenceIngredient] and [net.neoforged.neoforge.common.crafting.CompoundIngredient]
+		 * See `net.neoforged.neoforge.common.crafting.DifferenceIngredient` and `net.neoforged.neoforge.common.crafting.CompoundIngredient`
 		 * for various custom ingredients available that can also be used in data generation.
 		 */
 		val DYED: TagKey<Item> = tag("dyed")
@@ -664,101 +664,61 @@ object ACommonTags
 		// Tools and Armors
 		/**
 		 * A tag containing all existing tools. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS: TagKey<Item> = tag("tools")
 
 		/**
 		 * A tag containing all existing axes. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_AXES: TagKey<Item> = existing(ItemTags.AXES)
 
 		/**
 		 * A tag containing all existing hoes. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_HOES: TagKey<Item> = existing(ItemTags.HOES)
 
 		/**
 		 * A tag containing all existing pickaxes. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_PICKAXES: TagKey<Item> = existing(ItemTags.PICKAXES)
 
 		/**
 		 * A tag containing all existing shovels. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_SHOVELS: TagKey<Item> = existing(ItemTags.SHOVELS)
 
 		/**
 		 * A tag containing all existing swords. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_SWORDS: TagKey<Item> = existing(ItemTags.SWORDS)
 
 		/**
 		 * A tag containing all existing shields. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_SHIELDS: TagKey<Item> = tag("tools/shields")
 
 		/**
 		 * A tag containing all existing bows. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_BOWS: TagKey<Item> = tag("tools/bows")
 
 		/**
 		 * A tag containing all existing crossbows. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see net.neoforged.neoforge.common.ToolAction
-		 *
-		 * @see net.neoforged.neoforge.common.ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_CROSSBOWS: TagKey<Item> = tag("tools/crossbows")
 
 		/**
 		 * A tag containing all existing fishing rods. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see net.neoforged.neoforge.common.ToolAction
-		 *
-		 * @see net.neoforged.neoforge.common.ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_FISHING_RODS: TagKey<Item> = tag("tools/fishing_rods")
 
@@ -766,31 +726,19 @@ object ACommonTags
 		 * A tag containing all existing spears. Other tools such as throwing knives or boomerangs
 		 * should not be put into this tag and should be put into their own tool tags.
 		 * Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_SPEARS: TagKey<Item> = tag("tools/spears")
 
 		/**
 		 * A tag containing all existing shears. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_SHEARS: TagKey<Item> = tag("tools/shears")
 
 		/**
 		 * A tag containing all existing brushes. Do not use this tag for determining a tool's behavior.
-		 * Please use [net.neoforged.neoforge.common.ToolActions] instead for what action a tool can do.
-		 *
-		 * @see ToolAction
-		 *
-		 * @see ToolActions
+		 * Please use `net.neoforged.neoforge.common.ToolActions` instead for what action a tool can do.
 		 */
 		val TOOLS_BRUSHES: TagKey<Item> = tag("tools/brushes")
 

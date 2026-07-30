@@ -33,10 +33,6 @@ import org.slf4j.Logger
 
 /**
  * Archie's mod object and library entrypoint.
- *
- * Downstream mods should call [init] (and, on the client, [initClient]) from their own
- * loader entrypoint after their own registries have been created but before they are
- * frozen, mirroring the call order used by `ArchieFabric`/`ArchieNeoForge`.
  */
 object Archie
 {
@@ -59,8 +55,6 @@ object Archie
 	 * gametest run, since Architectury's networking registration touches client-only classes),
 	 * initializes block entity state syncing, built-in data providers, and Archie's own config,
 	 * and activates the datagen/gametest code paths when running under those tasks.
-	 *
-	 * Must be called once, on both physical sides, before any other Archie API is used.
 	 *
 	 * @throws IllegalStateException if running on LexForge, which is not supported.
 	 */
@@ -95,13 +89,14 @@ object Archie
 	}
 
 	/**
-	 * Initializes Archie's client-only systems. Must be called from client entrypoints only,
-	 * after [init].
+	 * Reserved for client-only initialization that must run after [init], from a client
+	 * entrypoint. Currently a no-op: Archie's own config screen already registers synchronously
+	 * inside [init], since deferring it to a client entrypoint would race Catalogue's config
+	 * screen discovery (see [ConfigSpec.init]).
 	 */
 	@JvmStatic
 	fun initClient()
 	{
-		Config.initClient()
 	}
 
 	/**

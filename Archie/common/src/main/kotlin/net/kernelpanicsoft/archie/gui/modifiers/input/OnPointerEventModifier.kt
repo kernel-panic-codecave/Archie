@@ -1,7 +1,7 @@
 package net.kernelpanicsoft.archie.gui.modifiers.input
 
 import androidx.compose.runtime.Stable
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 
 /** Identifies the type of pointer (mouse) interaction that triggers an event handler. */
@@ -46,11 +46,11 @@ const val DOUBLE_CLICK_THRESHOLD = 300
  * the **last** one replaces earlier ones (they do not chain). Use [combinedClickable] if
  * you need multiple click behaviours on a single node.
  *
- * @param T        The concrete [AUINode] subtype the handler expects.
+ * @param T        The concrete [UINode] subtype the handler expects.
  * @param eventType The pointer event that triggers [onEvent].
  * @param onEvent  The handler invoked with the receiving node and the event.
  */
-data class OnPointerEventModifier<T : AUINode>(
+data class OnPointerEventModifier<T : UINode>(
     val eventType: PointerEventType,
     val onEvent: (T, PointerEvent) -> Unit,
 ) : Modifier.Element<OnPointerEventModifier<*>> {
@@ -61,12 +61,12 @@ data class OnPointerEventModifier<T : AUINode>(
 /**
  * Registers a handler for the given pointer [type] on this composable.
  *
- * @param T       The expected [AUINode] subtype; use [AUINode] for the generic case.
+ * @param T       The expected [UINode] subtype; use [UINode] for the generic case.
  * @param type    The [PointerEventType] to listen for.
  * @param onEvent The callback invoked with (node, event) when the event occurs.
  */
 @Stable
-fun <T : AUINode> Modifier.onPointerEvent(
+fun <T : UINode> Modifier.onPointerEvent(
     type: PointerEventType,
     onEvent: (T, PointerEvent) -> Unit,
 ): Modifier = this then OnPointerEventModifier(type, onEvent)
@@ -79,7 +79,7 @@ fun <T : AUINode> Modifier.onPointerEvent(
  */
 @Suppress("UNCHECKED_CAST")
 @Stable
-fun <T : AUINode> Modifier.onScroll(
+fun <T : UINode> Modifier.onScroll(
     global: Boolean = false,
     onScrollEvent: (T, ScrollEvent) -> Unit,
 ): Modifier = this then OnPointerEventModifier(
@@ -95,7 +95,7 @@ fun <T : AUINode> Modifier.onScroll(
  */
 @Suppress("UNCHECKED_CAST")
 @Stable
-fun <T : AUINode> Modifier.onDrag(
+fun <T : UINode> Modifier.onDrag(
     global: Boolean = false,
     onDragEvent: (T, DragEvent) -> Unit,
 ): Modifier = this then OnPointerEventModifier(
@@ -113,7 +113,7 @@ fun <T : AUINode> Modifier.onDrag(
  * @param onClick       Invoked on a normal single click (mouse release).
  */
 @Stable
-fun <T : AUINode> Modifier.combinedClickable(
+fun <T : UINode> Modifier.combinedClickable(
     onLongClick: ((T, PointerEvent) -> Unit)? = null,
     onDoubleClick: ((T, PointerEvent) -> Unit)? = null,
     onClick: ((T, PointerEvent) -> Unit)? = null,

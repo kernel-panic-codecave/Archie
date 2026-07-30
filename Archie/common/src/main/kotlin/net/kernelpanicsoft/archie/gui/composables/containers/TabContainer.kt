@@ -23,8 +23,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
-import net.kernelpanicsoft.archie.gui.modifiers.width
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
@@ -365,7 +364,7 @@ fun Tab(
             measurePolicy = measurePolicy,
             renderer = object : Renderer {
                 override fun render(
-                    node: AUINode,
+                    node: UINode,
                     x: Int,
                     y: Int,
                     guiGraphics: GuiGraphics,

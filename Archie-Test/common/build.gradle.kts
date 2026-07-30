@@ -61,7 +61,13 @@ sourceSets {
 }
 
 dependencies {
-	api("net.kernelpanicsoft:common")
+	// namedElements is the mapped-name variant - without it this resolves to the intermediary-mapped
+	// variant that remapJar publishes (see fabric/neoforge's "common"(...) dependency for the same fix),
+	// which is fine at compile time but breaks reflection over Minecraft types at test runtime.
+	api("net.kernelpanicsoft:common") { targetConfiguration = "namedElements" }
+	testImplementation(libs.junit.jupiter.api)
+	testImplementation(kotlin("reflect"))
+	testRuntimeOnly(libs.junit.jupiter.engine)
 	// We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
 	// Do NOT use other classes from fabric loader
 	modImplementation(libs.fabric.loader)
@@ -74,4 +80,14 @@ dependencies {
 
 tasks {
 	base.archivesName.set(base.archivesName.get() + "-common")
+
+	test {
+		testClassesDirs = sourceSets.test.get().output.classesDirs
+		classpath = sourceSets.test.get().runtimeClasspath
+		useJUnitPlatform()
+		systemProperty("archie.junit.gametest", "true")
+		systemProperty("archie.junit.gametest.matrix", "fabric:server,fabric:client,neoforge:server,neoforge:client")
+		systemProperty("archie.junit.gametest.timeoutMinutes", "20")
+		systemProperty("archie.junit.gametest.root", rootProject.rootDir.absolutePath)
+	}
 }

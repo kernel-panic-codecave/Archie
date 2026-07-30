@@ -9,7 +9,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
 import net.kernelpanicsoft.archie.gui.modifiers.onSizeChanged
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.util.Mth
@@ -158,11 +158,11 @@ fun Scrollable(
             name = "Scrollable",
             measurePolicy = measurePolicy,
             renderer = object : Renderer {
-            override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                 guiGraphics.enableScissor(x, y, x + node.width, y + node.height)
             }
 
-            override fun renderAfterChildren(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun renderAfterChildren(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                 val lerpFactor = (0.4f * partialTick).coerceIn(0.05f, 1f).toDouble()
                 val next = state.currentScrollPosition + (state.scrollOffset - state.currentScrollPosition) * lerpFactor
                 state.currentScrollPosition = if (abs(state.scrollOffset - next) <= SCROLL_SNAP_EPSILON) state.scrollOffset else next
@@ -201,11 +201,11 @@ fun Scrollable(
             .onSizeChanged { size ->
                 clipSource.updateSize(size)
             }
-            .onScroll<AUINode> { _, event ->
+            .onScroll<UINode> { _, event ->
                 state.scrollBy(-event.scrollY * SCROLL_SENSITIVITY)
                 event.consume()
             }
-            .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, event ->
+            .onPointerEvent<UINode>(PointerEventType.PRESS) { node, event ->
                 val minX = if (direction == ScrollDirection.VERTICAL) node.x + node.width - SCROLLBAR_THICKNESS else node.x
                 val minY = if (direction == ScrollDirection.VERTICAL) node.y else node.y + node.height - SCROLLBAR_THICKNESS
                 val maxX = node.x + node.width
@@ -217,8 +217,8 @@ fun Scrollable(
                     event.consume()
                 }
             }
-            .onPointerEvent<AUINode>(PointerEventType.GLOBAL_RELEASE) { _, _ -> state.isDraggingScrollbar = false }
-            .onDrag<AUINode> { _, event ->
+            .onPointerEvent<UINode>(PointerEventType.GLOBAL_RELEASE) { _, _ -> state.isDraggingScrollbar = false }
+            .onDrag<UINode> { _, event ->
                 if (!state.isDraggingScrollbar) return@onDrag
                 val pixelDelta = direction.choose(event.dragX, event.dragY)
                 val trackSize = state.containerSize

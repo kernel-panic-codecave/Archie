@@ -5,15 +5,19 @@ import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animateInt
+import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
-import net.kernelpanicsoft.archie.gui.util.KColor
+import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val SWITCH_MIN_WIDTH = 34
 private const val SWITCH_MIN_HEIGHT = 18
@@ -49,6 +53,18 @@ fun SwitchCore(
 
 /**
  * Simple styled switch control suitable for toggling boolean settings.
+ *
+ * Renders the themed [trackTexture] state - a combined checked+hovered state is used when
+ * both apply and the theme defines it - with the themed [thumbTexture] drawn on top,
+ * animating between its off/on positions.
+ *
+ * @param checked        The current checked state.
+ * @param onCheckedChange Called with the new checked value when the user clicks.
+ * @param modifier       Additional modifiers applied to the outer container.
+ * @param enabled        When `false`, pointer events are ignored and the [TextureStates.DISABLED] state is shown.
+ * @param trackTexture   The themed texture key for the track, looked up via [LocalTheme].
+ * @param thumbTexture   The themed texture key for the thumb, looked up via [LocalTheme].
+ * @param variant        The theme variant of both textures to use. See [ThemeVariants].
  */
 @Composable
 fun Switch(
@@ -56,46 +72,64 @@ fun Switch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    trackTexture: String = "switch_track",
+    thumbTexture: String = "switch_thumb",
+    variant: String = ThemeVariants.DEFAULT,
 ) {
+    val theme = LocalTheme.current
+    val trackTheme = theme.getComposableTheme(trackTexture)
+    val thumbTheme = theme.getComposableTheme(thumbTexture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.CenterStart) }
+    val sizeModifier = Modifier.sizeIn(minWidth = SWITCH_MIN_WIDTH, minHeight = SWITCH_MIN_HEIGHT)
     val thumbOffset = animateInt(
         targetValue = if (checked) SWITCH_MIN_WIDTH - SWITCH_THUMB_SIZE - SWITCH_PADDING else SWITCH_PADDING,
-        spec = AnimationSpec(durationMillis = 140, easing = Easings.OutCubic),
+        spec = AnimationSpec(durationMillis = 140.milliseconds, easing = Easings.OutCubic),
     )
 
     SwitchCore(
         checked = checked,
         onCheckedChange = onCheckedChange,
         enabled = enabled,
-        modifier = Modifier
-            .sizeIn(minWidth = SWITCH_MIN_WIDTH, minHeight = SWITCH_MIN_HEIGHT)
-            .then(modifier),
+        modifier = sizeModifier.then(modifier),
     ) { hovered, _, currentChecked ->
         Layout(
             name = "Switch",
             measurePolicy = measurePolicy,
+            // The outer SwitchCore's Clickable/Box resets min-constraints to 0 for its child,
+            // so this inner node needs its own copy of sizeModifier - otherwise it measures to
+            // 0x0 and the track disappears (only the fixed-size thumb still draws).
+            modifier = sizeModifier,
             renderer = object : Renderer {
                 override fun render(
-                    node: AUINode,
-                    x: Int,
-                    y: Int,
-                    guiGraphics: GuiGraphics,
-                    mouseX: Int,
-                    mouseY: Int,
-                    partialTick: Float,
+	                node: UINode,
+	                x: Int,
+	                y: Int,
+	                guiGraphics: GuiGraphics,
+	                mouseX: Int,
+	                mouseY: Int,
+	                partialTick: Float,
                 ) {
-                    val trackColor = when {
-                        !enabled -> 0xFF5A5A5A.toInt()
-                        currentChecked -> 0xFF4CAF50.toInt()
-                        hovered -> 0xFF6A6A6A.toInt()
-                        else -> 0xFF4A4A4A.toInt()
-                    }
-                    val thumbColor = if (enabled) KColor.WHITE.argb else 0xFFB0B0B0.toInt()
+                    val trackState = trackTheme.getState(
+                        when {
+                            !enabled -> TextureStates.DISABLED
+                            currentChecked && hovered -> TextureStates.CLICKED_AND_HOVERED
+                            hovered -> TextureStates.HOVERED
+                            currentChecked -> TextureStates.CLICKED
+                            else -> TextureStates.DEFAULT
+                        },
+                        variant
+                    )
+                    val thumbState = thumbTheme.getState(
+                        if (!enabled) TextureStates.DISABLED else TextureStates.DEFAULT,
+                        variant
+                    )
 
-                    guiGraphics.fill(x, y, x + node.width, y + node.height, trackColor)
+                    guiGraphics.drawThemeState(trackState, x, y, node.width, node.height)
+
                     val thumbX = x + resolveSwitchThumbOffset(thumbOffset, node.width)
                     val thumbY = y + ((node.height - SWITCH_THUMB_SIZE) / 2)
-                    guiGraphics.fill(thumbX, thumbY, thumbX + SWITCH_THUMB_SIZE, thumbY + SWITCH_THUMB_SIZE, thumbColor)
+                    guiGraphics.drawThemeState(thumbState, thumbX, thumbY, SWITCH_THUMB_SIZE, SWITCH_THUMB_SIZE)
+
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }
             },

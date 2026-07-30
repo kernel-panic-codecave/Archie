@@ -1,0 +1,16 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/switch_thumb",
+      "texture_size": {
+        "width": 14,
+        "height": 14
+      },
+      "width": 14,
+      "height": 14
+    },
+    "disabled": {
+      "texture": "archie:java/switch_thumb_disabled"
+    }
+  }
+}

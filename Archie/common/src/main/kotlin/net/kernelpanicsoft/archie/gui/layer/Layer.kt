@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
-import net.kernelpanicsoft.archie.gui.nodes.AUINodeApplier
+import net.kernelpanicsoft.archie.gui.nodes.LayoutNodeApplier
 import java.util.*
 
 /**
@@ -37,7 +37,7 @@ class Layer(
 
 
 
-    val composition = Composition(AUINodeApplier(rootNode), parentComposition)
+    val composition = Composition(LayoutNodeApplier(rootNode), parentComposition)
 
     init {
         composition.setContent(content)

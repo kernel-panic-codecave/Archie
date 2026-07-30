@@ -10,6 +10,8 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.resourcepacks.SerializationReloadListener
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.gui.util.KColor
+import net.kernelpanicsoft.archie.util.div
+import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.PreparableReloadListener
 import net.minecraft.server.packs.resources.ResourceManager
@@ -143,8 +145,7 @@ inline fun composableThemeLocation(
     namespace: String,
     type: String,
     composable: String,
-): ResourceLocation = ResourceLocation.fromNamespaceAndPath(namespace, composable)
-    .run { if (type.isNotEmpty()) withPrefix("$type/") else this }
+): ResourceLocation = if (type.isNotEmpty()) namespace % type / composable else namespace % composable
 
 /**
  * Builds the [ResourceLocation] used to look up a composable's theme definition for a
@@ -160,12 +161,10 @@ inline fun composableThemeLocation(
     mode: String,
     composable: String,
 ): ResourceLocation {
-    val prefix = buildString {
-        if (type.isNotEmpty()) append(type).append('/')
-        if (mode.isNotEmpty()) append(mode).append('/')
-    }
-    return ResourceLocation.fromNamespaceAndPath(namespace, composable)
-        .run { if (prefix.isNotEmpty()) withPrefix(prefix) else this }
+    var ret = namespace % composable
+    if (mode.isNotEmpty()) ret = mode / ret
+    if (type.isNotEmpty()) ret = type / ret
+    return ret
 }
 
 /**

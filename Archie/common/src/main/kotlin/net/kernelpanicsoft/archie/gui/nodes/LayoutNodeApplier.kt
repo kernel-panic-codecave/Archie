@@ -8,7 +8,7 @@ import net.kernelpanicsoft.archie.gui.layout.LayoutNode
  * at [root]. Used as the applier for each [net.kernelpanicsoft.archie.gui.layer.Layer]'s
  * [androidx.compose.runtime.Composition].
  */
-class AUINodeApplier(root: LayoutNode) : AbstractApplier<LayoutNode>(root) {
+class LayoutNodeApplier(root: LayoutNode) : AbstractApplier<LayoutNode>(root) {
 	override fun insertTopDown(index: Int, instance: LayoutNode) {
 		// Ignored, we insert bottom-up.
 	}

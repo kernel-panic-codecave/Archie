@@ -8,7 +8,7 @@ import kotlinx.serialization.serializer
 /**
  * Provides the current block entity state to composables in the composition tree.
  *
- * Use with [LocalBlockEntityState.current] to access the state, or use the
+ * Use with `LocalBlockEntityState.current` to access the state, or use the
  * [observeProperty] helper for convenience.
  */
 val LocalBlockEntityState = compositionLocalOf<ComposeBlockEntityState?> { null }

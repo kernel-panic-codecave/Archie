@@ -1,8 +1,10 @@
 [versions]
 #kotlin = "1.9.22"
-kotlin = "2.1.0"
+#kotlin = "2.1.0"
+kotlin = "2.1.21"
 #kotlin-fabric = "1.10.18+kotlin.1.9.22"
-kotlin-fabric = "1.13.0+kotlin.2.1.0"
+#kotlin-fabric = "1.13.0+kotlin.2.1.0"
+kotlin-fabric = "1.13.3+kotlin.2.1.21"
 #kotlin-neoforge = "5.7.0"
 kotlin-neoforge = "2.11.1-k2.2.21-3.0+neoforge"
 #kotlin-neoforge-range = "5"

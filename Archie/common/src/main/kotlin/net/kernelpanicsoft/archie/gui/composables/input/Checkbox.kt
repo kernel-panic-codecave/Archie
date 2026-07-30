@@ -12,7 +12,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.debug
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
@@ -42,17 +42,18 @@ fun Checkbox(
 ) {
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
+    val sizeModifier = if (!composableTheme.isNineslice) {
+        with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
+            Modifier.sizeIn(
+                minWidth = width,
+                minHeight = height
+            )
+        }
+    } else Modifier
 
     CheckboxCore(
         checked,
-        (if (!composableTheme.isNineslice) {
-            with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-                Modifier.sizeIn(
-                    minWidth = width,
-                    minHeight = height
-                )
-            }
-        } else Modifier).then(modifier),
+        sizeModifier.then(modifier),
         onCheckedChange
     ) { isHovered ->
         Layout(
@@ -61,13 +62,13 @@ fun Checkbox(
             renderer = object : Renderer
             {
                 override fun render(
-                    node: AUINode,
-                    x: Int,
-                    y: Int,
-                    guiGraphics: GuiGraphics,
-                    mouseX: Int,
-                    mouseY: Int,
-                    partialTick: Float
+	                node: UINode,
+	                x: Int,
+	                y: Int,
+	                guiGraphics: GuiGraphics,
+	                mouseX: Int,
+	                mouseY: Int,
+	                partialTick: Float
                 ) {
                     val state = composableTheme.getState(
                         when {
@@ -84,7 +85,10 @@ fun Checkbox(
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }
             },
-            modifier = Modifier
+            // The outer CheckboxCore Box resets min-constraints to 0 for its child (standard
+            // Box/Row/Column behavior), so this inner node needs its own copy of sizeModifier -
+            // otherwise it measures to 0x0 and draws nothing despite the outer Box being sized.
+            modifier = sizeModifier
         )
     }
 }
@@ -121,9 +125,9 @@ fun CheckboxCore(
     Box(
         modifier = Modifier
             .debug("Hovered: $hovered")
-            .onPointerEvent<AUINode>(PointerEventType.ENTER) { _, e -> hovered = true;  e.consume() }
-            .onPointerEvent<AUINode>(PointerEventType.EXIT)  { _, e -> hovered = false; e.consume() }
-            .onPointerEvent<AUINode>(PointerEventType.PRESS) { _, e -> onCheckedChange(!checked); e.consume() }
+            .onPointerEvent<UINode>(PointerEventType.ENTER) { _, e -> hovered = true;  e.consume() }
+            .onPointerEvent<UINode>(PointerEventType.EXIT)  { _, e -> hovered = false; e.consume() }
+            .onPointerEvent<UINode>(PointerEventType.PRESS) { _, e -> onCheckedChange(!checked); e.consume() }
             .then(modifier),
     ) {
         content(hovered)

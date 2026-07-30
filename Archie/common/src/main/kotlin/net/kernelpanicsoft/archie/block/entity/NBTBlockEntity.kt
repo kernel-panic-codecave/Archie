@@ -27,7 +27,7 @@ import net.minecraft.world.level.block.state.BlockState
  * ```
  *
  * Saving and loading are handled automatically via [saveAdditional] and [loadAdditional].
- * Call [sendUpdate] to push the block entity state to tracking clients.
+ * Call [BlockEntity.setChanged] to push the block entity state to tracking clients.
  */
 abstract class NBTBlockEntity(type: BlockEntityType<*>, pos: BlockPos, blockState: BlockState) : BlockEntity(
 	type, pos,

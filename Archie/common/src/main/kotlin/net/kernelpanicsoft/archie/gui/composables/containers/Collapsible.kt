@@ -5,7 +5,6 @@ import com.mojang.math.Axis
 import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animateFloat
-import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.layout.*
@@ -16,15 +15,15 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
-import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.modifiers.size
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val COLLAPSIBLE_VISIBILITY_EPSILON = 0.01f
 
@@ -59,12 +58,12 @@ fun Collapsible(
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     val expandProgress = animateFloat(
         targetValue = if (expanded) 1f else 0f,
-        spec = AnimationSpec(durationMillis = 220, easing = Easings.OutCubic),
+        spec = AnimationSpec(durationMillis = 220.milliseconds, easing = Easings.OutCubic),
     )
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4)) {
         Row(
-            modifier = Modifier.onPointerEvent<AUINode>(PointerEventType.PRESS) { _, e ->
+            modifier = Modifier.onPointerEvent<UINode>(PointerEventType.PRESS) { _, e ->
                 expanded = !expanded
                 onToggled(expanded)
                 e.consume()
@@ -95,25 +94,25 @@ fun Collapsible(
                 },
                 renderer = object : Renderer {
                     override fun render(
-                        node: AUINode,
-                        x: Int,
-                        y: Int,
-                        guiGraphics: GuiGraphics,
-                        mouseX: Int,
-                        mouseY: Int,
-                        partialTick: Float,
+	                    node: UINode,
+	                    x: Int,
+	                    y: Int,
+	                    guiGraphics: GuiGraphics,
+	                    mouseX: Int,
+	                    mouseY: Int,
+	                    partialTick: Float,
                     ) {
                         guiGraphics.enableScissor(x, y, x + node.width, y + node.height)
                     }
 
                     override fun renderAfterChildren(
-                        node: AUINode,
-                        x: Int,
-                        y: Int,
-                        guiGraphics: GuiGraphics,
-                        mouseX: Int,
-                        mouseY: Int,
-                        partialTick: Float,
+	                    node: UINode,
+	                    x: Int,
+	                    y: Int,
+	                    guiGraphics: GuiGraphics,
+	                    mouseX: Int,
+	                    mouseY: Int,
+	                    partialTick: Float,
                     ) {
                         guiGraphics.disableScissor()
                     }
@@ -141,7 +140,7 @@ fun Collapsible(
 private fun CollapsibleArrow(isExpanded: Boolean) {
     val rotation = animateFloat(
         targetValue = if (isExpanded) 90f else 0f,
-        spec = AnimationSpec(durationMillis = 260, easing = Easings.OutBack),
+        spec = AnimationSpec(durationMillis = 260.milliseconds, easing = Easings.OutBack),
     )
 
     Layout(
@@ -149,8 +148,8 @@ private fun CollapsibleArrow(isExpanded: Boolean) {
         measurePolicy = { _, _, _ -> MeasureResult(8, 8) {} },
         renderer = object : Renderer {
             override fun render(
-                node: AUINode, x: Int, y: Int,
-                guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
+	            node: UINode, x: Int, y: Int,
+	            guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
                 guiGraphics.pose().pushPose()
                 guiGraphics.pose().translate(x + node.width / 2f, y + node.height / 2f, 0f)

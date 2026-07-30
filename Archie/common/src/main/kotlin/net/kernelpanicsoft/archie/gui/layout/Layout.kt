@@ -3,13 +3,13 @@ package net.kernelpanicsoft.archie.gui.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeNode
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
-import net.kernelpanicsoft.archie.gui.nodes.AUINodeApplier
+import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.gui.nodes.LayoutNodeApplier
 
 /**
  * The fundamental building block for creating custom Compose-based UI elements in Archie.
  *
- * [Layout] is the lowest-level composable: it emits a single [AUINode] into the composition
+ * [Layout] is the lowest-level composable: it emits a single [UINode] into the composition
  * tree and wires up measurement, rendering, and modifier behaviour via the provided policies.
  * Higher-level composables such as [Box], [Row], [Column], and all built-in widgets are
  * implemented in terms of [Layout].
@@ -48,7 +48,7 @@ inline fun Layout(
 	modifier: Modifier = Modifier,
 	content: @Composable () -> Unit = {}
 ) {
-	ComposeNode<AUINode, AUINodeApplier>(
+	ComposeNode<LayoutNode, LayoutNodeApplier>(
 		factory = { LayoutNode(name) },
 		update = {
 			set(measurePolicy) { this.measurePolicy = it }

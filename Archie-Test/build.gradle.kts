@@ -134,3 +134,11 @@ allprojects {
     java.withSourcesJar()
 }
 
+tasks {
+    check {
+        dependsOn(project(":common-test").tasks.check)
+        dependsOn(project(":fabric-test").tasks.check)
+        dependsOn(project(":neoforge-test").tasks.check)
+    }
+}
+

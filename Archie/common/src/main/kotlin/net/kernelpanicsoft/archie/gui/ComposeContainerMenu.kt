@@ -61,7 +61,7 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     /**
      * The most recently reported [SlotData] from the Compose layout.
      * On the server this is the authoritative source of slot group sizes.
-     * On the client it is received from the server via [CHANNEL].
+     * On the client it is received from the server via a [net.kernelpanicsoft.archie.networking.NetworkChannel].
      */
     var slotData: SlotData = SlotData()
         private set

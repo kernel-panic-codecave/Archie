@@ -158,7 +158,6 @@ dependencies {
 	}
 
 	"common"(project(":common-test", "namedElements")) { isTransitive = false }
-	"common"("net.kernelpanicsoft:common") { targetConfiguration = "namedElements" }
 	"shadowCommon"(project(":common-test", "transformProductionNeoForge")) { isTransitive = false }
 }
 

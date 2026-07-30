@@ -5,7 +5,7 @@ import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.HsvColor
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.drawRectOutline
@@ -34,7 +34,7 @@ private fun SaturationValueArea(
         name = "SaturationValueArea",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
-            override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                 guiGraphics.fillGradient(x, y, node.width, node.height,
                     KColor.ofHsv(hue, 0f, 1f).argb, KColor.ofHsv(hue, 1f, 1f).argb,
                     KColor.ofHsv(hue, 0f, 0f).argb, KColor.ofHsv(hue, 1f, 0f).argb)
@@ -57,7 +57,7 @@ private fun HueBar(modifier: Modifier = Modifier, hue: Float, onHueChanged: (Flo
         name = "HueBar",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
-            override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                 for (j in 0 until node.height) {
                     guiGraphics.fill(x, y + j, x + node.width, y + j + 1, KColor.ofHsv(1f - (j.toFloat() / node.height), 1f, 1f).argb)
                 }
@@ -78,7 +78,7 @@ private fun AlphaBar(modifier: Modifier = Modifier, color: HsvColor, onAlphaChan
         name = "AlphaBar",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
-            override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                 val checkerSize = 4
                 for (cx in 0 until node.width step checkerSize)
                     for (cy in 0 until node.height step checkerSize)

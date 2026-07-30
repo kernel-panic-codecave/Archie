@@ -23,7 +23,7 @@ import kotlin.math.min
  * capability interop) and Archie's NBT serialization (via [Serializer]) for save/load.
  *
  * Usually created through [net.kernelpanicsoft.archie.serialization.NBTHolder.itemField] rather
- * than directly. Its public surface is deliberately small; read or mutate the [ItemStack] in a
+ * than directly. Its public surface is deliberately small; read or mutate the [net.minecraft.world.item.ItemStack] in a
  * slot through the [ArchieItemSlot] returned by [get], not on the storage itself.
  *
  * @param onUpdate Invoked by [update] whenever the storage's contents should be persisted/synced.
@@ -57,7 +57,7 @@ open class ArchieItemStorage private constructor(
 	/** The number of slots in this storage. */
 	override fun size(): Int = slots.size
 
-	/** The [ArchieItemSlot] at [slot], for reading/mutating its [ItemStack]. */
+	/** The [ArchieItemSlot] at [slot], for reading/mutating its [net.minecraft.world.item.ItemStack]. */
 	override fun get(slot: Int): ArchieItemSlot
 	{
 		return slots[slot]

@@ -9,7 +9,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.MarginModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.ZIndexModifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.extension.drawRectOutline
 import kotlin.reflect.KClass
 
@@ -36,7 +36,7 @@ private const val COLUMN_SPACING    = 6
  */
 class LayoutNode(
     private val nodeName: String = "LayoutNode",
-) : Measurable, Placeable, AUINode, MeasureScope {
+) : Measurable, Placeable, UINode, MeasureScope {
 
     override var measurePolicy: MeasurePolicy = ChildMeasurePolicy
     override var renderer: Renderer = EmptyRenderer

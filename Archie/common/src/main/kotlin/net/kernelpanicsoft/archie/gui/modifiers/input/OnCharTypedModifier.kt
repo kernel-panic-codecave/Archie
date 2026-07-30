@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.gui.modifiers.input
 
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 
 /**
@@ -12,7 +12,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
  * @property onEvent The callback invoked with (node, [CharEvent]) when a character is typed.
  */
 data class OnCharTypedModifier(
-    val onEvent: (AUINode, CharEvent) -> Unit,
+	val onEvent: (UINode, CharEvent) -> Unit,
 ) : Modifier.Element<OnCharTypedModifier> {
 
     override fun mergeWith(other: OnCharTypedModifier): OnCharTypedModifier =
@@ -30,5 +30,5 @@ data class OnCharTypedModifier(
  *
  * @param onEvent Callback invoked with (node, [CharEvent]).
  */
-fun Modifier.onCharTyped(onEvent: (AUINode, CharEvent) -> Unit): Modifier =
+fun Modifier.onCharTyped(onEvent: (UINode, CharEvent) -> Unit): Modifier =
     this then OnCharTypedModifier(onEvent)

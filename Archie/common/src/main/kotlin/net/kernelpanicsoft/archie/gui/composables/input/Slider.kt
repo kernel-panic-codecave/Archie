@@ -14,7 +14,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onDrag
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
@@ -81,7 +81,7 @@ fun SliderCore(
     var hovered by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf(false) }
 
-    fun updateFromPointer(node: AUINode, mouseX: Double) {
+    fun updateFromPointer(node: UINode, mouseX: Double) {
         val localX = (mouseX - node.x).toFloat()
         val fraction = if (node.width <= 1) 0f else localX / node.width.toFloat()
         onValueChange(snapSliderValue(fraction, steps))
@@ -91,28 +91,28 @@ fun SliderCore(
         name = "SliderCore",
         measurePolicy = remember { BoxMeasurePolicy(Alignment.CenterStart) },
         modifier = Modifier
-            .onPointerEvent<AUINode>(PointerEventType.ENTER) { _, event ->
+            .onPointerEvent<UINode>(PointerEventType.ENTER) { _, event ->
                 if (!enabled) return@onPointerEvent
                 hovered = true
                 event.consume()
             }
-            .onPointerEvent<AUINode>(PointerEventType.EXIT) { _, event ->
+            .onPointerEvent<UINode>(PointerEventType.EXIT) { _, event ->
                 hovered = false
                 dragging = false
                 if (enabled) event.consume()
             }
-            .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, event ->
+            .onPointerEvent<UINode>(PointerEventType.PRESS) { node, event ->
                 if (!enabled) return@onPointerEvent
                 dragging = true
                 updateFromPointer(node, event.mouseX)
                 event.consume(true)
             }
-            .onDrag<AUINode> { node, event ->
+            .onDrag<UINode> { node, event ->
                 if (!enabled || !dragging) return@onDrag
                 updateFromPointer(node, event.mouseX)
                 event.consume()
             }
-            .onPointerEvent<AUINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
+            .onPointerEvent<UINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
                 if (!enabled || !dragging) return@onPointerEvent
                 dragging = false
                 onValueChangeFinished()
@@ -149,28 +149,31 @@ fun Slider(
     val theme = LocalTheme.current
     val trackTheme = theme.getComposableTheme("slider")
     val thumbTheme = theme.getComposableTheme("slider_handle")
+    val sizeModifier = Modifier.sizeIn(minWidth = SLIDER_MIN_WIDTH, minHeight = SLIDER_MIN_HEIGHT)
     SliderCore(
         value = value,
         onValueChange = onValueChange,
         enabled = enabled,
         steps = steps,
         onValueChangeFinished = onValueChangeFinished,
-        modifier = Modifier
-            .sizeIn(minWidth = SLIDER_MIN_WIDTH, minHeight = SLIDER_MIN_HEIGHT)
-            .then(modifier),
+        modifier = sizeModifier.then(modifier),
     ) { hovered, dragging, normalizedValue ->
         Layout(
             name = "Slider",
             measurePolicy = measurePolicy,
+            // The outer SliderCore's Layout resets min-constraints to 0 for its child, so this
+            // inner node needs its own copy of sizeModifier - otherwise it measures to 0x0 and
+            // only the fixed-size thumb still draws (no track, no fill).
+            modifier = sizeModifier,
             renderer = object : Renderer {
                 override fun render(
-                    node: AUINode,
-                    x: Int,
-                    y: Int,
-                    guiGraphics: GuiGraphics,
-                    mouseX: Int,
-                    mouseY: Int,
-                    partialTick: Float,
+	                node: UINode,
+	                x: Int,
+	                y: Int,
+	                guiGraphics: GuiGraphics,
+	                mouseX: Int,
+	                mouseY: Int,
+	                partialTick: Float,
                 ) {
                     val trackY = y + (node.height - SLIDER_TRACK_HEIGHT) / 2
                     val trackStart = x + (SLIDER_THUMB_WIDTH / 2)

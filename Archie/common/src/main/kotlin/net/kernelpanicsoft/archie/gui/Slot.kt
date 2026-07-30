@@ -9,7 +9,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
@@ -179,7 +179,7 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
         },
         renderer = object : Renderer {
             override fun render(
-                node: AUINode, x: Int, y: Int,
+                node: UINode, x: Int, y: Int,
                 guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
                 guiGraphics.drawThemeState(state, x, y, node.width, node.height)
@@ -259,7 +259,7 @@ private fun PlayerSlot(texture: String = "slot", modifier: Modifier = Modifier) 
         },
         renderer = object : Renderer {
             override fun render(
-                node: AUINode, x: Int, y: Int,
+                node: UINode, x: Int, y: Int,
                 guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
                 guiGraphics.drawThemeState(state, x, y, node.width, node.height)

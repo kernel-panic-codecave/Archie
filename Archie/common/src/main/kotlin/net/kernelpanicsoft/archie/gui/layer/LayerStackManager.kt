@@ -33,7 +33,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.minecraft.network.chat.Component
 import java.util.*
 import kotlinx.coroutines.delay
@@ -42,6 +42,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -69,7 +70,7 @@ interface ModalScope {
 
 /** Transition defaults applied to every modal pushed through [LayerStackManager.modal]. */
 data class ModalTransitionSpec(
-    val durationMillis: Int = 180,
+    val durationMillis: Duration = 180.milliseconds,
     val easing: Easing = Easings.OutCubic,
     val enterOffsetY: Int = 8,
     val maxBackdropAlpha: Int = 132,
@@ -183,7 +184,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
                 entered = false
                 onDismissRequest()
                 closeScope.launch {
-                    delay(transitionSpec.durationMillis.milliseconds)
+                    delay(transitionSpec.durationMillis)
                     popLayer()
                 }
             }
@@ -362,7 +363,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         var rootModifier = Modifier.fillMaxSize()
             .background((alpha.coerceIn(0, 255) shl 24))
         if (dismissOnClickOutside) {
-            rootModifier = rootModifier.onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event ->
+            rootModifier = rootModifier.onPointerEvent<UINode>(PointerEventType.PRESS) { _, event ->
                 onDismissRequest()
                 event.consume()
             }
@@ -371,7 +372,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
             RootContainer(
                 modifier = Modifier
                     .offset(x = 0, y = offsetY)
-                    .onPointerEvent<AUINode>(PointerEventType.PRESS) { _, event -> event.consume() }
+                    .onPointerEvent<UINode>(PointerEventType.PRESS) { _, event -> event.consume() }
                     .zIndex(1f)
             ) {
                 content()

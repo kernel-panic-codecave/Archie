@@ -35,7 +35,7 @@ private const val DIALOG_ANIMATION_MS = 180L
  * A generic confirm/cancel modal with custom [content] and a slide/fade dismiss animation.
  *
  * Unlike [AlertDialog]/[PromptDialog]/[ChoiceDialog], [content] is fully custom rather than a
- * fixed message layout. [dismiss] is deferred until the close animation finishes so the modal
+ * fixed message layout. [net.kernelpanicsoft.archie.gui.layer.ModalScope.dismiss] is deferred until the close animation finishes so the modal
  * doesn't disappear abruptly.
  *
  * @param title       The dialog's header text.
@@ -75,7 +75,7 @@ fun ModalScope.ConfirmDialog(
 
 	val offsetY = animateInt(
 		targetValue = if (entered) 0 else 8,
-		spec = AnimationSpec(durationMillis = DIALOG_ANIMATION_MS.toInt(), easing = Easings.OutCubic),
+		spec = AnimationSpec(durationMillis = DIALOG_ANIMATION_MS.milliseconds, easing = Easings.OutCubic),
 	)
 
 	Surface(modifier = Modifier.padding(4).offset(x = 0, y = offsetY)) {

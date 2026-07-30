@@ -10,9 +10,10 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * Tracks which server instance's tick thread currently owns the shared "server" phaser slot.
  *
- * The [ServerMixin] this bridge backs is applied to every [net.minecraft.server.MinecraftServer]
- * instance - both the integrated singleplayer server and an in-process dedicated GameTest
- * server can exist back-to-back (or briefly overlap during teardown/startup). Since only one
+ * The `ServerMixin` (per-loader, in `src/main/mixin`) this bridge backs is applied to every
+ * [net.minecraft.server.MinecraftServer] instance - both the integrated singleplayer server and
+ * an in-process dedicated GameTest server can exist back-to-back (or briefly overlap during
+ * teardown/startup). Since only one
  * "server" participant can safely register with [ThreadingImpl.phaser] at a time, this
  * identifies the owning thread so a late call from an already-superseded instance can't
  * deregister or arrive on behalf of a different, currently-active instance.

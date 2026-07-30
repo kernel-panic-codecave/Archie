@@ -601,7 +601,24 @@ internal class DefaultClientGameTestContext(
         }
 
         applyDeterministicTweaks(options)
+        disablePauseOnLostFocus(options)
         options.save()
+    }
+
+    /**
+     * `pauseOnLostFocus` is a raw boolean field on [net.minecraft.client.Options], not an
+     * `OptionInstance`/`SimpleOption` wrapper, so it's invisible to [applyDeterministicTweaks]'s
+     * [isOptionLike]-filtered reflection loop. Client GameTest windows routinely run without OS
+     * focus (headless CI, parallel loader:side invocations, a terminal/IDE stealing focus), and
+     * vanilla pauses world ticking whenever the window isn't focused - silently stalling every
+     * waitTick()/waitTicks() call - so it needs disabling separately.
+     */
+    private fun disablePauseOnLostFocus(options: Any) {
+        runCatching {
+            val field = options.javaClass.getDeclaredField("pauseOnLostFocus")
+            field.isAccessible = true
+            field.setBoolean(options, false)
+        }
     }
 
     private fun ensureDeterministicGameOptionsInitialized(client: Minecraft) {

@@ -11,7 +11,7 @@ import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.minecraft.client.Minecraft
 import org.lwjgl.glfw.GLFW
 
@@ -35,7 +35,7 @@ private fun setHandCursor(enabled: Boolean) {
  * hand cursor on hover when [showHandCursor] is `true`. Applies no visual styling itself -
  * that is entirely up to [content].
  *
- * @param onClick        Invoked with the receiving [AUINode] on press.
+ * @param onClick        Invoked with the receiving [UINode] on press.
  * @param modifier       Additional modifiers applied to the outer [Box].
  * @param enabled        When `false`, pointer events are ignored and no cursor change occurs.
  * @param showHandCursor Whether to switch to the hand cursor while hovered.
@@ -43,11 +43,11 @@ private fun setHandCursor(enabled: Boolean) {
  */
 @Composable
 fun Clickable(
-    onClick: (AUINode) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    showHandCursor: Boolean = true,
-    content: @Composable (isHovered: Boolean, isPressed: Boolean) -> Unit,
+	onClick: (UINode) -> Unit,
+	modifier: Modifier = Modifier,
+	enabled: Boolean = true,
+	showHandCursor: Boolean = true,
+	content: @Composable (isHovered: Boolean, isPressed: Boolean) -> Unit,
 ) {
     var hovered by remember { mutableStateOf(false) }
     var pressed by remember { mutableStateOf(false) }
@@ -61,25 +61,25 @@ fun Clickable(
 
     Box(
         modifier = Modifier
-            .onPointerEvent<AUINode>(PointerEventType.ENTER) { _, e ->
+            .onPointerEvent<UINode>(PointerEventType.ENTER) { _, e ->
                 if (!enabled) return@onPointerEvent
                 hovered = true
                 if (showHandCursor) setHandCursor(true)
                 e.consume()
             }
-            .onPointerEvent<AUINode>(PointerEventType.EXIT) { _, e ->
+            .onPointerEvent<UINode>(PointerEventType.EXIT) { _, e ->
                 hovered = false
                 pressed = false
                 if (showHandCursor) setHandCursor(false)
                 if (enabled) e.consume()
             }
-            .onPointerEvent<AUINode>(PointerEventType.PRESS) { node, e ->
+            .onPointerEvent<UINode>(PointerEventType.PRESS) { node, e ->
                 if (!enabled) return@onPointerEvent
                 pressed = true
                 onClick(node)
                 e.consume(true)
             }
-            .onPointerEvent<AUINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
+            .onPointerEvent<UINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
                 pressed = false
             }
             .then(modifier),

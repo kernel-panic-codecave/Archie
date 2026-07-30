@@ -36,6 +36,12 @@
         "adapter": "kotlin",
         "value": "net.kernelpanicsoft.archie.ArchieFabric"
       }
+    ],
+    "modmenu": [
+      {
+        "adapter": "kotlin",
+        "value": "net.kernelpanicsoft.archie.config.ArchieModMenu"
+      }
     ]
   },
   "mixins": [
@@ -51,6 +57,7 @@
   },
   "suggests": {
     "cloth-config": ">=${versions.cloth_config_range}",
-    "yet_another_config_lib_v3": "*"
+    "modmenu": "*",
+    "catalogue": "*"
   }
 }

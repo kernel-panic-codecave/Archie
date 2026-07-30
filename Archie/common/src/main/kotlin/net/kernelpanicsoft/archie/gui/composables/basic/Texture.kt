@@ -6,7 +6,7 @@ import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.resources.ResourceLocation
 
@@ -43,8 +43,8 @@ fun Texture(
         },
         renderer = object : Renderer {
             override fun render(
-                node: AUINode, x: Int, y: Int,
-                guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
+	            node: UINode, x: Int, y: Int,
+	            guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
             ) {
                 guiGraphics.blit(loc, x, y, node.width, node.height, uOffset, vOffset, u, v, textureWidth, textureHeight)
                 super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)

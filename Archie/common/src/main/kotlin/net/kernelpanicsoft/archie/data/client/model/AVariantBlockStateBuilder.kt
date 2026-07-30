@@ -238,11 +238,11 @@ class AVariantBlockStateBuilder internal constructor(val owner: Block) : IAGener
 			return outerBuilder!!.partialState()
 		}
 
-		override fun equals(o: Any?): Boolean
+		override fun equals(other: Any?): Boolean
 		{
-			if (this === o) return true
-			if (o == null || javaClass != o.javaClass) return false
-			val that = o as PartialBlockstate
+			if (this === other) return true
+			if (other == null || javaClass != other.javaClass) return false
+			val that = other as PartialBlockstate
 			return owner == that.owner && setStates == that.setStates
 		}
 

@@ -61,7 +61,7 @@ class Constraints(
  * horizontal side and [vertical] pixels on each vertical side.
  *
  * Negative values shrink the available space (useful for padding).
- * [maxWidth] and [maxHeight] are never reduced below zero.
+ * [Constraints.maxWidth] and [Constraints.maxHeight] are never reduced below zero.
  */
 @Stable
 fun Constraints.offset(horizontal: Int = 0, vertical: Int = 0) = Constraints(

@@ -43,7 +43,7 @@ object AEvents
 	/** Marker for a mod-scoped Architectury event listener created by a [HandlerConstructor]. */
 	interface Handler<T>
 
-	/** Builds a mod-scoped [H] whose body invokes [block] on the event's [T] payload. */
+	/** Builds a mod-scoped [H] whose body invokes `block` on the event's [T] payload. */
 	fun interface HandlerConstructor<T, H : Handler<T>>
 	{
 		/** Creates an [H] for [mod] that runs [block] against the [T] payload when invoked. */

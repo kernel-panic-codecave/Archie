@@ -5,7 +5,7 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
@@ -116,7 +116,7 @@ fun TextField(
                 MeasureResult(w, h) {}
             },
             renderer = object : Renderer {
-                override fun render(node: AUINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+                override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
                     val (w, h) = state.layoutInfo
                     if (w <= 0 || h <= 0) return
 

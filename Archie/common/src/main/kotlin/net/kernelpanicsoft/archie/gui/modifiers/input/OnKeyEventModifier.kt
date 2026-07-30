@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.gui.modifiers.input
 
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 
 /**
@@ -12,7 +12,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
  * @property onEvent The callback invoked with (node, [KeyEvent]) on a key press.
  */
 data class OnKeyEventModifier(
-    val onEvent: (AUINode, KeyEvent) -> Unit,
+	val onEvent: (UINode, KeyEvent) -> Unit,
 ) : Modifier.Element<OnKeyEventModifier> {
 
     override fun mergeWith(other: OnKeyEventModifier): OnKeyEventModifier =
@@ -32,5 +32,5 @@ data class OnKeyEventModifier(
  *
  * @param onEvent Callback invoked with (node, [KeyEvent]).
  */
-fun Modifier.onKeyEvent(onEvent: (AUINode, KeyEvent) -> Unit): Modifier =
+fun Modifier.onKeyEvent(onEvent: (UINode, KeyEvent) -> Unit): Modifier =
     this then OnKeyEventModifier(onEvent)

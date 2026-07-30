@@ -43,7 +43,7 @@ fun <T : Any> RegistryFriendlyByteBuf.write(serializer: KSerializer<T>, data: T)
 /**
  * Converts a [Codec] into a [KSerializer].
  *
- * **Note:** By default `JsonOps` and `NbtOps` are supported. Check [SerializationManager.registerOp] to register another [DynamicOps].
+ * **Note:** By default `JsonOps` and `NbtOps` are supported. Check [SerializationManager.SerializationManagerBuilder.registerDynamicOp] to register another [DynamicOps].
  * Trying to use unregistered [DynamicOps] implementations will result in an [UnsupportedOperationException].
  */
 val <T : Any> Codec<T>.kSerializer: KSerializer<T>
@@ -52,7 +52,7 @@ val <T : Any> Codec<T>.kSerializer: KSerializer<T>
 /**
  * Converts a [KSerializer] into a [Codec].
  *
- * **Note:** By default `JsonOps` and `NbtOps` are supported. Check [SerializationManager.registerOp] to register another [DynamicOps].
+ * **Note:** By default `JsonOps` and `NbtOps` are supported. Check [SerializationManager.SerializationManagerBuilder.registerDynamicOp] to register another [DynamicOps].
  * Trying to use unregistered [DynamicOps] implementations will result in an [UnsupportedOperationException].
  *
  * ### Example

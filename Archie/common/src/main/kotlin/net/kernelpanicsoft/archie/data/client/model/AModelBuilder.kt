@@ -1084,17 +1084,17 @@ open class AModelBuilder<T : AModelBuilder<T>>(location: ResourceLocation) : AMo
 			}
 		}
 
-		override fun equals(`object`: Any?): Boolean
+		override fun equals(other: Any?): Boolean
 		{
-			if (this === `object`)
+			if (this === other)
 			{
 				return true
 			}
-			if (this.javaClass != `object`?.javaClass)
+			if (this.javaClass != other?.javaClass)
 			{
 				return false
 			}
-			val itemtransform = `object` as PlatformItemTransform
+			val itemtransform = other as PlatformItemTransform
 			return this.rotation == itemtransform.rotation && (this.scale == itemtransform.scale) && (this.translation == itemtransform.translation)
 		}
 

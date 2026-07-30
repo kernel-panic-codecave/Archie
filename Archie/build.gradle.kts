@@ -243,6 +243,11 @@ publisher {
 }
 
 tasks {
+	check {
+		dependsOn(project(":common").tasks.check)
+		dependsOn(project(":fabric").tasks.check)
+		dependsOn(project(":neoforge").tasks.check)
+	}
 	register<Exec>("publishDocs") {
 		dependsOn(getByName("embedDokkaIntoMkDocs"))
 		group = "publishing"

@@ -2,18 +2,25 @@ package net.kernelpanicsoft.archie.gametest
 
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
-import net.fabricmc.fabric.impl.gametest.FabricGameTestHelper
 
 /** Fabric implementation of [AGameTestPlatform]. */
 @Suppress("unused")
 actual object AGameTestPlatform
 {
 	private const val SIDE_OVERRIDE_PROP = "archie.gametest.side"
+	private const val GAMETEST_PROP = "archie.gametest"
 
-	/** True when running under Fabric's own GameTest harness (`fabric-gametest-api-v1`). */
-	@Suppress("UnstableApiUsage")
+	/**
+	 * True when running under one of Archie's own GameTest run configs.
+	 *
+	 * Deliberately reads [GAMETEST_PROP] instead of `FabricGameTestHelper.ENABLED` - Loom's
+	 * generated dev-launch config shares a single property bucket per environment, so a flag set
+	 * on the `gametestClient` run can leak into the plain `client` run's bucket too (observed on
+	 * the NeoForge side; kept consistent here). [GAMETEST_PROP] is a property Archie's own build
+	 * sets exclusively on its `gametest`/`gametestClient` runs, so it isn't affected by that leak.
+	 */
 	actual val isGameTest: Boolean
-		get() = FabricGameTestHelper.ENABLED
+		get() = System.getProperty(GAMETEST_PROP)?.toBoolean() == true
 
 	actual val side: AGameTestSide?
 		get() {

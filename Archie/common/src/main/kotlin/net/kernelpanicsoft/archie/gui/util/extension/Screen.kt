@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie.gui.util.extension
 
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.minecraft.client.gui.screens.Screen
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ internal inline fun Screen.processPointerEvent(
         currentNode.modifier.foldIn(Unit) { _, el ->
             if (el is OnPointerEventModifier<*> && el.eventType == eventType && (global || !currentEvent.isConsumed))
                 @Suppress("UNCHECKED_CAST")
-                (el.onEvent as (AUINode, PointerEvent) -> Unit)(currentNode, event)
+                (el.onEvent as (UINode, PointerEvent) -> Unit)(currentNode, event)
         }
     }
     return event
@@ -93,7 +93,7 @@ internal inline fun Screen.processScrollEvent(
         currentNode.modifier.foldIn(Unit) { _, el ->
             if (el is OnPointerEventModifier<*> && el.eventType == eventType && (global || !currentEvent.isConsumed))
                 @Suppress("UNCHECKED_CAST")
-                (el.onEvent as (AUINode, PointerEvent) -> Unit)(currentNode, event)
+                (el.onEvent as (UINode, PointerEvent) -> Unit)(currentNode, event)
         }
     }
     return event
@@ -123,7 +123,7 @@ internal inline fun Screen.processDragEvent(
         currentNode.modifier.foldIn(Unit) { _, el ->
             if (el is OnPointerEventModifier<*> && el.eventType == eventType && (global || !currentEvent.isConsumed))
                 @Suppress("UNCHECKED_CAST")
-                (el.onEvent as (AUINode, PointerEvent) -> Unit)(currentNode, event)
+                (el.onEvent as (UINode, PointerEvent) -> Unit)(currentNode, event)
         }
     }
     return event

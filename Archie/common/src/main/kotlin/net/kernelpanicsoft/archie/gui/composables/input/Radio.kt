@@ -3,6 +3,7 @@ package net.kernelpanicsoft.archie.gui.composables.input
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
+import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
@@ -12,11 +13,13 @@ import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Row
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
-
-private const val RADIO_SIZE = 12
 
 /**
  * Low-level unstyled radio-button behavior, built on [Clickable].
@@ -48,44 +51,73 @@ fun RadioButtonCore(
     }
 }
 
-/** A standard 12x12 boxed radio button with a filled center dot when [selected]. See [RadioGroup] for a labeled option list. */
+/**
+ * A standard themed radio button with a filled center dot when [selected].
+ *
+ * Renders the themed [texture] state - a combined selected+hovered state is used when both
+ * apply and the theme defines it. See [RadioGroup] for a labeled option list.
+ *
+ * @param selected  Whether this option is currently selected.
+ * @param onSelect  Invoked when this (unselected) option is clicked.
+ * @param modifier  Additional modifiers applied to the outer container.
+ * @param enabled   When `false`, pointer events are ignored and the [TextureStates.DISABLED] state is shown.
+ * @param texture   The themed texture key to look up via [LocalTheme].
+ * @param variant   The theme variant of [texture] to use. See [ThemeVariants].
+ */
 @Composable
 fun RadioButton(
     selected: Boolean,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    texture: String = "radio",
+    variant: String = ThemeVariants.DEFAULT,
 ) {
+    val theme = LocalTheme.current
+    val composableTheme = theme.getComposableTheme(texture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.Center) }
+    val sizeModifier = if (!composableTheme.isNineslice) {
+        with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
+            Modifier.sizeIn(minWidth = width, minHeight = height)
+        }
+    } else Modifier
+
     RadioButtonCore(
         selected = selected,
         onSelect = onSelect,
         enabled = enabled,
-        modifier = Modifier.sizeIn(minWidth = RADIO_SIZE, minHeight = RADIO_SIZE).then(modifier),
+        modifier = sizeModifier.then(modifier),
     ) { hovered, _, currentSelected ->
         Layout(
             name = "RadioButton",
             measurePolicy = measurePolicy,
+            // The outer RadioButtonCore's Clickable/Box resets min-constraints to 0 for its
+            // child, so this inner node needs its own copy of sizeModifier - otherwise it
+            // measures to 0x0 and draws nothing despite the outer container being sized.
+            modifier = sizeModifier,
             renderer = object : Renderer {
                 override fun render(
-                    node: AUINode,
-                    x: Int,
-                    y: Int,
-                    guiGraphics: GuiGraphics,
-                    mouseX: Int,
-                    mouseY: Int,
-                    partialTick: Float,
+	                node: UINode,
+	                x: Int,
+	                y: Int,
+	                guiGraphics: GuiGraphics,
+	                mouseX: Int,
+	                mouseY: Int,
+	                partialTick: Float,
                 ) {
-                    val borderColor = when {
-                        !enabled -> 0xFF777777.toInt()
-                        hovered -> 0xFFFFFFFF.toInt()
-                        else -> 0xFFB8B8B8.toInt()
-                    }
-                    guiGraphics.fill(x, y, x + node.width, y + node.height, borderColor)
-                    guiGraphics.fill(x + 1, y + 1, x + node.width - 1, y + node.height - 1, 0xFF2D2D2D.toInt())
-                    if (currentSelected) {
-                        guiGraphics.fill(x + 3, y + 3, x + node.width - 3, y + node.height - 3, 0xFF6BA8FF.toInt())
-                    }
+                    val state = composableTheme.getState(
+                        when {
+                            !enabled -> TextureStates.DISABLED
+                            currentSelected && hovered -> TextureStates.CLICKED_AND_HOVERED
+                            hovered -> TextureStates.HOVERED
+                            currentSelected -> TextureStates.CLICKED
+                            else -> TextureStates.DEFAULT
+                        },
+                        variant
+                    )
+
+                    guiGraphics.drawThemeState(state, x, y, node.width, node.height)
+
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }
             },

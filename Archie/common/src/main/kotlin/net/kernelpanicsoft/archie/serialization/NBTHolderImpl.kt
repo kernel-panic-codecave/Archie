@@ -19,7 +19,7 @@ import kotlin.reflect.full.hasAnnotation
 /**
  * Default [NBTHolder] implementation backing [NBTHolder.create]. Field values are cached
  * in-memory as knbt tags keyed by the delegated property's snake_case name; properties
- * annotated [Sync] additionally push updates through [BlockEntityStateManager]-backed state
+ * annotated [Sync] additionally push updates through [net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager]-backed state
  * containers when the holder is attached to a [BlockEntity].
  */
 class NBTHolderImpl : NBTHolder

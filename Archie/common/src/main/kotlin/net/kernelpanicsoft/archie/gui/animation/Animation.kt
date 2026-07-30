@@ -8,6 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import kotlin.math.roundToInt
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Describes a time-based interpolation used by Archie GUI animations. */
 fun interface Easing {
@@ -46,7 +48,7 @@ object Easings {
  * @param easing The curve applied to progress over that duration.
  */
 data class AnimationSpec(
-    val durationMillis: Int = 220,
+    val durationMillis: Duration = 220.milliseconds,
     val easing: Easing = Easings.OutCubic,
 )
 
@@ -57,7 +59,7 @@ fun animateFloat(targetValue: Float, spec: AnimationSpec = AnimationSpec()): Flo
 
     LaunchedEffect(targetValue, spec.durationMillis, spec.easing) {
         val duration = spec.durationMillis
-        if (duration <= 0) {
+        if (duration <= 0.milliseconds) {
             value = targetValue
             return@LaunchedEffect
         }
@@ -70,7 +72,7 @@ fun animateFloat(targetValue: Float, spec: AnimationSpec = AnimationSpec()): Flo
         var frameTime = startTime
         do {
             val elapsedNanos = frameTime - startTime
-            val rawProgress = (elapsedNanos / (duration * 1_000_000f)).coerceIn(0f, 1f)
+            val rawProgress = (elapsedNanos / (duration.inWholeMilliseconds * 1_000_000f)).coerceIn(0f, 1f)
             val eased = spec.easing.transform(rawProgress)
             value = start + delta * eased
             frameTime = withFrameNanos { it }

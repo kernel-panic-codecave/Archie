@@ -74,11 +74,11 @@ fun Text(
         },
         renderer = object : net.kernelpanicsoft.archie.gui.layout.Renderer {
             override fun render(
-                node: net.kernelpanicsoft.archie.gui.nodes.AUINode,
-                x: Int, y: Int,
-                guiGraphics: GuiGraphics,
-                mouseX: Int, mouseY: Int,
-                partialTick: Float,
+	            node: net.kernelpanicsoft.archie.gui.nodes.UINode,
+	            x: Int, y: Int,
+	            guiGraphics: GuiGraphics,
+	            mouseX: Int, mouseY: Int,
+	            partialTick: Float,
             ) {
                 if (fontScale != 1f) {
                     guiGraphics.pose().apply {

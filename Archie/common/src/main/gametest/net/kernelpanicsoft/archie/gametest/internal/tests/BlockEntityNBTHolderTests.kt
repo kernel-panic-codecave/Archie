@@ -75,10 +75,10 @@ class BlockEntityNBTHolderTests
 		holder.syncedCounter = 9
 
 		val syncTag = holder.getSyncTag()
-		assertTrue(syncTag.contains("synced_counter")) {
+		assertTrue("synced_counter" in syncTag) {
 			"Expected sync tag to include synced field"
 		}
-		assertTrue(!syncTag.contains("counter")) {
+		assertTrue("counter" !in syncTag) {
 			"Expected sync tag to exclude non-synced field"
 		}
 		succeed()

@@ -13,12 +13,13 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
-import net.kernelpanicsoft.archie.gui.nodes.AUINode
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.minecraft.client.gui.GuiGraphics
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * A standard themed, clickable button.
@@ -27,7 +28,7 @@ import net.minecraft.client.gui.GuiGraphics
  * [TextureStates.CLICKED]/[TextureStates.DISABLED]) behind [content], animating a 1px press
  * offset while held. For fully custom visuals, use [ButtonCore] directly instead.
  *
- * @param onClick  Invoked with the receiving [AUINode] when the button is pressed.
+ * @param onClick  Invoked with the receiving [UINode] when the button is pressed.
  * @param modifier Additional modifiers applied to the outer clickable container.
  * @param enabled  When `false`, the disabled state is drawn and pointer events are ignored.
  * @param texture  The themed texture key to look up via [LocalTheme].
@@ -36,12 +37,12 @@ import net.minecraft.client.gui.GuiGraphics
  */
 @Composable
 fun Button(
-    onClick: (AUINode) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    texture: String = "button",
-    variant: String = ThemeVariants.DEFAULT,
-    content: @Composable () -> Unit = {}
+	onClick: (UINode) -> Unit,
+	modifier: Modifier = Modifier,
+	enabled: Boolean = true,
+	texture: String = "button",
+	variant: String = ThemeVariants.DEFAULT,
+	content: @Composable () -> Unit = {}
 ) {
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
@@ -54,7 +55,7 @@ fun Button(
     ) { isHovered, isPressed ->
         val pressOffset = animateInt(
             targetValue = if (isPressed) 1 else 0,
-            spec = AnimationSpec(durationMillis = 90, easing = Easings.OutCubic),
+            spec = AnimationSpec(durationMillis = 90.milliseconds, easing = Easings.OutCubic),
         )
 
         Layout(
@@ -64,13 +65,13 @@ fun Button(
             renderer = object : Renderer
             {
                 override fun render(
-                    node: AUINode,
-                    x: Int,
-                    y: Int,
-                    guiGraphics: GuiGraphics,
-                    mouseX: Int,
-                    mouseY: Int,
-                    partialTick: Float
+	                node: UINode,
+	                x: Int,
+	                y: Int,
+	                guiGraphics: GuiGraphics,
+	                mouseX: Int,
+	                mouseY: Int,
+	                partialTick: Float
                 ) {
                     val state = composableTheme.getState(
                         when {
@@ -136,17 +137,17 @@ fun Button(
  * }
  * ```
  *
- * @param onClick  Invoked with the receiving [AUINode] when the button is pressed.
+ * @param onClick  Invoked with the receiving [UINode] when the button is pressed.
  * @param modifier Additional modifiers applied to the outer clickable container.
  * @param enabled  When `false`, pointer events are ignored and no cursor change occurs.
  * @param content  The button's visual content, receiving `isHovered` and `isPressed` booleans.
  */
 @Composable
 fun ButtonCore(
-    onClick: (AUINode) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    content: @Composable (isHovered: Boolean, isPressed: Boolean) -> Unit,
+	onClick: (UINode) -> Unit,
+	modifier: Modifier = Modifier,
+	enabled: Boolean = true,
+	content: @Composable (isHovered: Boolean, isPressed: Boolean) -> Unit,
 ) {
     Clickable(
         onClick = onClick,

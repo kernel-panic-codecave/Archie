@@ -9,9 +9,9 @@ import net.minecraft.client.gui.GuiGraphics
 /**
  * A node in Archie's Compose-based UI tree, exposing the layout/render state a node needs
  * regardless of its concrete representation. Implemented by [LayoutNode], the tree node type
- * produced by [AUINodeApplier].
+ * produced by [LayoutNodeApplier].
  */
-interface AUINode {
+interface UINode {
 	/** Determines how this node measures and places its children. */
 	var measurePolicy: MeasurePolicy
 
