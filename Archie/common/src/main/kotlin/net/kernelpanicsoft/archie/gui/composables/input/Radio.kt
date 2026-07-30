@@ -91,9 +91,6 @@ fun RadioButton(
         Layout(
             name = "RadioButton",
             measurePolicy = measurePolicy,
-            // The outer RadioButtonCore's Clickable/Box resets min-constraints to 0 for its
-            // child, so this inner node needs its own copy of sizeModifier - otherwise it
-            // measures to 0x0 and draws nothing despite the outer container being sized.
             modifier = sizeModifier,
             renderer = object : Renderer {
                 override fun render(

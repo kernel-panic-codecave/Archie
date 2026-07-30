@@ -85,9 +85,6 @@ fun Checkbox(
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }
             },
-            // The outer CheckboxCore Box resets min-constraints to 0 for its child (standard
-            // Box/Row/Column behavior), so this inner node needs its own copy of sizeModifier -
-            // otherwise it measures to 0x0 and draws nothing despite the outer Box being sized.
             modifier = sizeModifier
         )
     }

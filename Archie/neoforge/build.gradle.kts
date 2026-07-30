@@ -203,7 +203,7 @@ tasks {
 
 	remapJar {
 		inputFile.set(shadowJar.get().archiveFile)
-		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.path))
+		atAccessWideners.set(setOf(loom.accessWidenerPath.get().asFile.name))
 		dependsOn(shadowJar)
 	}
 

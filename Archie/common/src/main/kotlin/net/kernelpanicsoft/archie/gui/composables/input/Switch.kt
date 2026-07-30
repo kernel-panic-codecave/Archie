@@ -95,9 +95,6 @@ fun Switch(
         Layout(
             name = "Switch",
             measurePolicy = measurePolicy,
-            // The outer SwitchCore's Clickable/Box resets min-constraints to 0 for its child,
-            // so this inner node needs its own copy of sizeModifier - otherwise it measures to
-            // 0x0 and the track disappears (only the fixed-size thumb still draws).
             modifier = sizeModifier,
             renderer = object : Renderer {
                 override fun render(

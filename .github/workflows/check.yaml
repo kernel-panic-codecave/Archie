@@ -1,0 +1,55 @@
+name: check
+
+on:
+  push:
+    branches:
+      - 1.20.x
+      - 1.21.x
+  pull_request:
+    branches:
+      - 1.20.x
+      - 1.21.x
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Force Mesa's software rasterizer - GitHub-hosted runners have no GPU, and LWJGL/GLFW
+      # need a working GL context (even offscreen) to boot the Minecraft client for gametests.
+      LIBGL_ALWAYS_SOFTWARE: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install headless X server and software GL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa mesa-utils
+
+      - name: Run check (with client GameTests under Xvfb)
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" ./gradlew check --console=plain
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            Archie/**/build/reports/tests/**
+            Archie/**/build/tmp/junit-gametest-runner/**
+            Archie-Test/**/build/reports/tests/**
+            Archie-Test/**/build/tmp/junit-gametest-runner/**
+          if-no-files-found: ignore
+          retention-days: 7

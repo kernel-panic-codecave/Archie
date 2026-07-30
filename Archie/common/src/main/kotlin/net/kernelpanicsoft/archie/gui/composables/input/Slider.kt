@@ -161,9 +161,6 @@ fun Slider(
         Layout(
             name = "Slider",
             measurePolicy = measurePolicy,
-            // The outer SliderCore's Layout resets min-constraints to 0 for its child, so this
-            // inner node needs its own copy of sizeModifier - otherwise it measures to 0x0 and
-            // only the fixed-size thumb still draws (no track, no fill).
             modifier = sizeModifier,
             renderer = object : Renderer {
                 override fun render(

@@ -230,8 +230,8 @@ class ThemeResourceListener :
     )
 
     private fun baseFields(loc: ResourceLocation, name: String, el: RawThemeState, default: ThemeState?): BaseFields {
-        val texture = default?.texture
-            ?: el.texture?.let { ResourceLocation.parse(it) }
+        val texture = el.texture?.let { ResourceLocation.parse(it) }
+            ?: default?.texture
             ?: throw IllegalStateException("Missing texture for state \"$name\" in: $loc")
         val textureSize = el.textureSize
             ?: default?.textureSize

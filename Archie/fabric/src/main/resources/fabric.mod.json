@@ -23,7 +23,6 @@
   "license": "${mod_license}",
   "icon": "assets/${mod_id}/icon.png",
   "environment": "*",
-  "accessWidener": "${mod_id}.accesswidener",
   "entrypoints": {
     "main": [
       {
@@ -45,8 +44,8 @@
     ]
   },
   "mixins": [
-    "archie.mixins.json",
-    "archie-common.mixins.json"
+    "${mod_id}.mixins.json",
+    "${mod_id}-common.mixins.json"
   ],
   "depends": {
     "minecraft": "${versions.minecraft}",
