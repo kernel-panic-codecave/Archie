@@ -23,3 +23,8 @@ local.properties
 **/src/main/generated
 docs/api
 site
+.architectury-transformer
+*/.kotlin
+
+# Engram local graph (personal)
+.engram/
