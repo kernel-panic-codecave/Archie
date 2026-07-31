@@ -115,10 +115,6 @@ internal object GameTestGradleExecutor {
 			}
 		}
 
-		// The actual process isn't started yet at this point - only once this invocation's turn
-		// comes up on `ioExecutor` and it acquires `withLoaderRunLock` - so `liveTestResults` starts
-		// empty and `result` isn't done, exactly as if the process were already running but hadn't
-		// produced output yet. This keeps `start()` itself non-blocking for the caller.
 		val liveTestResults = ConcurrentHashMap<String, TestResult>()
 		val result = CompletableFuture.supplyAsync(
 			{ withLoaderRunLock(workspaceRoot, invocation.loader) { runProcess(invocation, timeout, workspaceRoot, liveTestResults) } },

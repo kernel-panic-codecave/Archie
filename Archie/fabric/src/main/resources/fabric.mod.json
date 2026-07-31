@@ -16,7 +16,6 @@
   },
   "custom": {
     "catalogue": {
-      "configFactory": "net.kernelpanicsoft.archie.config.ArchieCatalogue",
       "banner": "assets/${mod_id}/banner.png"
     }
   },
@@ -34,12 +33,6 @@
       {
         "adapter": "kotlin",
         "value": "net.kernelpanicsoft.archie.ArchieFabric"
-      }
-    ],
-    "modmenu": [
-      {
-        "adapter": "kotlin",
-        "value": "net.kernelpanicsoft.archie.config.ArchieModMenu"
       }
     ]
   },

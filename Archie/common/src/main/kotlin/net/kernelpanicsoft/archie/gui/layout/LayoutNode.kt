@@ -384,7 +384,7 @@ class LayoutNode(
         return mouseX in ax until (ax + width) && mouseY in ay until (ay + height)
     }
 
-    override fun toString() = children.toList().run { if (isNotEmpty()) joinToString(prefix = "$nodeName {\n", separator = "\n", postfix = "\n}") else "$nodeName()" }
+    override fun toString() = children.toList().run { if (isNotEmpty()) joinToString(prefix = "$nodeName {\n", separator = "\n", postfix = "\n}") { "\t$it" } else "$nodeName()" }
 
     internal companion object {
         val ChildMeasurePolicy = MeasurePolicy { _, measurables, constraints ->

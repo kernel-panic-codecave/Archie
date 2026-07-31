@@ -151,8 +151,6 @@ dependencies {
 	modLocalRuntime(libs.menulogue.fabric)
 	modCompileOnlyApi(libs.clothConfig.fabric)
 	modLocalRuntime(libs.clothConfig.fabric)
-//	modCompileOnlyApi(libs.yacl.fabric)
-//	modLocalRuntime(libs.yacl.fabric)
 	bundleMod(libs.storage.fabric)
 
 	implementation(libs.junit.jupiter.api)

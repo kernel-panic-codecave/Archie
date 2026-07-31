@@ -16,7 +16,7 @@ set -u
 # -P resolves symlinks so the path compares equal to the daemon's
 # canonicalized /health db (macOS /tmp vs /private/tmp and friends).
 ROOT="$(cd -P "${CLAUDE_PROJECT_DIR:-$PWD}" 2>/dev/null && pwd)" || exit 0
-DB="$ROOT/.engram/graph.db"
+DB="$ROOT/.engram/graph.tepin"
 MAX_CHARS="${ENGRAM_BRIEF_CHARS:-16000}"
 
 # Not an Engram-wired repo (or a brand-new one) — stay silent.

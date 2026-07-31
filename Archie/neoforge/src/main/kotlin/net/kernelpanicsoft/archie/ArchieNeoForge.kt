@@ -23,10 +23,6 @@ object ArchieNeoForge {
         }
         MOD_BUS.addListener<FMLClientSetupEvent> {
             Archie.initClient()
-
-            ClientTickEvent.CLIENT_POST.register {
-                ThreadingImpl.onClientTick()
-            }
         }
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             Archie.initCommon()

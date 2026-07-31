@@ -46,7 +46,7 @@ private const val CLIENT_EXEC_TIMEOUT_SECONDS = 10L
 private const val WORLD_BUILDER_EXEC_TIMEOUT_SECONDS = 300L
 private const val SCREEN_SET_TIMEOUT_TICKS = 40
 private const val COMPOSE_IDLE_TIMEOUT_TICKS = 20
-private const val COMPOSE_IDLE_CONSECUTIVE_CHECKS = 2
+private const val COMPOSE_IDLE_CONSECUTIVE_CHECKS = 4
 
 private object DedicatedServerLifecycleTracker {
     private val activeServers = ConcurrentHashMap.newKeySet<Any>()
@@ -474,14 +474,6 @@ internal class DefaultClientGameTestContext(
         }
 
         override fun typeChars(value: String) {
-            // A controlled text-input composable's onValueChange writes its new value to
-            // caller-owned Compose state (e.g. `var text by remember { mutableStateOf("") }`,
-            // then passes `value = text` back in) - so the next character typed only sees that
-            // update once recomposition has actually run and threaded the new value back down.
-            // Firing charTyped() back-to-back with no gap in between (as this used to) races that
-            // recomposition: a still-stale `value` closed over by the field's onCharTyped handler
-            // computes insert(staleValue, nextChar), silently dropping every character but the
-            // last one typed before recomposition caught up.
             value.forEach {
                 charTyped(it)
                 waitForComposeIdle()

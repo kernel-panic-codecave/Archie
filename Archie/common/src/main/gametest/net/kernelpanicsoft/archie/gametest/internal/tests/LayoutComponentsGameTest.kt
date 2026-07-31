@@ -134,7 +134,7 @@ private class PanelDisplayProbeScreen : ComposeScreen(Component.literal("Panel D
                 Panel {
                     Text(Component.literal("Panel content"), dropShadow = false)
                     HorizontalDivider()
-                    Icon(texture = ResourceLocation.withDefaultNamespace("textures/gui/icons.png"), size = 16)
+                    Icon(texture = ResourceLocation.withDefaultNamespace("textures/item/porkchop.png"), size = 16)
                 }
             }
         }

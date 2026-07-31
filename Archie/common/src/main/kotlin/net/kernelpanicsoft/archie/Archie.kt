@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie
 
 import com.mojang.logging.LogUtils
+import dev.architectury.event.events.client.ClientTickEvent
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import dev.architectury.registry.ReloadListenerRegistry
@@ -15,6 +16,7 @@ import net.kernelpanicsoft.archie.data.internal.ArchieDatagen
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.gametest.AGameTestSide
+import net.kernelpanicsoft.archie.gametest.ThreadingImpl
 import net.kernelpanicsoft.archie.gametest.internal.ArchieGameTest
 import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
 import net.kernelpanicsoft.archie.gui.theme.ThemeManifestResourceListener
@@ -97,6 +99,9 @@ object Archie
 	@JvmStatic
 	fun initClient()
 	{
+		ClientTickEvent.CLIENT_POST.register {
+			ThreadingImpl.onClientTick()
+		}
 	}
 
 	/**

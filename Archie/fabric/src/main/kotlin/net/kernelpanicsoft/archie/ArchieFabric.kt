@@ -1,6 +1,5 @@
 package net.kernelpanicsoft.archie
 
-import dev.architectury.event.events.client.ClientTickEvent
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.ModInitializer
 import net.kernelpanicsoft.archie.gametest.ThreadingImpl
@@ -22,8 +21,5 @@ object ArchieFabric : ModInitializer, ClientModInitializer {
     override fun onInitializeClient()
     {
         Archie.initClient()
-        ClientTickEvent.CLIENT_POST.register {
-            ThreadingImpl.onClientTick()
-        }
     }
 }
