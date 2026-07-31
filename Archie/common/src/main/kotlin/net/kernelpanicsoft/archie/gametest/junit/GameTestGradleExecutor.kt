@@ -146,7 +146,7 @@ internal object GameTestGradleExecutor {
 		workspaceRoot: Path,
 	): GameTestGradleHandle {
 		val logsDir = workspaceRoot.resolve("build/tmp/junit-gametest-runner").createDirectories()
-		val logFile = logsDir.resolve("${invocation.id}.log")
+		val logFile = logsDir.resolve("${invocation.id.replace(':', '-')}.log")
 
 		val wrapper = resolveGradleWrapper(workspaceRoot)
 		val command = mutableListOf(wrapper.toString())

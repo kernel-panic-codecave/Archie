@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 architectury {
@@ -128,6 +129,9 @@ tasks {
 		systemProperty("archie.junit.gametest.matrix", "fabric:server,fabric:client,neoforge:server,neoforge:client")
 		systemProperty("archie.junit.gametest.timeoutMinutes", "20")
 		systemProperty("archie.junit.gametest.root", rootProject.rootDir.absolutePath)
+		testLogging {
+			exceptionFormat = TestExceptionFormat.FULL
+		}
 	}
 }
 

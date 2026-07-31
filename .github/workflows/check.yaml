@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   check:
@@ -41,6 +42,12 @@ jobs:
       - name: Run check (with client GameTests under Xvfb)
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" ./gradlew check --console=plain
 
+      - name: Publish test report
+        if: success() || failure()
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -51,5 +58,6 @@ jobs:
             Archie/**/build/tmp/junit-gametest-runner/**
             Archie-Test/**/build/reports/tests/**
             Archie-Test/**/build/tmp/junit-gametest-runner/**
+            build/reports/problems/**
           if-no-files-found: ignore
           retention-days: 7
