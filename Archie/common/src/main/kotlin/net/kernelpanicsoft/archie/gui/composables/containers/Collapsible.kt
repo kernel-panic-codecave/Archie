@@ -15,7 +15,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingModifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
-import net.kernelpanicsoft.archie.gui.modifiers.size
+import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.client.Minecraft
@@ -122,7 +122,7 @@ fun Collapsible(
                     Spacer(
                         modifier = Modifier
                             .then(PaddingModifier(PaddingValues(left = 5)))
-                            .size(1, 0)
+                            .width(1)
                             .fillMaxHeight()
                             .then(BackgroundModifier(KColor.GRAY.argb, KColor.GRAY.argb))
                     )

@@ -102,6 +102,7 @@ loom {
 			property("fabric-api.gametest")
 			property("archie.gametest", "true")
 			property("archie.gametest.side", "server")
+			property("archie.gametest.modid", providers.gradleProperty("mod_id").orElse("archie_test").get())
 		}
 		create("gametestClient") {
 			client()
@@ -109,6 +110,7 @@ loom {
 			property("fabric-api.gametest")
 			property("archie.gametest", "true")
 			property("archie.gametest.side", "client")
+			property("archie.gametest.modid", providers.gradleProperty("mod_id").orElse("archie_test").get())
 		}
 	}
 }

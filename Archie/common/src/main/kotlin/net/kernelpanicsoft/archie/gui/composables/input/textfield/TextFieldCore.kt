@@ -6,6 +6,7 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.layout.Size
+import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
 import net.minecraft.client.Minecraft
@@ -126,11 +127,16 @@ fun TextFieldCore(
 
     Layout(
         name = "TextFieldCore",
-        measurePolicy = { _, _, constraints ->
+        measurePolicy = { _, measurables, constraints ->
             val w = constraints.maxWidth
             val h = if (singleLine) font.lineHeight + BORDER_PADDING * 2 else constraints.maxHeight
             state.layoutInfo = Size(w, h)
-            MeasureResult(w, h) {}
+
+            val fixedConstraints = Constraints(minWidth = w, maxWidth = w, minHeight = h, maxHeight = h)
+            val placeables = measurables.map { it.measure(fixedConstraints) }
+            MeasureResult(w, h) {
+                placeables.forEach { it.placeAt(0, 0) }
+            }
         },
         modifier = modifier
             .onKeyEvent { _, event ->

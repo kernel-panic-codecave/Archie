@@ -17,10 +17,12 @@ import net.kernelpanicsoft.archie.gui.composables.input.RadioOption
 import net.kernelpanicsoft.archie.gui.composables.input.Slider
 import net.kernelpanicsoft.archie.gui.composables.input.Switch
 import net.kernelpanicsoft.archie.gui.composables.input.textfield.BasicTextField
+import net.kernelpanicsoft.archie.gui.composables.containers.Scrollable
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.Column
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.theme.Theme
 import net.kernelpanicsoft.archie.gui.util.HsvColor
@@ -57,9 +59,12 @@ class InputComponentsGameTest {
                     assertHasDescendant("ColorPicker")
                     assertHasDescendant("Button")
 
-                    // Every RadioGroup option's Row wraps exactly one RadioButton + its label, in order.
+                    // Every RadioGroup option's Row wraps exactly one RadioButton (itself inside
+                    // the Box every Clickable-based composable renders its content in) plus its
+                    // label, in order.
                     node("Row") {
-                        assertChildNames("RadioButton", "Text")
+                        assertChildNames("Box", "Text")
+                        node("Box") { assertHasDescendant("RadioButton") }
                     }
 
                     assertAllDescendantsSized()
@@ -259,31 +264,37 @@ private class InputComponentsProbeScreen(
                 var text by remember { mutableStateOf("") }
                 var color by remember { mutableStateOf(initialColor) }
 
-                Column(verticalArrangement = Arrangement.spacedBy(4)) {
-                    Checkbox(checked = checked, onCheckedChange = { checked = it })
-                    Switch(checked = switched, onCheckedChange = { switched = it })
-                    RadioGroup(
-                        options = listOf(
-                            RadioOption("alpha", Component.literal("Alpha")),
-                            RadioOption("beta", Component.literal("Beta")),
-                            RadioOption("gamma", Component.literal("Gamma")),
-                        ),
-                        selected = radio,
-                        onSelected = { radio = it; onRadioSelected(it) },
-                    )
-                    Slider(value = slider, onValueChange = { slider = it }, steps = 10)
-                    BasicTextField(
-                        value = text,
-                        onValueChange = { text = it; onTextChanged(it) },
-                        modifier = Modifier.sizeIn(minWidth = 120, maxWidth = 180),
-                    )
-                    ColorPicker(
-                        color = color,
-                        onColorChanged = { color = it; onColorChanged(it) },
-                        modifier = Modifier.sizeIn(minWidth = 150, minHeight = 90, maxWidth = 170, maxHeight = 100),
-                    )
-                    Button(onClick = { onButtonClick() }) {
-                        Text(Component.literal("Click me"), dropShadow = false)
+                // Scrollable, since this probe's fixed-height components (ColorPicker etc.) can
+                // together exceed the actual game window's height depending on display/GUI
+                // scale - without it, a plain Column silently starves later children of their
+                // Column-inherited remaining-height budget instead of scrolling.
+                Scrollable(modifier = Modifier.fillMaxSize()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4)) {
+                        Checkbox(checked = checked, onCheckedChange = { checked = it })
+                        Switch(checked = switched, onCheckedChange = { switched = it })
+                        RadioGroup(
+                            options = listOf(
+                                RadioOption("alpha", Component.literal("Alpha")),
+                                RadioOption("beta", Component.literal("Beta")),
+                                RadioOption("gamma", Component.literal("Gamma")),
+                            ),
+                            selected = radio,
+                            onSelected = { radio = it; onRadioSelected(it) },
+                        )
+                        Slider(value = slider, onValueChange = { slider = it }, steps = 10)
+                        BasicTextField(
+                            value = text,
+                            onValueChange = { text = it; onTextChanged(it) },
+                            modifier = Modifier.sizeIn(minWidth = 120, maxWidth = 180),
+                        )
+                        ColorPicker(
+                            color = color,
+                            onColorChanged = { color = it; onColorChanged(it) },
+                            modifier = Modifier.sizeIn(minWidth = 150, minHeight = 90, maxWidth = 170, maxHeight = 100),
+                        )
+                        Button(onClick = { onButtonClick() }) {
+                            Text(Component.literal("Click me"), dropShadow = false)
+                        }
                     }
                 }
             }

@@ -15,9 +15,8 @@ inline fun <reified T, R> T.setReflection(field: String, value: R) = setReflecti
  */
 inline fun <reified T, R> getReflection(instance: T, field: String): R
 {
-	val f = generateSequence(T::class.java as Class<*>) { it.superclass }
-		.mapNotNull { clazz -> runCatching { clazz.getDeclaredField(field) }.getOrNull() }
-		.firstOrNull()
+	val f = generateSequence((instance?.javaClass ?: T::class.java) as Class<*>) { it.superclass }
+		.firstNotNullOfOrNull { clazz -> runCatching { clazz.getDeclaredField(field) }.getOrNull() }
 		?: throw NoSuchFieldException(field)
 	f.isAccessible = true
 	@Suppress("UNCHECKED_CAST")
@@ -32,9 +31,8 @@ inline fun <reified T, R> getReflection(instance: T, field: String): R
  */
 inline fun <reified T, R> setReflection(instance: T, field: String, value: R)
 {
-	val f = generateSequence(T::class.java as Class<*>) { it.superclass }
-		.mapNotNull { clazz -> runCatching { clazz.getDeclaredField(field) }.getOrNull() }
-		.firstOrNull()
+	val f = generateSequence((instance?.javaClass ?: T::class.java) as Class<*>) { it.superclass }
+		.firstNotNullOfOrNull { clazz -> runCatching { clazz.getDeclaredField(field) }.getOrNull() }
 		?: throw NoSuchFieldException(field)
 	f.isAccessible = true
 	f.set(instance, value)

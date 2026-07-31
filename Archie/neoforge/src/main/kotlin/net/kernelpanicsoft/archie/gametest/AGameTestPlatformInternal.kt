@@ -23,9 +23,10 @@ internal object AGameTestPlatformInternal
 		}
 
 	/**
-	 * No-ops unless [AGameTestPlatform.isGameTest]. For every mod in [AEvents.MODS], subscribes to
-	 * that mod's `RegisterGameTestsEvent`; when it fires, fires [AEvents.REGISTER_GAME_TEST] for the
-	 * mod and registers each resulting test class with NeoForge's event.
+	 * No-ops unless [AGameTestPlatform.isGameTest]. For every mod selected by [AGameTestModFilter]
+	 * from [AEvents.MODS], subscribes to that mod's `RegisterGameTestsEvent`; when it fires, fires
+	 * [AEvents.REGISTER_GAME_TEST] for the mod and registers each resulting test class with
+	 * NeoForge's event.
 	 */
 	@JvmStatic
 	@JvmName("addEventHandlers")
@@ -33,7 +34,7 @@ internal object AGameTestPlatformInternal
 	{
 		if (!AGameTestPlatform.isGameTest) return
 
-		for (mod in AEvents.MODS)
+		for (mod in AGameTestModFilter.selectMods(AEvents.MODS))
 		{
 			ModList.get().getModContainerById(mod.modId).ifPresent {
 				it.eventBus?.addListener<RegisterGameTestsEvent> { event ->

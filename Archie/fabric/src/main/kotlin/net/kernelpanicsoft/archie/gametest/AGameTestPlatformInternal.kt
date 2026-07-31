@@ -17,10 +17,10 @@ internal object AGameTestPlatformInternal
 	internal val testClasses: MutableMap<Mod, MutableSet<Class<*>>> = mutableMapOf()
 
 	/**
-	 * No-ops unless [isGameTest]. Fires [AEvents.REGISTER_GAME_TEST] for every registered mod (or
-	 * just [Archie.MOD] if none registered), then registers each resulting test class with
-	 * [GameTestRegistry] and [FabricGameTestModInitializerMixin]'s id/logger bookkeeping - throwing
-	 * if the same class is registered under more than one mod.
+	 * No-ops unless [isGameTest]. Fires [AEvents.REGISTER_GAME_TEST] for every mod selected by
+	 * [AGameTestModFilter] (or just [Archie.MOD] if [AEvents.MODS] is empty), then registers each
+	 * resulting test class with [GameTestRegistry] and [FabricGameTestModInitializerMixin]'s
+	 * id/logger bookkeeping - throwing if the same class is registered under more than one mod.
 	 */
 	@JvmStatic
 	@JvmName("registerGameTests")
@@ -29,7 +29,7 @@ internal object AGameTestPlatformInternal
 		if (!isGameTest) return
 		Archie.LOGGER.info("Registering GameTests")
 		GlobalTestReporter.replaceWith(VerboseTestReporter)
-		val mods = AEvents.MODS.ifEmpty { listOf(Archie.MOD) }
+		val mods = AGameTestModFilter.selectMods(AEvents.MODS.ifEmpty { listOf(Archie.MOD) })
 		for (mod in mods)
 		{
 			AEvents.REGISTER_GAME_TEST.invoker()(mod)

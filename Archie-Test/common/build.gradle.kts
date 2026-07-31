@@ -87,7 +87,11 @@ tasks {
 		classpath = sourceSets.test.get().runtimeClasspath
 		useJUnitPlatform()
 		systemProperty("archie.junit.gametest", "true")
-		systemProperty("archie.junit.gametest.matrix", "fabric:server,fabric:client,neoforge:server,neoforge:client")
+		// See the matching comment in Archie/common/build.gradle.kts.
+		systemProperty(
+			"archie.junit.gametest.matrix",
+			System.getProperty("archie.junit.gametest.matrix") ?: "fabric:server,fabric:client,neoforge:server,neoforge:client",
+		)
 		systemProperty("archie.junit.gametest.timeoutMinutes", "20")
 		systemProperty("archie.junit.gametest.root", rootProject.rootDir.absolutePath)
 	}

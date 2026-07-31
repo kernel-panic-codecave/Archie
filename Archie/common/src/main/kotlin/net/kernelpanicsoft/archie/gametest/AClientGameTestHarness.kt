@@ -5,6 +5,7 @@ import dev.architectury.platform.Mod
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.ComposeIdleAware
 import net.kernelpanicsoft.archie.gui.LayerManagerProvider
+import net.kernelpanicsoft.archie.util.setReflection
 import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.Screenshot
@@ -46,7 +47,6 @@ private const val WORLD_BUILDER_EXEC_TIMEOUT_SECONDS = 300L
 private const val SCREEN_SET_TIMEOUT_TICKS = 40
 private const val COMPOSE_IDLE_TIMEOUT_TICKS = 20
 private const val COMPOSE_IDLE_CONSECUTIVE_CHECKS = 2
-private const val CLIENT_GAMETEST_MOD_ID_FILTER_PROPERTY = "fabric.client.gametest.modid"
 
 private object DedicatedServerLifecycleTracker {
     private val activeServers = ConcurrentHashMap.newKeySet<Any>()
@@ -473,7 +473,18 @@ internal class DefaultClientGameTestContext(
         }
 
         override fun typeChars(value: String) {
-            value.forEach { charTyped(it) }
+            // A controlled text-input composable's onValueChange writes its new value to
+            // caller-owned Compose state (e.g. `var text by remember { mutableStateOf("") }`,
+            // then passes `value = text` back in) - so the next character typed only sees that
+            // update once recomposition has actually run and threaded the new value back down.
+            // Firing charTyped() back-to-back with no gap in between (as this used to) races that
+            // recomposition: a still-stale `value` closed over by the field's onCharTyped handler
+            // computes insert(staleValue, nextChar), silently dropping every character but the
+            // last one typed before recomposition caught up.
+            value.forEach {
+                charTyped(it)
+                waitForComposeIdle()
+            }
         }
 
         override fun scroll(x: Double, y: Double) {
@@ -627,9 +638,7 @@ internal class DefaultClientGameTestContext(
      */
     private fun disablePauseOnLostFocus(options: Any) {
         runCatching {
-            val field = options.javaClass.getDeclaredField("pauseOnLostFocus")
-            field.isAccessible = true
-            field.setBoolean(options, false)
+            options.setReflection("pauseOnLostFocus", false)
         }
     }
 
@@ -1560,23 +1569,8 @@ object AClientGameTestHarness {
 }
 
 private fun selectModsToRun(modToClasses: Map<Mod, List<Class<*>>>): Map<Mod, List<Class<*>>> {
-    val filter = System.getProperty(CLIENT_GAMETEST_MOD_ID_FILTER_PROPERTY)?.trim().orEmpty()
-    if (filter.isEmpty()) return modToClasses
-
-    val requestedIds = filter.split(',')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .toSet()
-
-    require(requestedIds.isNotEmpty()) {
-        "No valid mod IDs specified in client game test filter '$CLIENT_GAMETEST_MOD_ID_FILTER_PROPERTY'"
-    }
-
-    val selected = modToClasses.filterKeys { mod -> mod.modId in requestedIds }
-    require(selected.isNotEmpty()) {
-        "No client gametests found for requested mod IDs: ${requestedIds.joinToString(",")}" 
-    }
-    return selected
+    val selected = AGameTestModFilter.selectMods(modToClasses.keys).toSet()
+    return modToClasses.filterKeys { it in selected }
 }
 
 private fun rootCauseSummary(error: Throwable): String {

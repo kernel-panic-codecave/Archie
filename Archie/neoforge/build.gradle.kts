@@ -105,6 +105,7 @@ loom {
 			property("neoforge.enableGameTest", "true")
 			property("neoforge.gameTestServer", "true")
 			property("archie.gametest", "true")
+			property("archie.gametest.modid", providers.gradleProperty("mod_id").orElse("archie").get())
 			property("kotlinx.coroutines.debug", "off")
 			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
@@ -115,6 +116,7 @@ loom {
 			property("neoforge.enableGameTest", "true")
 			property("archie.gametest.side", "client")
 			property("archie.gametest", "true")
+			property("archie.gametest.modid", providers.gradleProperty("mod_id").orElse("archie").get())
 			property("kotlinx.coroutines.debug", "off")
 			providers.gradleProperty("archie.junit.gametest.function").orNull?.let { property("archie.junit.gametest.function", it) }
 		}
