@@ -143,21 +143,17 @@ sourceSets {
 }
 
 dependencies {
-	"archie"("net.kernelpanicsoft:neoforge") {
-		targetConfiguration = "namedElements"
-	}
+	"archie"("net.kernelpanicsoft:neoforge") { targetConfiguration = "namedElements" }
 	neoForge(libs.neoforge)
 	modApi(libs.architectury.neoforge)
 	implementation(libs.kotlin.neoforge)
 	modRuntimeOnly(libs.rei.neoforge)
 	modRuntimeOnly(libs.catalogue.neoforge)
 	modRuntimeOnly(libs.clothConfig.neoforge)
-
-	bundleMod(libs.storage.neoforge) {
-		exclude(group = "curse.maven")
-	}
+	bundleMod(libs.storage.neoforge) { exclude(group = "curse.maven") }
 
 	"common"(project(":common-test", "namedElements")) { isTransitive = false }
+	"common"("net.kernelpanicsoft:common") { targetConfiguration = "namedElements" }
 	"shadowCommon"(project(":common-test", "transformProductionNeoForge")) { isTransitive = false }
 }
 

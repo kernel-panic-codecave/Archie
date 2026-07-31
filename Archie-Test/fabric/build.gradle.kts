@@ -144,6 +144,7 @@ dependencies {
 	bundleMod(libs.storage.fabric)
 
 	"common"(project(":common-test", "namedElements")) { isTransitive = false }
+	"common"("net.kernelpanicsoft:common") { targetConfiguration = "namedElements" }
 	"shadowCommon"(project(":common-test", "transformProductionFabric")) { isTransitive = false }
 }
 
