@@ -55,15 +55,18 @@ class LayoutNode(
     val name: String get() = nodeName
 
     /** Recursively searches this subtree for a descendant node whose [nodeName] equals [name]. */
-    fun findNode(name: String): LayoutNode? = children.find { it.nodeName == name } ?: children.firstNotNullOfOrNull { it.findNode(name) }
+    fun findNode(name: String): LayoutNode? {
+        val snapshot = children.toList()
+        return snapshot.find { it.nodeName == name } ?: snapshot.firstNotNullOfOrNull { it.findNode(name) }
+    }
 
     /** Recursively searches this subtree for every descendant node whose [nodeName] equals [name], in depth-first order. */
-    fun findAllNodes(name: String): List<LayoutNode> = children.flatMap { child ->
+    fun findAllNodes(name: String): List<LayoutNode> = children.toList().flatMap { child ->
         if (child.nodeName == name) listOf(child) + child.findAllNodes(name) else child.findAllNodes(name)
     }
 
     /** This subtree (this node plus every descendant), in depth-first pre-order. */
-    fun flatten(): List<LayoutNode> = listOf(this) + children.flatMap { it.flatten() }
+    fun flatten(): List<LayoutNode> = listOf(this) + children.toList().flatMap { it.flatten() }
 
     override var modifier: Modifier = Modifier
         set(value) {
@@ -122,7 +125,7 @@ class LayoutNode(
     /** Computes the maximum effective z-depth in this subtree, adding [layerOffset]. */
     fun getMaxZ(layerOffset: Float): Float {
         val myZ = effectiveZ(layerOffset)
-        return maxOf(myZ, children.maxOfOrNull { it.getMaxZ(layerOffset) } ?: myZ)
+        return maxOf(myZ, children.toList().maxOfOrNull { it.getMaxZ(layerOffset) } ?: myZ)
     }
 
     internal fun invalidateChildrenZCache() {
@@ -133,7 +136,7 @@ class LayoutNode(
     internal fun childrenAscendingZ(): List<LayoutNode> {
         val cached = childrenAscendingZCache
         if (cached != null) return cached
-        return children.sortedBy { it.zIndex }.also { sorted ->
+        return children.toList().sortedBy { it.zIndex }.also { sorted ->
             childrenAscendingZCache = sorted
             childrenDescendingZCache = sorted.asReversed()
         }
@@ -142,7 +145,7 @@ class LayoutNode(
     internal fun childrenDescendingZ(): List<LayoutNode> {
         val cached = childrenDescendingZCache
         if (cached != null) return cached
-        return children.sortedByDescending { it.zIndex }.also { sorted ->
+        return children.toList().sortedByDescending { it.zIndex }.also { sorted ->
             childrenDescendingZCache = sorted
             childrenAscendingZCache = sorted.asReversed()
         }
@@ -182,15 +185,22 @@ class LayoutNode(
     // ── Measurement ───────────────────────────────────────────────────────
 
     override fun measure(constraints: Constraints): Placeable {
+        // Snapshot once - Compose's Recomposer applies structural changes (LayoutNodeApplier
+        // insert/remove/move) from its own recompose+apply coroutine, which isn't necessarily
+        // synchronized with whatever thread is measuring, so iterating the live `children` list
+        // directly here (as this used to) could throw ConcurrentModificationException if a
+        // recomposition mutates it mid-measure.
+        val childrenSnapshot = children.toList()
+
         // Collect outset (margin) from children
-        val outset = children.fold(listOf<MarginModifier>()) { acc, child ->
+        val outset = childrenSnapshot.fold(listOf<MarginModifier>()) { acc, child ->
             acc + child.modifier.getAll<MarginModifier>()
         }
         val horizontal = outset.sumOf { it.horizontal }
         val vertical   = outset.sumOf { it.vertical }
 
         val innerConstraints = layoutChangingModifiers.fold(constraints) { c, m -> m.modifyInnerConstraints(c) }
-        val result = measurePolicy.measure(this, children, innerConstraints)
+        val result = measurePolicy.measure(this, childrenSnapshot, innerConstraints)
 
         // Account for padding inset
         val inset = get<PaddingModifier>()
@@ -292,7 +302,7 @@ class LayoutNode(
         val dx = this.x + x
         val dy = this.y + y
 
-        val hoveredChildren = children.filter { it.isBounded(mouseX, mouseY) }
+        val hoveredChildren = children.toList().filter { it.isBounded(mouseX, mouseY) }
         if (hoveredChildren.isNotEmpty()) {
             hoveredChildren.forEach { it.renderDebug(dx, dy, guiGraphics, mouseX, mouseY, partialTick) }
             return
@@ -374,7 +384,7 @@ class LayoutNode(
         return mouseX in ax until (ax + width) && mouseY in ay until (ay + height)
     }
 
-    override fun toString() = children.joinToString(prefix = "$nodeName(", postfix = ")")
+    override fun toString() = children.toList().joinToString(prefix = "$nodeName(", postfix = ")")
 
     internal companion object {
         val ChildMeasurePolicy = MeasurePolicy { scope, measurables, constraints ->
