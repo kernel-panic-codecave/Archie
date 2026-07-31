@@ -51,8 +51,19 @@ class LayoutNode(
     private var childrenAscendingZCache: List<LayoutNode>? = null
     private var childrenDescendingZCache: List<LayoutNode>? = null
 
+    /** This node's human-readable label, as shown in the debug overlay and used by [findNode]/[findAllNodes]. */
+    val name: String get() = nodeName
+
     /** Recursively searches this subtree for a descendant node whose [nodeName] equals [name]. */
     fun findNode(name: String): LayoutNode? = children.find { it.nodeName == name } ?: children.firstNotNullOfOrNull { it.findNode(name) }
+
+    /** Recursively searches this subtree for every descendant node whose [nodeName] equals [name], in depth-first order. */
+    fun findAllNodes(name: String): List<LayoutNode> = children.flatMap { child ->
+        if (child.nodeName == name) listOf(child) + child.findAllNodes(name) else child.findAllNodes(name)
+    }
+
+    /** This subtree (this node plus every descendant), in depth-first pre-order. */
+    fun flatten(): List<LayoutNode> = listOf(this) + children.flatMap { it.flatten() }
 
     override var modifier: Modifier = Modifier
         set(value) {
@@ -100,6 +111,7 @@ class LayoutNode(
     override var height: Int = 0
     override var x: Int = 0
     override var y: Int = 0
+    override var renderState: String? = null
 
     /** The effective z-index for this node, used for draw and input ordering. */
     val zIndex: Float get() = get<ZIndexModifier>()?.zIndex ?: 0f

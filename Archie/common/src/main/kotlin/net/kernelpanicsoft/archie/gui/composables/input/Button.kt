@@ -5,6 +5,7 @@ import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
@@ -73,19 +74,13 @@ fun Button(
 	                mouseY: Int,
 	                partialTick: Float
                 ) {
-                    val state = composableTheme.getState(
-                        when {
-                            !enabled -> TextureStates.DISABLED
-                            isPressed && composableTheme.hasState(
-                                TextureStates.CLICKED,
-                                variant
-                            ) -> TextureStates.CLICKED
-
-                            isHovered -> TextureStates.HOVERED
-                            else -> TextureStates.DEFAULT
-                        },
-                        variant
+                    val stateKey = WidgetState.resolve(
+                        composableTheme, variant,
+                        WidgetState.clicked(isPressed), WidgetState.hovered(isHovered),
+                        enabled = enabled,
                     )
+                    node.renderState = stateKey
+                    val state = composableTheme.getState(stateKey, variant)
 
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)
 

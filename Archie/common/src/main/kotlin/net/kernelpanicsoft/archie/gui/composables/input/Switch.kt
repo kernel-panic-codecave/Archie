@@ -6,6 +6,7 @@ import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
@@ -106,18 +107,15 @@ fun Switch(
 	                mouseY: Int,
 	                partialTick: Float,
                 ) {
-                    val trackState = trackTheme.getState(
-                        when {
-                            !enabled -> TextureStates.DISABLED
-                            currentChecked && hovered -> TextureStates.CLICKED_AND_HOVERED
-                            hovered -> TextureStates.HOVERED
-                            currentChecked -> TextureStates.CLICKED
-                            else -> TextureStates.DEFAULT
-                        },
-                        variant
+                    val trackStateKey = WidgetState.resolve(
+                        trackTheme, variant,
+                        WidgetState.clicked(currentChecked), WidgetState.hovered(hovered),
+                        enabled = enabled,
                     )
+                    node.renderState = trackStateKey
+                    val trackState = trackTheme.getState(trackStateKey, variant)
                     val thumbState = thumbTheme.getState(
-                        if (!enabled) TextureStates.DISABLED else TextureStates.DEFAULT,
+                        WidgetState.resolve(thumbTheme, variant, enabled = enabled),
                         variant
                     )
 

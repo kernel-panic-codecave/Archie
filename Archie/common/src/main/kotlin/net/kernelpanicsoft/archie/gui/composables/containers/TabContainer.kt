@@ -10,6 +10,7 @@ import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.basic.Texture
 import net.kernelpanicsoft.archie.gui.composables.input.ButtonCore
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
@@ -342,13 +343,14 @@ fun Tab(
         enabled = enabled,
         modifier = modifier,
     ) { isHovered, isPressed ->
-        val stateKey = when {
-            !enabled -> TextureStates.DISABLED
-            selected && isHovered -> TextureStates.CLICKED_AND_HOVERED
-            selected || isPressed -> TextureStates.CLICKED
-            isHovered -> TextureStates.HOVERED
-            else -> TextureStates.DEFAULT
-        }
+        // Selected-or-pressed and hovered are independent axes here (not just "selected &&
+        // hovered" as before) - a pressed-but-unselected-and-hovered tab now keeps its hover
+        // visual, matching every other stateful composable's behavior. See WidgetState.resolve.
+        val stateKey = WidgetState.resolve(
+            composableTheme, variant,
+            WidgetState.clicked(selected || isPressed), WidgetState.hovered(isHovered),
+            enabled = enabled,
+        )
         val state = composableTheme.getState(stateKey, variant)
         val offsetModifier = Modifier
             .zIndex(if (selected && elevateSelected) 1f else 0f)
@@ -372,6 +374,7 @@ fun Tab(
                     mouseY: Int,
                     partialTick: Float,
                 ) {
+                    node.renderState = stateKey
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)
                     super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
                 }

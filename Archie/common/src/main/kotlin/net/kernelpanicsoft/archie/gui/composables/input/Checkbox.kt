@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.*
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
@@ -70,15 +71,12 @@ fun Checkbox(
 	                mouseY: Int,
 	                partialTick: Float
                 ) {
-                    val state = composableTheme.getState(
-                        when {
-                            checked && isHovered -> TextureStates.CLICKED_AND_HOVERED
-                            isHovered -> TextureStates.HOVERED
-                            checked -> TextureStates.CLICKED
-                            else -> TextureStates.DEFAULT
-                        },
-                        variant
+                    val stateKey = WidgetState.resolve(
+                        composableTheme, variant,
+                        WidgetState.clicked(checked), WidgetState.hovered(isHovered),
                     )
+                    node.renderState = stateKey
+                    val state = composableTheme.getState(stateKey, variant)
 
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)
 

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
@@ -102,16 +103,13 @@ fun RadioButton(
 	                mouseY: Int,
 	                partialTick: Float,
                 ) {
-                    val state = composableTheme.getState(
-                        when {
-                            !enabled -> TextureStates.DISABLED
-                            currentSelected && hovered -> TextureStates.CLICKED_AND_HOVERED
-                            hovered -> TextureStates.HOVERED
-                            currentSelected -> TextureStates.CLICKED
-                            else -> TextureStates.DEFAULT
-                        },
-                        variant
+                    val stateKey = WidgetState.resolve(
+                        composableTheme, variant,
+                        WidgetState.clicked(currentSelected), WidgetState.hovered(hovered),
+                        enabled = enabled,
                     )
+                    node.renderState = stateKey
+                    val state = composableTheme.getState(stateKey, variant)
 
                     guiGraphics.drawThemeState(state, x, y, node.width, node.height)
 

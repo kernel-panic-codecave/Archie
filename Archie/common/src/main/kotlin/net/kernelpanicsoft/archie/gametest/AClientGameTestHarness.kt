@@ -330,6 +330,15 @@ interface ClientGameTestContext {
 
     fun waitTicks(ticks: Int)
 
+    /**
+     * Waits for asynchronous Compose recomposition triggered by a prior state mutation (e.g. a
+     * click, hover, keypress, or typed character) to settle, so a following assertion doesn't
+     * race the still-in-flight visual/layout update. No-ops for screens that aren't
+     * Compose-driven. Already used internally by [takeScreenshot]; call this explicitly after
+     * [TestInput]/[TestNodeScope] actions that aren't immediately followed by a screenshot.
+     */
+    fun waitForComposeIdle()
+
     fun worldBuilder(): TestWorldBuilder
 
     fun withWorld(callback: TestWorldBuilder.() -> Unit) {
@@ -469,7 +478,10 @@ internal class DefaultClientGameTestContext(
 
         override fun scroll(x: Double, y: Double) {
             runOnClient { client ->
-                client.screen?.mouseScrolled(0.0, 0.0, x, y)
+                val screen = client.screen ?: return@runOnClient
+                val sx = currentCursorX(screen)
+                val sy = currentCursorY(screen)
+                screen.mouseScrolled(sx, sy, x, y)
             }
         }
 
@@ -771,7 +783,7 @@ internal class DefaultClientGameTestContext(
      * Not a hard guarantee under extreme scheduler starvation, but turns an always-racy check
      * into one that's reliable in practice. No-ops for screens that aren't Compose-driven.
      */
-    private fun waitForComposeIdle() {
+    override fun waitForComposeIdle() {
         var consecutiveIdle = 0
         repeat(COMPOSE_IDLE_TIMEOUT_TICKS) {
             val idle = computeOnClient("compose-idle-check", CLIENT_EXEC_TIMEOUT_SECONDS) { client ->

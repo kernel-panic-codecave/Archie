@@ -25,17 +25,125 @@ enum class LayerSelector {
 
 /** A resolved [LayoutNode] handle, scoped to a single [ComposeScreenTestContext.node] block. */
 @Suppress("unused")
-class TestNodeScope internal constructor(
-    private val context: ClientGameTestContext,
+class TestNodeScope(
+    val context: ClientGameTestContext,
     val node: LayoutNode,
 ) {
+    private fun centerCoords(): Pair<Double, Double> = context.computeOnClient {
+        val (nx, ny) = node.absoluteCoords
+        (nx + node.width / 2.0) to (ny + node.height / 2.0)
+    }
+
     /** Clicks the center of this node's on-screen bounds. */
     fun click(button: Int = 0) {
-        val (x, y) = context.computeOnClient {
-            val (nx, ny) = node.absoluteCoords
-            (nx + node.width / 2.0) to (ny + node.height / 2.0)
-        }
+        val (x, y) = centerCoords()
         context.getInput().click(x, y, button)
+    }
+
+    /** Moves the cursor to the center of this node's on-screen bounds, without clicking - e.g. to assert a [TextureStates.HOVERED] visual state. */
+    fun hover() {
+        val (x, y) = centerCoords()
+        context.getInput().setCursor(x, y)
+    }
+
+    /**
+     * Presses and releases [keyCode]. Key input in this framework targets the active screen as
+     * a whole, not a specific node - [click] (or [hover], for a text field that focuses on
+     * hover) the target first if it needs focus.
+     */
+    fun pressKey(keyCode: Int, scanCode: Int = 0, modifiers: Int = 0) {
+        context.getInput().pressKey(keyCode, scanCode, modifiers)
+    }
+
+    /** Types each character of [value] as if typed at the keyboard. See [pressKey] re: focus. */
+    fun type(value: String) {
+        context.getInput().typeChars(value)
+    }
+
+    /** Moves the cursor to this node's center, then scrolls there. See [TestInput.scroll]. */
+    fun scroll(x: Double = 0.0, y: Double = 1.0) {
+        val (cx, cy) = centerCoords()
+        context.getInput().setCursor(cx, cy)
+        context.getInput().scroll(x, y)
+    }
+
+    /**
+     * The [TextureStates] key this node's [net.kernelpanicsoft.archie.gui.layout.Renderer] most
+     * recently selected to draw (e.g. `"hovered"`), or `null` if this node doesn't render a
+     * theme-state-driven visual. See [net.kernelpanicsoft.archie.gui.nodes.UINode.renderState].
+     */
+    val renderState: String? get() = context.computeOnClient { node.renderState }
+
+    /** Fails unless this node's [renderState] equals [expected]. */
+    fun assertRenderState(
+        expected: String,
+        message: () -> String = { "Expected node '${node.name}' render state <$expected>, got <$renderState> (testId=${context.testId})" },
+    ) {
+        context.assertEquals(expected, renderState, message)
+    }
+
+    /** This node's direct children's names, in composition order. */
+    fun childNames(): List<String> = context.computeOnClient { node.children.map { it.name } }
+
+    /** Fails unless this node's direct children's names, in order, equal [expected]. */
+    fun assertChildNames(vararg expected: String) {
+        val actual = childNames()
+        context.assertEquals(expected.toList(), actual) {
+            "Expected node '${node.name}' children <${expected.toList()}>, got <$actual> (testId=${context.testId})\n${describeTree()}"
+        }
+    }
+
+    /** Whether a descendant named [name] exists anywhere in this node's subtree, without failing. */
+    fun hasDescendant(name: String): Boolean = context.computeOnClient { node.findNode(name) != null }
+
+    /** Fails unless a descendant named [name] exists anywhere in this node's subtree. */
+    fun assertHasDescendant(name: String) {
+        context.assertTrue(hasDescendant(name)) {
+            "Expected node '${node.name}' to have a descendant named '$name' (testId=${context.testId})\n${describeTree()}"
+        }
+    }
+
+    /**
+     * Fails if this node or any descendant has a non-positive width or height - the "zero-size
+     * widget" class of layout bug, catchable without any pixel comparison.
+     */
+    fun assertAllDescendantsSized() {
+        val unsized = context.computeOnClient { node.flatten().filter { it.width <= 0 || it.height <= 0 } }
+        context.assertTrue(unsized.isEmpty()) {
+            "Expected every node under '${node.name}' to have a positive size, but found zero-sized: " +
+                unsized.joinToString { "${it.name}(${it.width}x${it.height})" } +
+                " (testId=${context.testId})\n${describeTree()}"
+        }
+    }
+
+    /** A recursive dump of this node's subtree (name, nested per child), for failure messages. */
+    fun describeTree(): String = context.computeOnClient { node.toString() }
+
+    /**
+     * All descendants of this node named [name], in depth-first order - the escape hatch for
+     * [node] (which requires exactly one match) when a subtree legitimately has several, e.g.
+     * every "Button" in a dialog's action row.
+     */
+    fun nodes(name: String): List<LayoutNode> = context.computeOnClient { node.findAllNodes(name) }
+
+    /**
+     * Waits for a descendant named [name] within this node's subtree (not the whole layer) to
+     * appear, then runs [block] against it. Fails if [name] doesn't appear within [timeout] ticks.
+     */
+    fun <R> node(
+        name: String,
+        timeout: Int = ClientGameTestContext.DEFAULT_TIMEOUT,
+        block: TestNodeScope.() -> R,
+    ): R {
+        context.waitFor({ _ -> node.findNode(name) != null }, timeout)
+        val resolved = context.computeOnClient { node.findNode(name) }
+            ?: context.fail("Node '$name' not found under '${node.name}' (testId=${context.testId})")
+        return TestNodeScope(context, resolved).block()
+    }
+
+    operator fun <R> LayoutNode.invoke(block: TestNodeScope.() -> R): R
+    {
+        return TestNodeScope(context, this).block()
     }
 }
 
@@ -110,6 +218,9 @@ class ComposeScreenTestContext<S : LayerManagerProvider> internal constructor(
             ?: context.fail("Node '$name' not found on ${layer.name.lowercase()} layer (testId=${context.testId})")
         return TestNodeScope(context, resolved).block()
     }
+
+    /** Wraps an already-resolved [LayoutNode] (e.g. one indexed out of [TestNodeScope.nodes]) for interaction, without constructing a [TestNodeScope] by hand. */
+    operator fun <R> LayoutNode.invoke(block: TestNodeScope.() -> R): R = TestNodeScope(context, this).block()
 }
 
 /** Reified convenience for [ClientGameTestContext.waitForScreen] that resolves [S]'s [Class] automatically. */

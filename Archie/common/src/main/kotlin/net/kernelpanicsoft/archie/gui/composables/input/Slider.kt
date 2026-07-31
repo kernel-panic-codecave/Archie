@@ -15,7 +15,8 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.onDrag
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
-import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
+import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
+import net.kernelpanicsoft.archie.gui.theme.ComposableTheme
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
@@ -46,12 +47,8 @@ internal fun resolveSliderThumbX(rawThumbX: Int, sliderX: Int, sliderWidth: Int,
     return rawThumbX.coerceIn(minThumbX, maxThumbX)
 }
 
-private fun resolveSliderStateName(enabled: Boolean, hovered: Boolean, dragging: Boolean): String = when {
-    !enabled -> TextureStates.DISABLED
-    dragging -> TextureStates.CLICKED
-    hovered -> TextureStates.HOVERED
-    else -> TextureStates.DEFAULT
-}
+private fun resolveSliderStateName(theme: ComposableTheme, variant: String, enabled: Boolean, hovered: Boolean, dragging: Boolean): String =
+    WidgetState.resolve(theme, variant, WidgetState.clicked(dragging), WidgetState.hovered(hovered), enabled = enabled)
 
 /**
  * Low-level unstyled slider behavior: drag/click-to-position and hover/drag state tracking,
@@ -185,7 +182,8 @@ fun Slider(
                     )
                     val thumbY = y + (node.height - SLIDER_THUMB_HEIGHT) / 2
 
-                    val stateName = resolveSliderStateName(enabled, hovered, dragging)
+                    val stateName = resolveSliderStateName(trackTheme, variant, enabled, hovered, dragging)
+                    node.renderState = stateName
                     val trackState = trackTheme.getState(stateName, variant)
                     val thumbState = thumbTheme.getState(stateName, variant)
 

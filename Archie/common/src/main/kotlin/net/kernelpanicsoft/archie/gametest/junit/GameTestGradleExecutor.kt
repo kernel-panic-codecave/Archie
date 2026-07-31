@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie.gametest.junit
 
+import java.nio.channels.FileChannel
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
@@ -74,6 +76,15 @@ internal object GameTestGradleExecutor {
 	 * already-built artifact, so all of them - including the priming one - start their real
 	 * (long-running) invocation concurrently right after, instead of one invocation blocking
 	 * every other one on its entire run.
+	 *
+	 * This alone only serializes invocations launched from the same JVM. `Archie`'s and
+	 * `Archie-Test`'s own `:*:test` tasks each run in a *separate* Gradle test JVM, but
+	 * Archie-Test composite-includes `../Archie` (see its settings.gradle.kts), so both JVMs'
+	 * priming runs `assemble` against the very same `Archie:common` build output concurrently -
+	 * this in-process guard does nothing across that boundary (observed:
+	 * `:common:remapJar FAILED ... NoSuchFileException: archie-common-1.0.0.jar.tmp`, one
+	 * process's remap temp file vanishing out from under the other). [withCrossProcessPrimingLock]
+	 * closes that gap with an OS-level file lock shared by both JVMs.
 	 */
 	private val primingClaimed = AtomicBoolean(false)
 	private val primingComplete = CompletableFuture<Void>()
@@ -112,31 +123,55 @@ internal object GameTestGradleExecutor {
 	 * matrix invocation depends on exist before any of them starts its own (much longer) process.
 	 * Deliberately generic (not a hardcoded task path) so it works the same for both Archie's and
 	 * Archie-Test's workspace roots.
+	 *
+	 * Wrapped in [withCrossProcessPrimingLock] since [primingClaimed] only guards against races
+	 * within this JVM - see its doc comment.
 	 */
 	private fun primeSharedBuildOutputs(workspaceRoot: Path) {
-		val logsDir = workspaceRoot.resolve("build/tmp/junit-gametest-runner").createDirectories()
-		val logFile = logsDir.resolve("priming.log")
+		withCrossProcessPrimingLock {
+			val logsDir = workspaceRoot.resolve("build/tmp/junit-gametest-runner").createDirectories()
+			val logFile = logsDir.resolve("priming.log")
 
-		val wrapper = resolveGradleWrapper(workspaceRoot)
-		val command = listOf(wrapper.toString(), "assemble", "--console=plain", "--no-daemon")
+			val wrapper = resolveGradleWrapper(workspaceRoot)
+			val command = listOf(wrapper.toString(), "assemble", "--console=plain", "--no-daemon")
 
-		val process = ProcessBuilder(command)
-			.directory(workspaceRoot.toFile())
-			.redirectErrorStream(true)
-			.start()
+			val process = ProcessBuilder(command)
+				.directory(workspaceRoot.toFile())
+				.redirectErrorStream(true)
+				.start()
 
-		logFile.outputStream().bufferedWriter().use { writer ->
-			process.inputStream.bufferedReader().useLines { lines ->
-				lines.forEach { line ->
-					println(line)
-					writer.appendLine(line)
+			logFile.outputStream().bufferedWriter().use { writer ->
+				process.inputStream.bufferedReader().useLines { lines ->
+					lines.forEach { line ->
+						println(line)
+						writer.appendLine(line)
+					}
 				}
 			}
-		}
 
-		val exitCode = process.waitFor()
-		check(exitCode == 0) {
-			"Priming build ('${command.joinToString(" ")}') failed with exit code $exitCode. Log file: $logFile\n--- Log tail ---\n${tail(logFile)}"
+			val exitCode = process.waitFor()
+			check(exitCode == 0) {
+				"Priming build ('${command.joinToString(" ")}') failed with exit code $exitCode. Log file: $logFile\n--- Log tail ---\n${tail(logFile)}"
+			}
+		}
+	}
+
+	/**
+	 * Runs [action] while holding an OS-level advisory lock on a fixed file under the system
+	 * temp directory, blocking until it's acquired. `Archie`'s and `Archie-Test`'s `:*:test`
+	 * tasks each spawn their own JVM (this object's in-process guards don't share state between
+	 * them), but both machines' priming runs ultimately `assemble` the same physical
+	 * `Archie:common` build output when run on the same machine (Archie-Test composite-includes
+	 * `../Archie`) - this lock is what actually serializes them. Scoped to the whole machine
+	 * rather than a specific workspace path since that's simpler and there's only ever one such
+	 * priming race to guard against per machine (CI runner or dev box).
+	 */
+	private fun <T> withCrossProcessPrimingLock(action: () -> T): T {
+		val lockFile = Path.of(System.getProperty("java.io.tmpdir"), "archie-gametest-priming.lock")
+		FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
+			channel.lock().use {
+				return action()
+			}
 		}
 	}
 

@@ -7,6 +7,9 @@ import net.kernelpanicsoft.archie.gametest.internal.tests.ArchieItemHandlerTests
 import net.kernelpanicsoft.archie.gametest.internal.tests.BlockEntityNBTHolderTests
 import net.kernelpanicsoft.archie.gametest.internal.tests.BlockEntityStateManagerTests
 import net.kernelpanicsoft.archie.gametest.internal.tests.ComposeRenderingTests
+import net.kernelpanicsoft.archie.gametest.internal.tests.InputComponentsGameTest
+import net.kernelpanicsoft.archie.gametest.internal.tests.LayoutComponentsGameTest
+import net.kernelpanicsoft.archie.gametest.internal.tests.ModalComponentsGameTest
 
 /**
  * ID of the empty structure template used by every GameTest in this suite; GameTests that don't
@@ -25,6 +28,9 @@ internal fun AEvents.ArchieGameTestBuilder.archieGameTests()
 	}
 	client {
 		register<ComposeRenderingTests>()
+		register<InputComponentsGameTest>()
+		register<LayoutComponentsGameTest>()
+		register<ModalComponentsGameTest>()
 	}
 	server {
 		register<BlockEntityStateManagerTests>()

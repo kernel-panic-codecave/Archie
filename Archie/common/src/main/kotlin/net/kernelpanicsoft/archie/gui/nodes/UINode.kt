@@ -34,6 +34,16 @@ interface UINode {
 	var y: Int
 
 	/**
+	 * The [net.kernelpanicsoft.archie.gui.composables.theme.TextureStates] key a stateful
+	 * [Renderer] most recently selected to draw (e.g. `"hovered"`, `"clicked_and_hovered"`),
+	 * or `null` for nodes that don't render theme-state-driven visuals.
+	 *
+	 * Set by the [Renderer] itself, purely as a test hook - lets a client GameTest assert which
+	 * visual state a component resolved to without pixel comparison. Not read by the framework.
+	 */
+	var renderState: String?
+
+	/**
 	 * Renders this node and its subtree at the given absolute screen position.
 	 *
 	 * @param x Absolute screen x position to render at.
