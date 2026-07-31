@@ -96,6 +96,7 @@ class ModalComponentsGameTest {
             val triggers = baseLayer.rootNode { nodes("Button") }
             triggers[2] { click() } // "Open Choice"
             waitFor { _ -> layerCount == 2 }
+            waitForComposeIdle()
 
             node("Surface", layer = LayerSelector.Top) {
                 val buttons = nodes("Button")

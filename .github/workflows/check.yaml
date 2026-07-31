@@ -67,6 +67,11 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         with:
           check_name: JUnit Test Report (${{ matrix.loader }})
+          # Matrix expansion names this job "check (fabric)"/"check (neoforge)", not just "check" -
+          # without this, the action's default job_name (the raw job id "check") doesn't match any
+          # actual check-run on this commit, and its annotations silently land on an unrelated job
+          # (observed: the docs workflow's job) instead of failing loudly.
+          job_name: check (${{ matrix.loader }})
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       - name: Upload test reports
