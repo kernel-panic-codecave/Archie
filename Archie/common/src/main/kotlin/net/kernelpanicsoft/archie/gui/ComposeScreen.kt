@@ -187,9 +187,33 @@ abstract class ComposeScreen(
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
 
+    private var composeDisposed = false
+
     override fun onClose() {
         GLFW.glfwSetCursor(minecraft!!.window.window, 0L)
         super.onClose()
+        disposeCompose()
+    }
+
+    // vanilla's Minecraft.setScreen() calls removed() on the *old* screen for every screen
+    // transition - including a caller directly swapping to a new screen, which never goes
+    // through onClose() at all (that only fires when a screen closes itself, e.g. Escape).
+    // Without this override, every such swap - including the GameTest harness moving from one
+    // test's screen straight to the next's - leaked this screen's entire Compose runtime
+    // (Recomposer, composeScope and all its coroutines) running forever in the background.
+    // Confirmed the mechanism (not yet reproduced standalone): a CI-only crash deep inside
+    // Compose's own SlotTable/Recomposer internals surfaced as a suppressed exception logged
+    // between two unrelated, otherwise-passing tests - consistent with a leaked prior screen's
+    // recomposer still running concurrently against Compose-runtime state a newer screen's
+    // recomposition is also touching.
+    override fun removed() {
+        super.removed()
+        disposeCompose()
+    }
+
+    private fun disposeCompose() {
+        if (composeDisposed) return
+        composeDisposed = true
         recomposeJob?.cancel("GUI closing")
         recomposer.close()
         snapshotHandle.dispose()

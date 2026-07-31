@@ -335,9 +335,25 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
         return effectiveClip.intersect(slotRect)
     }
 
+    private var composeDisposed = false
+
     override fun onClose() {
         GLFW.glfwSetCursor(minecraft!!.window.window, 0L)
         super.onClose()
+        disposeCompose()
+    }
+
+    // See ComposeScreen.removed()'s doc comment - vanilla's Minecraft.setScreen() calls removed()
+    // on the *old* screen for every transition, not just onClose()'s explicit-close path, and
+    // without this override this screen's entire Compose runtime leaked on any such swap.
+    override fun removed() {
+        super.removed()
+        disposeCompose()
+    }
+
+    private fun disposeCompose() {
+        if (composeDisposed) return
+        composeDisposed = true
         recomposeJob?.cancel("GUI closing")
         recomposer.close()
         snapshotHandle.dispose()

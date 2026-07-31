@@ -66,6 +66,20 @@ object ThreadingImpl {
     @Volatile
     private var gameCrashed: Boolean = false
 
+    // The phase each tick source last called phaser.arrive() for. onClientTick()/onServerTick()
+    // fire every real tick regardless of whether the test thread has caught up and arrived for
+    // the current phase yet - Phaser requires each registered party to arrive at most once per
+    // phase, so without this guard, two ticks landing before the test thread's next arrival (more
+    // likely under CI's slower/more contended scheduling - never reproduced on a fast local
+    // machine) throws "Attempted arrival of unregistered party" on the second one. Reading the
+    // phase this call actually arrived for straight off arrive()'s return value (rather than a
+    // separate phaser.phase read beforehand) avoids a TOCTOU gap between checking and arriving.
+    @Volatile
+    private var clientLastArrivedPhase: Int = -1
+
+    @Volatile
+    private var serverLastArrivedPhase: Int = -1
+
     @JvmStatic
     fun runTestThread(testRunner: () -> Unit) {
         check(testThread == null) { "There is already a test thread running" }
@@ -204,8 +218,8 @@ object ThreadingImpl {
             taskToRun?.run()
         }
 
-        if (clientRegistered) {
-            phaser.arrive()
+        if (clientRegistered && phaser.phase != clientLastArrivedPhase) {
+            clientLastArrivedPhase = phaser.arrive()
         }
     }
 
@@ -250,7 +264,9 @@ object ThreadingImpl {
             taskToRun?.run()
         }
 
-        phaser.arrive()
+        if (phaser.phase != serverLastArrivedPhase) {
+            serverLastArrivedPhase = phaser.arrive()
+        }
     }
 
     @Suppress("unused")
