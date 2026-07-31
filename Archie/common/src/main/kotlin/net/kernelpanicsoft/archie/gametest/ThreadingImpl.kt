@@ -74,6 +74,9 @@ object ThreadingImpl {
     // machine) throws "Attempted arrival of unregistered party" on the second one. Reading the
     // phase this call actually arrived for straight off arrive()'s return value (rather than a
     // separate phaser.phase read beforehand) avoids a TOCTOU gap between checking and arriving.
+    // Reset to -1 on (re-)registration in onClientRunStart()/onServerRunStart() - the phase
+    // counter doesn't reset when a party deregisters, so a stale value surviving into a new
+    // registration could wrongly skip that new party's first required arrival and stall forever.
     @Volatile
     private var clientLastArrivedPhase: Int = -1
 
@@ -141,6 +144,12 @@ object ThreadingImpl {
                 if (!clientRegistered) {
                     phaser.register()
                     clientRegistered = true
+                    // A fresh registration must not inherit a previous instance's arrival
+                    // history - the phaser's phase counter doesn't reset just because the
+                    // prior party deregistered, so a stale value here could make this new
+                    // party's first tick wrongly believe it already arrived for the current
+                    // phase, permanently stalling that phase (see clientLastArrivedPhase kdoc).
+                    clientLastArrivedPhase = -1
                 }
             }
         }
@@ -173,6 +182,11 @@ object ThreadingImpl {
         if (serverRegisteredThread.compareAndSet(null, current)) {
             synchronized(this) {
                 phaser.register()
+                // See the matching comment in onClientRunStart() - a new server instance
+                // (e.g. an integrated singleplayer server starting after an earlier dedicated
+                // GameTest server already registered, arrived, and deregistered) must not
+                // inherit the previous instance's last-arrived phase.
+                serverLastArrivedPhase = -1
             }
         }
         // If another server instance's thread already holds the slot (e.g. an integrated
