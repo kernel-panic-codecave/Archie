@@ -1125,6 +1125,10 @@
          <lastmod>2026-07-31</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gametest/-no-op-game-test/index.html</loc>
+         <lastmod>2026-07-31</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gametest/-raw-image-impl/index.html</loc>
          <lastmod>2026-07-31</lastmod>
     </url>
@@ -3894,6 +3898,10 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gametest/-mean-squared-difference-algorithm/index.html</loc>
+         <lastmod>2026-07-31</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gametest/-no-op-game-test/index.html</loc>
          <lastmod>2026-07-31</lastmod>
     </url>
     <url>
@@ -6694,6 +6702,10 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gametest/-mean-squared-difference-algorithm/index.html</loc>
+         <lastmod>2026-07-31</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gametest/-no-op-game-test/index.html</loc>
          <lastmod>2026-07-31</lastmod>
     </url>
     <url>
