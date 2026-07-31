@@ -94,8 +94,13 @@ abstract class ComposeScreen(
         }
     }
 
-    private var lastMouseX = 0.0
-    private var lastMouseY = 0.0
+    // Not 0.0 - a node can legitimately sit at the literal origin (e.g. the first item in a
+    // top-left-aligned Column), and mouseMoved()'s ENTER condition (`nowBounded && !wasBounded`)
+    // would then read the initial "no prior position" sentinel as if the mouse had already been
+    // sitting inside that node before any real movement, silently suppressing its very first
+    // ENTER event. No real screen coordinate is ever negative, so this can never coincide.
+    private var lastMouseX = Double.NEGATIVE_INFINITY
+    private var lastMouseY = Double.NEGATIVE_INFINITY
 
     override fun isComposeIdle(): Boolean =
         !applyScheduled && !hasFrameWaiters && recomposeJob?.isActive != true

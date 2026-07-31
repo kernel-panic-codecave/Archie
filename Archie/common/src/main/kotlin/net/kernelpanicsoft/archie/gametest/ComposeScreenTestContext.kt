@@ -29,9 +29,20 @@ class TestNodeScope(
     val context: ClientGameTestContext,
     val node: LayoutNode,
 ) {
-    private fun centerCoords(): Pair<Double, Double> = context.computeOnClient {
-        val (nx, ny) = node.absoluteCoords
-        (nx + node.width / 2.0) to (ny + node.height / 2.0)
+    /**
+     * Waits for compose to settle before reading [node]'s on-screen bounds - without this, a
+     * node's very first interaction (right after [ComposeScreenTestContext.waitForScreen]/
+     * [ComposeScreenTestContext.node] finds it) can read a transient pre-layout-settle position
+     * (e.g. before a wrapping Scrollable's initial measure has stabilized), computing a click/
+     * hover target that no longer matches the node's real bounds one frame later - silently
+     * missing the node (no ENTER/PRESS ever dispatches) rather than failing loudly.
+     */
+    private fun centerCoords(): Pair<Double, Double> {
+        context.waitForComposeIdle()
+        return context.computeOnClient {
+            val (nx, ny) = node.absoluteCoords
+            (nx + node.width / 2.0) to (ny + node.height / 2.0)
+        }
     }
 
     /** Clicks the center of this node's on-screen bounds. */

@@ -385,6 +385,7 @@ internal class DefaultClientGameTestContext(
                 val screen = client.screen ?: return@runOnClient
                 cursorX = x
                 cursorY = y
+                warpRealCursor(client, x, y)
                 screen.mouseClicked(x, y, button)
                 screen.mouseReleased(x, y, button)
             }
@@ -500,6 +501,7 @@ internal class DefaultClientGameTestContext(
             cursorX = x
             cursorY = y
             runOnClient { client ->
+                warpRealCursor(client, x, y)
                 client.screen?.mouseMoved(x, y)
             }
         }
@@ -511,6 +513,7 @@ internal class DefaultClientGameTestContext(
                 val nextY = currentCursorY(screen) + deltaY
                 cursorX = nextX
                 cursorY = nextY
+                warpRealCursor(client, nextX, nextY)
                 screen.mouseMoved(nextX, nextY)
             }
         }
@@ -1566,6 +1569,27 @@ object AClientGameTestHarness {
             failedDetails = failedDetails,
         )
     }
+}
+
+/**
+ * Warps the real GLFW cursor to the same position a synthetic [TestInput] call just fed to
+ * [net.minecraft.client.gui.screens.Screen.mouseMoved]/`mouseClicked` directly.
+ *
+ * That synthetic dispatch bypasses GLFW entirely, so vanilla's own `MouseHandler` never learns
+ * about it - its own cursor-position callback still fires from whatever the OS/window's real
+ * cursor is doing, completely independent of the test's intended position. If that callback
+ * later reports a position outside the node the test just hovered/clicked, it fires its own
+ * `mouseMoved` with the stale real coordinates, silently overwriting `hovered` state right back
+ * to false - a real cursor twitch (or, under Xvfb, a window-manager cursor warp on focus) racing
+ * a test assertion and failing it. Keeping the real cursor in sync removes that race outright:
+ * any later real callback reports the same position the test already set, so no spurious
+ * enter/exit transition can happen.
+ */
+private fun warpRealCursor(client: Minecraft, guiX: Double, guiY: Double) {
+    val window = client.window
+    val realX = guiX * window.screenWidth / window.guiScaledWidth
+    val realY = guiY * window.screenHeight / window.guiScaledHeight
+    GLFW.glfwSetCursorPos(window.window, realX, realY)
 }
 
 private fun selectModsToRun(modToClasses: Map<Mod, List<Class<*>>>): Map<Mod, List<Class<*>>> {

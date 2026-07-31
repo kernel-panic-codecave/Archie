@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.io.path.appendText
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -114,7 +115,17 @@ internal object GameTestGradleExecutor {
 			}
 		}
 
-		return startProcess(invocation, timeout, workspaceRoot)
+		// The actual process isn't started yet at this point - only once this invocation's turn
+		// comes up on `ioExecutor` and it acquires `withLoaderRunLock` - so `liveTestResults` starts
+		// empty and `result` isn't done, exactly as if the process were already running but hadn't
+		// produced output yet. This keeps `start()` itself non-blocking for the caller.
+		val liveTestResults = ConcurrentHashMap<String, TestResult>()
+		val result = CompletableFuture.supplyAsync(
+			{ withLoaderRunLock(workspaceRoot, invocation.loader) { runProcess(invocation, timeout, workspaceRoot, liveTestResults) } },
+			ioExecutor,
+		)
+
+		return GameTestGradleHandle(invocation, liveTestResults, result)
 	}
 
 	/**
@@ -175,11 +186,51 @@ internal object GameTestGradleExecutor {
 		}
 	}
 
-	private fun startProcess(
+	/** Per-(workspaceRoot, loader) in-JVM locks backing [withLoaderRunLock]. */
+	private val loaderRunLocks = ConcurrentHashMap<Pair<Path, Loader>, ReentrantLock>()
+
+	/**
+	 * Runs [action] while holding an in-JVM lock scoped to [workspaceRoot] and [loader], blocking
+	 * (whichever `ioExecutor` thread is running the invocation, never the caller of [start]) until
+	 * it's acquired.
+	 *
+	 * Every invocation for one workspaceRoot is spawned as a child --no-daemon Gradle process from
+	 * the same `:common:test` JVM, so a plain in-JVM lock is enough here - unlike
+	 * [withCrossProcessPrimingLock], which guards a race between *separate* JVMs (Archie's and
+	 * Archie-Test's own `:*:test` tasks) and needs an OS-level file lock. (A `FileChannel` lock
+	 * would be wrong here for a different reason too: `java.nio.channels.FileLock` throws
+	 * `OverlappingFileLockException` rather than blocking when a *second* lock on the same file
+	 * is requested from within the same JVM - it's designed to guard against other processes, not
+	 * queue other threads in this one.)
+	 *
+	 * Unlike [withCrossProcessPrimingLock]'s one-time shared-artifact priming, this serializes
+	 * the *actual* invocation runs for the same loader (e.g. fabric:server and fabric:client),
+	 * which both depend on and mutate that loader subproject's own build outputs
+	 * (`:fabric:processResources` etc.) via their own separate, concurrently-launched
+	 * --no-daemon Gradle processes. Without this, one invocation's spawned Minecraft process can
+	 * read e.g. `fabric.mod.json` straight off disk at the exact moment the other invocation's
+	 * own build is mid-rewrite of that same file - observed as a `ParseMetadataException:
+	 * ... EOFException` from a momentarily-empty `fabric.mod.json`, cascading into every
+	 * unrelated server test in that suite reporting a spurious failure. Different loaders (and
+	 * different workspace roots) get different locks, so fabric and neoforge invocations - and
+	 * Archie's vs Archie-Test's own invocations - still run fully in parallel.
+	 */
+	private fun <T> withLoaderRunLock(workspaceRoot: Path, loader: Loader, action: () -> T): T {
+		val lock = loaderRunLocks.computeIfAbsent(workspaceRoot to loader) { ReentrantLock() }
+		lock.lock()
+		try {
+			return action()
+		} finally {
+			lock.unlock()
+		}
+	}
+
+	private fun runProcess(
 		invocation: GameTestGradleInvocation,
 		timeout: Duration,
 		workspaceRoot: Path,
-	): GameTestGradleHandle {
+		liveTestResults: ConcurrentHashMap<String, TestResult>,
+	): GameTestGradleResult {
 		val logsDir = workspaceRoot.resolve("build/tmp/junit-gametest-runner").createDirectories()
 		val logFile = logsDir.resolve("${invocation.id.replace(':', '-')}.log")
 
@@ -199,7 +250,6 @@ internal object GameTestGradleExecutor {
 			.redirectErrorStream(true)
 			.start()
 
-		val liveTestResults = ConcurrentHashMap<String, TestResult>()
 		val testPattern = when (invocation.side) {
 			Side.SERVER -> Regex("""\[GameTest] (PASS|FAIL) (.+)""")
 			Side.CLIENT -> Regex("""\[ClientGameTest] (PASS|FAIL) (.+)""")
@@ -228,12 +278,7 @@ internal object GameTestGradleExecutor {
 			start()
 		}
 
-		val result = CompletableFuture.supplyAsync(
-			{ awaitCompletion(process, outputPump, timeout, logFile, command, liveTestResults) },
-			ioExecutor,
-		)
-
-		return GameTestGradleHandle(invocation, liveTestResults, result)
+		return awaitCompletion(process, outputPump, timeout, logFile, command, liveTestResults)
 	}
 
 	private fun awaitCompletion(

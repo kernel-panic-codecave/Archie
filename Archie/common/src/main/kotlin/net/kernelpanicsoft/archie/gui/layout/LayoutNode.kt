@@ -384,10 +384,10 @@ class LayoutNode(
         return mouseX in ax until (ax + width) && mouseY in ay until (ay + height)
     }
 
-    override fun toString() = children.toList().joinToString(prefix = "$nodeName(", postfix = ")")
+    override fun toString() = children.toList().run { if (isNotEmpty()) joinToString(prefix = "$nodeName {\n", separator = "\n", postfix = "\n}") else "$nodeName()" }
 
     internal companion object {
-        val ChildMeasurePolicy = MeasurePolicy { scope, measurables, constraints ->
+        val ChildMeasurePolicy = MeasurePolicy { _, measurables, constraints ->
             val placeables = measurables.map { it.measure(constraints) }
             MeasureResult(
                 placeables.maxOfOrNull { it.width }  ?: 0,
