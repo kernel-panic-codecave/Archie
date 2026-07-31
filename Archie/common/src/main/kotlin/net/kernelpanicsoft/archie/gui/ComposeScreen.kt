@@ -102,8 +102,17 @@ abstract class ComposeScreen(
     private var lastMouseX = Double.NEGATIVE_INFINITY
     private var lastMouseY = Double.NEGATIVE_INFINITY
 
-    override fun isComposeIdle(): Boolean =
-        !applyScheduled && !hasFrameWaiters && recomposeJob?.isActive != true
+    // `Recomposer.hasPendingWork` is Compose's own atomically-maintained "is there recomposition,
+    // apply-changes, or effect work outstanding" signal - the same one Compose's own test tooling
+    // (ComposeTestRule.waitForIdle()) uses. Reimplementing this by hand via applyScheduled/
+    // hasFrameWaiters/recomposeJob had a real gap: recomposeJob only wraps `clock.sendFrame(...)`,
+    // and resuming a dispatched withFrameNanos continuation doesn't block until that continuation's
+    // *own* subsequent work (the actual recompose + apply-changes) finishes - it's dispatched, not
+    // synchronous. So recomposeJob could complete (and isComposeIdle() report idle) while the
+    // Recomposer was still mid-flight applying the very change a test's click()/hover() just
+    // triggered, letting an assertion race a stale pre-interaction render. hasPendingWork has no
+    // such gap since the Recomposer updates it itself as part of the same state transition.
+    override fun isComposeIdle(): Boolean = !recomposer.hasPendingWork
 
     /**
      * Initialises the Compose runtime and pushes the base layer with [content].

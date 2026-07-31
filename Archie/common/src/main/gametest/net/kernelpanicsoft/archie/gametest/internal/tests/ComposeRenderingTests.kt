@@ -6,6 +6,7 @@ import net.kernelpanicsoft.archie.gametest.ClientGameTestContext
 import net.kernelpanicsoft.archie.gametest.LayerSelector
 import net.kernelpanicsoft.archie.gametest.waitForScreen
 import net.kernelpanicsoft.archie.gui.ComposeScreen
+import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.MeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
@@ -77,7 +78,7 @@ class ComposeRenderingTests {
                     name = BASE_PROBE_NAME,
                     measurePolicy = fixedSizeMeasurePolicy(160, 80),
                 )
-                val layerManager = net.kernelpanicsoft.archie.gui.layer.LocalLayerManager.current
+                val layerManager = LocalLayerManager.current
                 LaunchedEffect(Unit) {
                     layerManager.modal(dismissOnClickOutside = false) {
                         Layout(
