@@ -85,12 +85,23 @@ class TestNodeScope(
      */
     val renderState: String? get() = context.computeOnClient { node.renderState }
 
-    /** Fails unless this node's [renderState] equals [expected]. */
+    /**
+     * Fails unless this node's [renderState] equals [expected].
+     *
+     * Reads [renderState] exactly once - the same value is used both to decide pass/fail and
+     * (on failure) in the default message. Re-reading it live inside the message lambda instead
+     * would race further recomposition between the comparison and the (lazily-evaluated, only
+     * on failure) message being built, showing a misleading "got <newValue>" that no longer
+     * matches whatever value the comparison actually failed on.
+     */
     fun assertRenderState(
         expected: String,
-        message: () -> String = { "Expected node '${node.name}' render state <$expected>, got <$renderState> (testId=${context.testId})" },
+        message: (() -> String)? = null,
     ) {
-        context.assertEquals(expected, renderState, message)
+        val actual = renderState
+        context.assertEquals(expected, actual, message ?: {
+            "Expected node '${node.name}' render state <$expected>, got <$actual> (testId=${context.testId})"
+        })
     }
 
     /** This node's direct children's names, in composition order. */
