@@ -27,6 +27,10 @@ internal object AGameTestPlatformInternal
 	 * from [AEvents.MODS], subscribes to that mod's `RegisterGameTestsEvent`; when it fires, fires
 	 * [AEvents.REGISTER_GAME_TEST] for the mod and registers each resulting test class with
 	 * NeoForge's event.
+	 *
+	 * Falls back to [NoOpGameTest] for a mod whose registration turns up no classes at all for the
+	 * current [AGameTestPlatform.side] (e.g. a client-only mod's server invocation) - vanilla's
+	 * `GameTestServer` refuses to boot with zero test functions registered anywhere.
 	 */
 	@JvmStatic
 	@JvmName("addEventHandlers")
@@ -39,7 +43,8 @@ internal object AGameTestPlatformInternal
 			ModList.get().getModContainerById(mod.modId).ifPresent {
 				it.eventBus?.addListener<RegisterGameTestsEvent> { event ->
 					AEvents.REGISTER_GAME_TEST.invoker()(mod)
-					for (clazz in testClasses.getOrPut(mod, ::mutableSetOf))
+					val classes = testClasses.getOrPut(mod, ::mutableSetOf)
+					for (clazz in if (classes.isEmpty()) setOf(NoOpGameTest::class.java) else classes)
 					{
 						event.register(clazz)
 					}

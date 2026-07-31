@@ -21,6 +21,10 @@ internal object AGameTestPlatformInternal
 	 * [AGameTestModFilter] (or just [Archie.MOD] if [AEvents.MODS] is empty), then registers each
 	 * resulting test class with [GameTestRegistry] and [FabricGameTestModInitializerMixin]'s
 	 * id/logger bookkeeping - throwing if the same class is registered under more than one mod.
+	 *
+	 * Falls back to [NoOpGameTest] for a mod whose registration turns up no classes at all for the
+	 * current [AGameTestPlatform.side] (e.g. a client-only mod's server invocation) - vanilla's
+	 * `GameTestServer` refuses to boot with zero test functions registered anywhere.
 	 */
 	@JvmStatic
 	@JvmName("registerGameTests")
@@ -33,7 +37,9 @@ internal object AGameTestPlatformInternal
 		for (mod in mods)
 		{
 			AEvents.REGISTER_GAME_TEST.invoker()(mod)
-			for (clazz in testClasses.getOrPut(mod, ::mutableSetOf))
+			val classes = testClasses.getOrPut(mod, ::mutableSetOf)
+			val toRegister = if (classes.isEmpty()) setOf(NoOpGameTest::class.java) else classes
+			for (clazz in toRegister)
 			{
 				if (FabricGameTestModInitializerMixin.getGameTestIds().containsKey(clazz))
 				{
