@@ -1,5 +1,7 @@
 package net.kernelpanicsoft.archie.serialization
 
+import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
+import net.kernelpanicsoft.archie.transfer.ArchieFluidStorage
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import dev.architectury.fluid.FluidStack
 import kotlinx.serialization.KSerializer
@@ -28,7 +30,9 @@ import kotlin.reflect.jvm.isAccessible
  * class MyBlockEntity(pos, state) : NBTBlockEntity(pos, state) {
  *     var count by nbt.intField()
  *     var label by nbt.stringField { "default" }
- *     val items by nbt.itemField(9)   // 9-slot inventory
+ *     val items by nbt.itemField(9)        // 9-slot inventory
+ *     val tank by nbt.fluidField(FluidStack.bucketAmount() * 4)  // 1 tank slot, 4 buckets
+ *     val energy by nbt.energyField(10_000) // a single energy buffer
  * }
  * ```
  *
@@ -50,6 +54,12 @@ interface NBTHolder
 
 	/** Declares an [ArchieItemStorage] field with [size] slots, keyed by the delegated property's name. */
 	fun itemField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+
+	/** Declares an [ArchieFluidStorage] field with [size] tank slots each capped at [limit], keyed by the delegated property's name. */
+	fun fluidField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+
+	/** Declares an [ArchieEnergyStorage] field capped at [capacity], keyed by the delegated property's name. */
+	fun energyField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
 
 	fun booleanField(default: () -> Boolean = { false }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Boolean>> = field(Boolean.serializer(), default)
 	fun byteField(default: () -> Byte = { 0 }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Byte>> = field(Byte.serializer(), default)

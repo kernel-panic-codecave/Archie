@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie.serialization
 
 import net.kernelpanicsoft.archie.config.toSnakeCase
+import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
+import net.kernelpanicsoft.archie.transfer.ArchieFluidStorage
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import dev.architectury.fluid.FluidStack
 import kotlinx.serialization.KSerializer
@@ -27,6 +29,8 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 {
 	private val data: MutableMap<String, NbtTag> = mutableMapOf()
 	private val itemStorage: MutableMap<String, ArchieItemStorage> = mutableMapOf()
+	private val fluidStorage: MutableMap<String, ArchieFluidStorage> = mutableMapOf()
+	private val energyStorage: MutableMap<String, ArchieEnergyStorage> = mutableMapOf()
 
 	init
 	{
@@ -149,6 +153,28 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 		}
 	}
 
+	override fun fluidField(limit: Long, size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+	{
+		return PropertyDelegateProvider { thisRef, property ->
+			val onUpdate = {
+				saveToStack()
+			}
+			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, onUpdate)
+			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
+		}
+	}
+
+	override fun energyField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
+	{
+		return PropertyDelegateProvider { thisRef, property ->
+			val onUpdate = {
+				saveToStack()
+			}
+			energyStorage[property.name.toSnakeCase()] = ArchieEnergyStorage(capacity, onUpdate)
+			ReadOnlyProperty { _, _ -> energyStorage[property.name.toSnakeCase()]!! }
+		}
+	}
+
 	override fun loadFromTag(compoundTag: CompoundTag)
 	{
 		forEachTag(compoundTag) { (key, value) ->
@@ -159,12 +185,28 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 				value.createSnapshot()
 			})
 		}
+		fluidStorage.forEach { (key, value) ->
+			value.readSnapshot(data.getOrPut(key) {
+				value.createSnapshot()
+			})
+		}
+		energyStorage.forEach { (key, value) ->
+			value.readSnapshot(data.getOrPut(key) {
+				value.createSnapshot()
+			})
+		}
 	}
 
 	override fun saveToTag(compoundTag: CompoundTag)
 	{
 		mergeToCompoundTag(compoundTag) {
 			itemStorage.forEach { (key, value) ->
+				data[key] = value.createSnapshot()
+			}
+			fluidStorage.forEach { (key, value) ->
+				data[key] = value.createSnapshot()
+			}
+			energyStorage.forEach { (key, value) ->
 				data[key] = value.createSnapshot()
 			}
 			data.forEach { (key, value) ->

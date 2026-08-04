@@ -25,8 +25,48 @@ Public surface is deliberately small — `size(): Int` and `get(slot: Int): Arch
 or mutate the `ItemStack` in a slot through the `ArchieItemSlot` it returns (see below), not
 directly on the storage.
 
-There's a fluid equivalent, `ArchieFluidStorage`, backed by `ArchieFluidSlot`s (each with a
-capacity `limit`), following the same shape.
+---
+
+## ArchieFluidStorage
+
+The fluid equivalent of `ArchieItemStorage`: a fixed-size list of `ArchieFluidSlot`s (each capped
+at a shared `limit`), implementing Common Storage Lib's `CommonStorage<FluidResource>` and
+Archie's NBT serialization, following the exact same shape:
+
+```kotlin
+class MyBlockEntity(pos, state) : NBTBlockEntity(TYPE, pos, state) {
+    val tank by nbt.fluidField(FluidStack.bucketAmount() * 4)  // 1 tank slot, 4 buckets
+}
+```
+
+Display it in a screen with the [`FluidTank`](gui.md#progress-energy-and-fluid-indicators)
+composable, which renders the real fluid texture and tint (not a placeholder color) via a
+per-loader render bridge — Fabric's `FluidRenderHandlerRegistry` and NeoForge's
+`IClientFluidTypeExtensions` expose a fluid's client appearance through unrelated APIs, so this
+one spot needed platform-specific code rather than a single cross-loader call.
+
+---
+
+## ArchieEnergyStorage
+
+A single `capacity`-capped `Long` buffer with resource-style `insert`/`extract`, mirroring
+`ArchieItemStorage`/`ArchieFluidStorage`'s shape but without a Common Storage Lib backing —
+there's no cross-loader "EnergyResource" the way there is for items and fluids, so
+`ArchieEnergyStorage` doesn't implement `CommonStorage` and Archie doesn't bridge it to a
+platform capability (NeoForge's `IEnergyStorage`, Fabric's Team Reborn Energy API) for you. Wire
+that yourself in loader-specific code, reading/writing through `getAmount()`/`getCapacity()`/
+`insert()`/`extract()`.
+
+```kotlin
+class MyBlockEntity(pos, state) : NBTBlockEntity(TYPE, pos, state) {
+    val energy by nbt.energyField(10_000)
+}
+
+val accepted = tile.energy.insert(amount = 500, simulate = false)
+```
+
+Display it with the [`EnergyBar`](gui.md#progress-energy-and-fluid-indicators) composable:
+`EnergyBar(storage = tile.energy)`.
 
 ---
 

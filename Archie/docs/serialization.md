@@ -56,7 +56,9 @@ val back: NbtCompound = compound.fromMinecraft
 class MyBlockEntity(pos, state) : NBTBlockEntity(TYPE, pos, state) {
     var count  by nbt.intField()
     var label  by nbt.stringField { "default" }
-    val items  by nbt.itemField(9)  // 9-slot inventory
+    val items  by nbt.itemField(9)                        // 9-slot inventory
+    val tank   by nbt.fluidField(FluidStack.bucketAmount() * 4) // 1 tank slot, 4 buckets
+    val energy by nbt.energyField(10_000)                 // a single energy buffer
 
     // Generic field with custom serializer
     var pos    by nbt.field(BlockPos.CODEC.serializer()) { BlockPos.ZERO }
@@ -64,7 +66,9 @@ class MyBlockEntity(pos, state) : NBTBlockEntity(TYPE, pos, state) {
 ```
 
 Available field types: `boolean`, `byte`, `ubyte`, `short`, `ushort`, `int`, `uint`, `long`,
-`ulong`, `float`, `double`, `string`, `item`, plus a generic `field(serializer, default)`.
+`ulong`, `float`, `double`, `string`, `item`, `fluid`, `energy`, plus a generic
+`field(serializer, default)`. See [transfer.md](transfer.md) for the storage types `item`/`fluid`/
+`energy` fields produce.
 
 ---
 
