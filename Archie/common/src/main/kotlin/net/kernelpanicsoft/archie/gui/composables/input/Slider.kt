@@ -20,6 +20,7 @@ import net.kernelpanicsoft.archie.gui.theme.ComposableTheme
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.math.roundToInt
 
@@ -168,7 +169,7 @@ fun Slider(
 	                mouseX: Int,
 	                mouseY: Int,
 	                partialTick: Float,
-                ) {
+                ) = guiGraphics {
                     val trackY = y + (node.height - SLIDER_TRACK_HEIGHT) / 2
                     val trackStart = x + (SLIDER_THUMB_WIDTH / 2)
                     val trackEnd = x + node.width - (SLIDER_THUMB_WIDTH / 2)
@@ -189,10 +190,9 @@ fun Slider(
 
                     val fillColor = if (enabled) 0xFF6BA8FF.toInt() else 0xFF5A5A5A.toInt()
 
-                    guiGraphics.drawThemeState(trackState, x, y, node.width, node.height)
-                    guiGraphics.fill(trackStart, trackY, fillEnd, trackY + SLIDER_TRACK_HEIGHT, fillColor)
-                    guiGraphics.drawThemeState(thumbState, thumbX, thumbY, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT)
-                    super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
+                    drawThemeState(trackState, x, y, node.width, node.height)
+                    fill(trackStart, trackY, fillEnd, trackY + SLIDER_TRACK_HEIGHT, fillColor)
+                    drawThemeState(thumbState, thumbX, thumbY, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT)
                 }
             },
         )

@@ -2,13 +2,7 @@ package net.kernelpanicsoft.archie.config.serializer
 
 import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.kernelpanicsoft.archie.config.IConfigSerializer
-import dev.architectury.platform.Platform
 import io.github.xn32.json5k.Json5
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.decodeFromJsonElement
 import java.nio.file.Path
 
 
@@ -20,9 +14,9 @@ object Json5ConfigSerializer : IConfigSerializer
 		quoteMemberNames = true
 		encodeDefaults = true
 	}
-	override fun configPath(config: ConfigSpec): Path
+	override fun configPath(config: ConfigSpec, configFolder: Path): Path
 	{
-		return Platform.getConfigFolder().resolve("${config.filename}.json5")
+		return configFolder.resolve("${config.filename}.json5")
 	}
 
 	override fun loadString(config: ConfigSpec, string: String)

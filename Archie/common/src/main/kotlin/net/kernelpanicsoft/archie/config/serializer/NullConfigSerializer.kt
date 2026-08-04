@@ -11,7 +11,7 @@ import java.nio.file.Path
  */
 object NullConfigSerializer : IConfigSerializer
 {
-	override fun configPath(config: ConfigSpec): Path
+	override fun configPath(config: ConfigSpec, configFolder: Path): Path
 	{
 		throw UnsupportedOperationException()
 	}
@@ -26,7 +26,7 @@ object NullConfigSerializer : IConfigSerializer
 		throw UnsupportedOperationException()
 	}
 
-	override fun load(config: ConfigSpec) = Unit
+	override fun load(config: ConfigSpec, configFolder: Path) = Unit
 
-	override fun save(config: ConfigSpec) = Unit
+	override fun save(config: ConfigSpec, configFolder: Path) = Unit
 }

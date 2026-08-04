@@ -10,6 +10,7 @@ import net.kernelpanicsoft.archie.gui.util.HsvColor
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.drawRectOutline
 import net.kernelpanicsoft.archie.gui.util.extension.fillGradient
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.math.max
 
@@ -34,11 +35,11 @@ private fun SaturationValueArea(
         name = "SaturationValueArea",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
-            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-                guiGraphics.fillGradient(x, y, node.width, node.height,
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = guiGraphics {
+                fillGradient(x, y, node.width, node.height,
                     KColor.ofHsv(hue, 0f, 1f).argb, KColor.ofHsv(hue, 1f, 1f).argb,
                     KColor.ofHsv(hue, 0f, 0f).argb, KColor.ofHsv(hue, 1f, 0f).argb)
-                guiGraphics.drawRectOutline(x + (saturation * node.width).toInt() - 2, y + ((1 - value) * node.height).toInt() - 2, 4, 4, KColor.WHITE.argb)
+                drawRectOutline(x + (saturation * node.width).toInt() - 2, y + ((1 - value) * node.height).toInt() - 2, 4, 4, KColor.WHITE.argb)
             }
         },
         modifier = modifier
@@ -57,11 +58,11 @@ private fun HueBar(modifier: Modifier = Modifier, hue: Float, onHueChanged: (Flo
         name = "HueBar",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
-            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = guiGraphics {
                 for (j in 0 until node.height) {
-                    guiGraphics.fill(x, y + j, x + node.width, y + j + 1, KColor.ofHsv(1f - (j.toFloat() / node.height), 1f, 1f).argb)
+                    fill(x, y + j, x + node.width, y + j + 1, KColor.ofHsv(1f - (j.toFloat() / node.height), 1f, 1f).argb)
                 }
-                guiGraphics.drawRectOutline(x - 1, y + ((1 - hue) * node.height).toInt() - 1, node.width + 2, 3, KColor.WHITE.argb)
+                drawRectOutline(x - 1, y + ((1 - hue) * node.height).toInt() - 1, node.width + 2, 3, KColor.WHITE.argb)
             }
         },
         modifier = modifier.onPointerEvent(PointerEventType.PRESS, onEvent).onDrag(onDragEvent = onEvent),
@@ -78,16 +79,16 @@ private fun AlphaBar(modifier: Modifier = Modifier, color: HsvColor, onAlphaChan
         name = "AlphaBar",
         measurePolicy = { _, _, constraints -> MeasureResult(constraints.minWidth, constraints.minHeight) {} },
         renderer = object : Renderer {
-            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = guiGraphics {
                 val checkerSize = 4
                 for (cx in 0 until node.width step checkerSize)
                     for (cy in 0 until node.height step checkerSize)
-                        guiGraphics.fill(x + cx, y + cy, x + cx + checkerSize, y + cy + checkerSize,
+                        fill(x + cx, y + cy, x + cx + checkerSize, y + cy + checkerSize,
                             if ((cx / checkerSize + cy / checkerSize) % 2 == 0) KColor.WHITE.rgb else KColor.LIGHT_GRAY.rgb)
                 val opaque = color.copy(alpha = 1f).toKColor().argb
                 val transparent = color.copy(alpha = 0f).toKColor().argb
-                guiGraphics.fillGradient(x, y, node.width, node.height, transparent, opaque, transparent, opaque)
-                guiGraphics.drawRectOutline(x + (color.alpha * node.width).toInt() - 1, y - 1, 3, node.height + 2, KColor.WHITE.argb)
+                fillGradient(x, y, node.width, node.height, transparent, opaque, transparent, opaque)
+                drawRectOutline(x + (color.alpha * node.width).toInt() - 1, y - 1, 3, node.height + 2, KColor.WHITE.argb)
             }
         },
         modifier = modifier.onPointerEvent(PointerEventType.PRESS, onEvent).onDrag(onDragEvent = onEvent),

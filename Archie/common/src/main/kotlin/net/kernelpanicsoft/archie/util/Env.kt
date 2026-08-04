@@ -1,7 +1,11 @@
 package net.kernelpanicsoft.archie.util
 
+import dev.architectury.platform.Platform
 import dev.architectury.utils.Env
 import dev.architectury.utils.EnvExecutor
+import dev.architectury.utils.GameInstance
+import net.minecraft.client.Minecraft
+import net.minecraft.server.MinecraftServer
 import java.util.Optional
 import java.util.function.Supplier
 
@@ -27,3 +31,9 @@ inline fun <T> onClient(crossinline client: () -> T): Optional<T> = EnvExecutor.
  * on the physical client without ever class-loading [server].
  */
 inline fun <T> onServer(crossinline server: () -> T): Optional<T> = EnvExecutor.getInEnv<T>(Env.SERVER) { Supplier { server() } }
+
+inline val isClient: Boolean get() = Platform.getEnvironment() == Env.CLIENT
+inline val isServer: Boolean get() = Platform.getEnvironment() == Env.SERVER
+
+inline val minecraftClient: Minecraft get() = GameInstance.getClient()
+inline val minecraftServer: MinecraftServer? get() = GameInstance.getServer()

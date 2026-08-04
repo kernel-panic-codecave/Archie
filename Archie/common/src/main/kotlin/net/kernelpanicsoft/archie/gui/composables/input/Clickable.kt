@@ -12,6 +12,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.util.minecraftClient
 import net.minecraft.client.Minecraft
 import org.lwjgl.glfw.GLFW
 
@@ -22,8 +23,8 @@ private object CursorCache {
 private fun setHandCursor(enabled: Boolean) {
     // GLFW calls must happen on the render thread; DisposableEffect callbacks run on the
     // recomposition dispatcher, so hop over via Minecraft's thread-safe task queue.
-    Minecraft.getInstance().execute {
-        val window = Minecraft.getInstance().window.window
+    minecraftClient.execute {
+        val window = minecraftClient.window.window
         GLFW.glfwSetCursor(window, if (enabled) CursorCache.handCursor else 0L)
     }
 }

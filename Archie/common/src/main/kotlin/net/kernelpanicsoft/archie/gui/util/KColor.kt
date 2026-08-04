@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.gui.util
 
 import kotlinx.serialization.Serializable
 import net.minecraft.ChatFormatting
+import net.minecraft.network.chat.TextColor
 import net.minecraft.util.Mth
 import net.minecraft.world.item.DyeColor
 import kotlin.random.Random
@@ -128,4 +129,6 @@ data class KColor(
      * The packed ARGB integer representation (in the form `0xAARRGGBB`).
      */
     val argb: Int get() = (alpha shl 24) or (red shl 16) or (green shl 8) or blue
+
+    fun toTextColor(): TextColor = TextColor.fromRgb(rgb)
 }

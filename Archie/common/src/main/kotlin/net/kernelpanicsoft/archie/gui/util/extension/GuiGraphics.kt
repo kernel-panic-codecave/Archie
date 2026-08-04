@@ -1,5 +1,7 @@
 package net.kernelpanicsoft.archie.gui.util.extension
 
+import com.mojang.blaze3d.vertex.PoseStack
+import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeState
 import net.minecraft.client.gui.GuiGraphics
@@ -108,3 +110,31 @@ fun GuiGraphics.drawRectOutline(
     fill(type, x, y + thickness, x + thickness, y + height - thickness, color)
     fill(type, x + width - thickness, y + thickness, x + width, y + height - thickness, color)
 }
+
+fun <T> GuiGraphics.pose(block: PoseStack.() -> T): T
+{
+    val pose = pose()
+    pose.pushPose()
+    val ret  = pose.block()
+    pose.popPose()
+    return ret
+}
+
+fun <T> GuiGraphics.scissor(minX: Int, minY: Int, maxX: Int, maxY: Int, block: () -> T): T
+{
+    enableScissor(minX, minY, maxX, maxY)
+    val ret = block()
+    disableScissor()
+    return ret
+}
+
+fun <T> GuiGraphics.scissor(rect: IntRect, block: () -> T): T
+{
+    val (minX: Int, minY: Int, maxX: Int, maxY: Int) = rect
+    enableScissor(minX, minY, maxX, maxY)
+    val ret = block()
+    disableScissor()
+    return ret
+}
+
+operator fun GuiGraphics.invoke(block: GuiGraphics.() -> Unit): Unit = block()

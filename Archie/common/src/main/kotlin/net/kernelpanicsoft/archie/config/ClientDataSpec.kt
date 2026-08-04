@@ -14,15 +14,15 @@ import java.util.function.Supplier
 import kotlin.reflect.KClass
 
 /**
- * Client-side mirror of a [CategorySpec], built lazily as [CategorySpec.client]. Every `boolean`/
- * `int`/... method here is called by its [CategorySpec] counterpart (via [CategorySpec.onClient])
+ * Client-side mirror of a [DataSpec], built lazily as [DataSpec.client]. Every `boolean`/
+ * `int`/... method here is called by its [DataSpec] counterpart (via [DataSpec.onClient])
  * with matching parameters, and queues a [ConfigEntryBuilder]-based entry that reads from and
  * writes back into the same backing maps on [spec]. [buildRoot]/[buildSub] then turn the queued
  * entries into an actual Cloth Config [ConfigCategory]/[SubCategoryListEntry]. None of this is
- * called directly by mod authors - see [CategorySpec] for the public DSL.
+ * called directly by mod authors - see [DataSpec] for the public DSL.
  */
 @Suppress("unused")
-class ClientCategorySpec(internal val spec: CategorySpec)
+class ClientDataSpec(internal val spec: DataSpec)
 {
 	/** Queued entry builders, appended to in declaration order by each field-registering method below. */
 	internal val builders: MutableList<ConfigEntryBuilder.() -> AbstractConfigListEntry<*>> = mutableListOf()
@@ -33,8 +33,11 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		builders.forEach { builder ->
 			category.addEntry(entryBuilder.builder())
 		}
-		spec.subcategories.forEach { subcategory ->
-			category.addEntry(ClientCategorySpec(subcategory).buildSub(entryBuilder))
+		if (spec is CategorySpec)
+		{
+			spec.subcategories.forEach { subcategory ->
+				category.addEntry(subcategory.client.buildSub(entryBuilder))
+			}
 		}
 	}
 
@@ -47,8 +50,11 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 			category.add(entryBuilder.builder())
 		}
 
-		spec.subcategories.forEach { subcategory ->
-			category.add(ClientCategorySpec(subcategory).buildSub(entryBuilder))
+		if (spec is CategorySpec)
+		{
+			spec.subcategories.forEach { subcategory ->
+				category.add(subcategory.client.buildSub(entryBuilder))
+			}
 		}
 
 		return category.build()
@@ -65,7 +71,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Boolean = false,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -84,6 +91,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -97,7 +105,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Int = 0,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -116,6 +125,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -130,7 +140,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Long = 0,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -149,6 +160,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -165,7 +177,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		min: Int,
 		max: Int,
 		default: Int = min + (max - min) / 2,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -184,6 +197,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -200,7 +214,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		min: Long,
 		max: Long,
 		default: Long = min + (max - min) / 2,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -219,6 +234,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -233,7 +249,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Float = 0.0f,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -252,6 +269,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -266,7 +284,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Double = 0.0,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -285,6 +304,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -299,7 +319,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: String = "",
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -318,6 +339,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -328,12 +350,13 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 	}
 
 	@Suppress("UNCHECKED_CAST")
-	internal fun <T : CategorySpec> spec(
+	internal fun <T : DataSpec> spec(
 		id: String,
 		title: Component,
 		comment: Component? = null,
 		default: T,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -354,6 +377,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -371,6 +395,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		registry: Registry<T>,
 		resetKey: Component? = null,
 		subclass: KClass<R>? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -397,6 +422,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -409,7 +435,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: CommonKeyCode = CommonKeyCode.unknown,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -430,6 +457,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					setModifierDefaultValue {
 						default.toClient()
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -441,9 +469,10 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		id: String,
 		title: Component,
 		comment: Component? = null,
-		default: Color = Color.ofTransparent(-1),
 		alpha: Boolean = false,
-		resetKey: Component? = null
+		default: Color = if (alpha) Color.ofTransparent(-1) else Color.ofOpaque(-1),
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -465,6 +494,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 						default
 					}
 					alphaMode = alpha
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -479,7 +509,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		comment: Component? = null,
 		kclass: KClass<T>,
 		default: T,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -498,6 +529,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -513,7 +545,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		kclass: KClass<T>,
 		default: T,
 		entries: Array<T>,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -533,6 +566,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -545,7 +579,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: List<Int> = listOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -566,6 +601,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -578,7 +614,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: List<Long> = listOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -599,6 +636,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -611,7 +649,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: List<Float> = listOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -632,6 +671,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -644,7 +684,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: List<Double> = listOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -665,6 +706,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -677,7 +719,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: List<String> = listOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -698,6 +741,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -706,13 +750,14 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 	}
 
 	@Suppress("UNCHECKED_CAST")
-	internal fun <T : CategorySpec> specList(
+	internal fun <T : DataSpec> specList(
 		id: String,
 		title: Component,
 		comment: Component? = null,
 		default: List<T> = listOf(),
 		factory: () -> T,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -737,6 +782,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -752,7 +798,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		factory: () -> T,
 		registry: Registry<T>,
 		resetKey: Component? = null,
-		subclass: KClass<R>? = null
+		subclass: KClass<R>? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -780,6 +827,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					setDefaultValue {
 						default
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -793,7 +841,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		comment: Component? = null,
 		default: List<CommonKeyCode> = listOf(),
 		factory: () -> CommonKeyCode = CommonKeyCode.Companion::unknown,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -817,6 +866,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.map { it.toClient() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -828,9 +878,11 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		id: String,
 		title: Component,
 		comment: Component? = null,
+		alpha: Boolean = false,
 		default: List<Color> = listOf(),
-		factory: () -> Color = { Color.ofTransparent(-1) },
-		resetKey: Component? = null
+		factory: () -> Color = { if (alpha) Color.ofTransparent(-1) else Color.ofOpaque(-1) },
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -847,7 +899,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 			)
 				.apply {
 					setSaveConsumer {
-						spec.colorLists[id] = if (alphaMode)
+						spec.colorLists[id] = if (alpha)
 							it.map(Color::ofTransparent)
 						else
 							it.map(Color::ofOpaque)
@@ -855,6 +907,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					setDefaultValue {
 						default.map { it.color }
 					}
+					alphaMode = alpha
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -867,7 +921,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Map<String, Int> = mapOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -888,6 +943,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -900,7 +956,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Map<String, Long> = mapOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -921,6 +978,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -933,7 +991,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Map<String, Float> = mapOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -954,6 +1013,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -966,7 +1026,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Map<String, Double> = mapOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -987,6 +1048,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -999,7 +1061,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		title: Component,
 		comment: Component? = null,
 		default: Map<String, String> = mapOf(),
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -1020,6 +1083,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -1028,13 +1092,14 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 	}
 
 	@Suppress("UNCHECKED_CAST")
-	internal fun <T : CategorySpec> specMap(
+	internal fun <T : DataSpec> specMap(
 		id: String,
 		title: Component,
 		comment: Component? = null,
 		default: Map<String, T> = mapOf(),
 		factory: () -> T,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -1059,6 +1124,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -1074,7 +1140,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		factory: () -> T,
 		registry: Registry<T>,
 		resetKey: Component? = null,
-		subclass: KClass<R>? = null
+		subclass: KClass<R>? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -1105,6 +1172,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					setDefaultValue {
 						default.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -1118,7 +1186,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		comment: Component? = null,
 		default: Map<String, CommonKeyCode> = mapOf(),
 		factory: () -> CommonKeyCode = CommonKeyCode.Companion::unknown,
-		resetKey: Component? = null
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -1141,6 +1210,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					defaultValue = Supplier {
 						default.mapValues { it.value.toClient() }.entries.toList().map { it.toMutableEntry() }
 					}
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset
@@ -1152,9 +1222,11 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 		id: String,
 		title: Component,
 		comment: Component? = null,
+		alpha: Boolean = false,
 		default: Map<String, Color> = mapOf(),
-		factory: () -> Color = { Color.ofTransparent(-1) },
-		resetKey: Component? = null
+		factory: () -> Color = { if (alpha) Color.ofTransparent(-1) else Color.ofOpaque(-1) },
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
 	)
 	{
 		if (comment != null)
@@ -1173,7 +1245,7 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 			)
 				.apply {
 					setSaveConsumer { value ->
-						spec.colorMaps[id] = if (alphaMode)
+						spec.colorMaps[id] = if (alpha)
 							value.associate { it.toPair() }.mapValues { Color.ofTransparent(it.value) }
 						else
 							value.associate { it.toPair() }.mapValues { Color.ofOpaque(it.value) }
@@ -1181,6 +1253,8 @@ class ClientCategorySpec(internal val spec: CategorySpec)
 					setDefaultValue {
 						default.mapValues { it.value.color }.toList().map { it.toMutableEntry() }
 					}
+					alphaMode = alpha
+					requireRestart(needsRestart)
 				}
 				.build()
 			resetButtonKey = reset

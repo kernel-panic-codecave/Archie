@@ -3,10 +3,15 @@ package net.kernelpanicsoft.archie.gui.composables.basic
 import androidx.compose.runtime.Composable
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
+import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.util.KColor
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
+import net.kernelpanicsoft.archie.gui.util.extension.pose
+import net.kernelpanicsoft.archie.util.minecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
@@ -24,7 +29,7 @@ import net.minecraft.network.chat.Component
 fun getTextSize(
     text: Component,
     scale: Float = 1f,
-    font: Font = Minecraft.getInstance().font,
+    font: Font = minecraftClient.font,
 ): Size = Size((font.width(text) * scale).toInt(), (font.lineHeight * scale).toInt())
 
 /**
@@ -54,7 +59,7 @@ fun getTextSize(
 fun Text(
     text: Component,
     fontScale: Float = 1f,
-    font: Font = Minecraft.getInstance().font,
+    font: Font = minecraftClient.font,
     color: KColor = LocalTheme.current.lightTextColor,
     dropShadow: Boolean = true,
     modifier: Modifier = Modifier,
@@ -62,36 +67,31 @@ fun Text(
     Layout(
         name = "Text",
         measurePolicy = { _, _, constraints ->
-            // Measured here (during LayoutNode.measure(), which only ever runs on the render
-            // thread) rather than in the composable body, since Font.width() can lazily bake
-            // glyphs into a GPU texture atlas and is not safe to call from the recomposition
-            // dispatcher's background thread.
             val textSize = getTextSize(text, fontScale, font)
             MeasureResult(
                 textSize.width.coerceIn(constraints.minWidth, constraints.maxWidth),
                 textSize.height.coerceIn(constraints.minHeight, constraints.maxHeight),
             ) {}
         },
-        renderer = object : net.kernelpanicsoft.archie.gui.layout.Renderer {
+        renderer = object : Renderer {
             override fun render(
-	            node: net.kernelpanicsoft.archie.gui.nodes.UINode,
+	            node: UINode,
 	            x: Int, y: Int,
 	            guiGraphics: GuiGraphics,
 	            mouseX: Int, mouseY: Int,
 	            partialTick: Float,
-            ) {
-                if (fontScale != 1f) {
-                    guiGraphics.pose().apply {
-                        pushPose()
+            ) = guiGraphics {
+                if (fontScale != 1f)
+                {
+                    pose {
                         scale(fontScale, fontScale, fontScale)
                         translate(x / fontScale, y / fontScale, 0f)
+                        drawString(font, text, 0, 0, color.rgb, dropShadow)
                     }
-                    guiGraphics.drawString(font, text, 0, 0, color.rgb, dropShadow)
-                    guiGraphics.pose().popPose()
-                } else {
-                    guiGraphics.drawString(font, text, x, y, color.rgb, dropShadow)
+                } else
+                {
+                    drawString(font, text, x, y, color.rgb, dropShadow)
                 }
-                super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
             }
         },
         modifier = modifier,

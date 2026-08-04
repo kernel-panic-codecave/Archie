@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.config.builder
 
-import net.kernelpanicsoft.archie.config.CategorySpec
+import net.kernelpanicsoft.archie.config.DataSpec
 import net.kernelpanicsoft.archie.util.getReflection
 import net.kernelpanicsoft.archie.util.setReflection
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
@@ -8,6 +8,7 @@ import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import me.shedaniel.clothconfig2.gui.entries.DropdownBoxEntry
 import me.shedaniel.clothconfig2.impl.builders.ColorFieldBuilder
 import me.shedaniel.math.Color
+import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.Registry
@@ -100,9 +101,14 @@ var ColorFieldBuilder.alphaMode: Boolean
  * types Archie adds - nested specs, registry entries, keybind/color lists and maps - are used the
  * same way. Each one just forwards to the matching builder class's constructor.
  */
-fun <T : CategorySpec> ConfigEntryBuilder.startSpecField(fieldNameKey: Component, value: T): SpecFieldBuilder<T>
+fun <T : DataSpec> ConfigEntryBuilder.startSpecField(fieldNameKey: Component, value: T): SpecFieldBuilder<T>
 {
 	return SpecFieldBuilder(resetButtonKey, fieldNameKey, value)
+}
+
+fun <T : ConfigSpec> ConfigEntryBuilder.startConfigField(fieldNameKey: Component, value: T): ConfigFieldBuilder<T>
+{
+	return ConfigFieldBuilder(resetButtonKey, fieldNameKey, value)
 }
 
 /** See [startSpecField]. Builds a single registry-entry field, resolved against [registry] and optionally narrowed to [subclass]. */
@@ -138,8 +144,8 @@ fun <T : Any> ConfigEntryBuilder.startDropdownField(
 	return DropdownFieldBuilder(resetButtonKey, fieldNameKey, value, selections)
 }
 
-/** See [startSpecField]. Builds a list of nested [CategorySpec] entries. */
-fun <T : CategorySpec> ConfigEntryBuilder.startSpecList(
+/** See [startSpecField]. Builds a list of nested [DataSpec] entries. */
+fun <T : DataSpec> ConfigEntryBuilder.startSpecList(
 	fieldNameKey: Component,
 	value: List<T>,
 	factory: () -> T
@@ -180,8 +186,8 @@ fun ConfigEntryBuilder.startColorList(
 	return ColorListBuilder(resetButtonKey, fieldNameKey, value, factory)
 }
 
-/** See [startSpecField]. Builds a `String`-keyed map of nested [CategorySpec] entries. */
-fun <T : CategorySpec> ConfigEntryBuilder.startSpecMap(
+/** See [startSpecField]. Builds a `String`-keyed map of nested [DataSpec] entries. */
+fun <T : DataSpec> ConfigEntryBuilder.startSpecMap(
 	fieldNameKey: Component,
 	value: Map<String, T>,
 	factory: () -> T

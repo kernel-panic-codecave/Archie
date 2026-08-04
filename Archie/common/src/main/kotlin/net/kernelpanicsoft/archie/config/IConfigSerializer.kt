@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.config
 
+import dev.architectury.platform.Platform
 import net.kernelpanicsoft.archie.Archie
 import java.nio.file.Files
 import java.nio.file.Path
@@ -13,8 +14,7 @@ import java.nio.file.StandardCopyOption
 interface IConfigSerializer
 {
 	/** File the given [config] is read from and written to. */
-	fun configPath(config: ConfigSpec): Path
-
+	fun configPath(config: ConfigSpec, configFolder: Path = Platform.getConfigFolder()): Path
 	/**
 	 * Reads [config]'s file if present via [loadString], then always [save]s it back out - this
 	 * both formats a freshly-created file with defaults and rewrites an existing one with any
@@ -22,9 +22,9 @@ interface IConfigSerializer
 	 * `<file>.corrupted` rather than deleted, and loading falls through to writing fresh defaults
 	 * so startup isn't blocked.
 	 */
-	fun load(config: ConfigSpec)
+	fun load(config: ConfigSpec, configFolder: Path = Platform.getConfigFolder())
 	{
-		val path = configPath(config)
+		val path = configPath(config, configFolder)
 		if (Files.exists(path))
 		{
 			try
@@ -44,16 +44,16 @@ interface IConfigSerializer
 			}
 		}
 
-		save(config)
+		save(config, configFolder)
 	}
 
 	/** Parses [string] and populates [config]'s fields from it. Implemented per-format. */
 	fun loadString(config: ConfigSpec, string: String)
 
 	/** Writes [config]'s current field values to [configPath], creating parent directories as needed. */
-	fun save(config: ConfigSpec)
+	fun save(config: ConfigSpec, configFolder: Path = Platform.getConfigFolder())
 	{
-		val path = configPath(config)
+		val path = configPath(config, configFolder)
 		try
 		{
 			Files.createDirectories(path.parent)

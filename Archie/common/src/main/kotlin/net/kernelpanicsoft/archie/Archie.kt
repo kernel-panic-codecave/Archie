@@ -7,7 +7,9 @@ import dev.architectury.platform.Platform
 import dev.architectury.registry.ReloadListenerRegistry
 import kotlinx.serialization.Serializable
 import net.kernelpanicsoft.archie.config.CategorySpec
+import net.kernelpanicsoft.archie.config.ConfigContainer
 import net.kernelpanicsoft.archie.config.ConfigSpec
+import net.kernelpanicsoft.archie.config.DataSpec
 import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform
 import net.kernelpanicsoft.archie.data.common.conditions.ABuiltinConditions
 import net.kernelpanicsoft.archie.data.common.crafting.ingredients.ABuiltinIngredients
@@ -115,233 +117,234 @@ object Archie
 
 	/**
 	 * Archie's own config, registered under the "Config" title. `General` holds Archie's real
-	 * settings; `Test` is a self-test fixture exercising every [CategorySpec] value type
+	 * settings; `Test` is a self-test fixture exercising every [DataSpec] value type
 	 * supported by the config system and is not meant to be user-facing.
 	 */
-	object Config : ConfigSpec(MOD, Component.literal("Config"))
+	object Config : ConfigContainer(MOD)
 	{
-		override val categories: List<CategorySpec> = buildList {
-			add(General)
-			add(Test)
-		}
-
-		object General : CategorySpec(Component.literal("General"), "general")
+		object Common : ConfigSpec.Common(MOD)
 		{
-			val tests by boolean(
-				title = Component.literal("Tests"),
-				default = false
-			)
-		}
-
-		@Suppress("unused")
-		object Test : CategorySpec(Component.literal("Test Category"), "test")
-		{
-			override val subcategories: List<CategorySpec> = buildList {
-				add(TestSub)
-			}
-
-			override val isEnabled: Boolean
-				get() = General.tests
-
-			val testBoolean by boolean(
-				title = Component.literal("Test Boolean"),
-				comment = Component.literal("Test Comment")
-			)
-
-			val testInt by int(
-				title = Component.literal("Test Int"),
-			)
-
-			val testLong by long(
-				title = Component.literal("Test Long"),
-			)
-
-			val testIntSlider by intSlider(
-				title = Component.literal("Test Int Slider"),
-				min = Int.MIN_VALUE / 2 + 1,
-				max = Int.MAX_VALUE / 2
-			)
-
-			val testLongSlider by longSlider(
-				title = Component.literal("Test Long Slider"),
-				min = Long.MIN_VALUE / 2 + 1,
-				max = Long.MAX_VALUE / 2,
-			)
-
-			val testFloat by float(
-				title = Component.literal("Test Float"),
-			)
-
-			val testDouble by double(
-				title = Component.literal("Test Double"),
-			)
-
-			val testString by string(
-				title = Component.literal("Test String"),
-			)
-
-			val testSpec by spec(
-				title = Component.literal("Test Spec"),
-				default = TestSpec(),
-				factory = ::TestSpec
-			)
-
-			val testRegistry: BlockItem by registry(
-				title = Component.literal("Test Registry"),
-				default = Items.COBBLESTONE,
-				subclass = BlockItem::class,
-				registry = BuiltInRegistries.ITEM
-			)
-
-			val testKeycode by keycode(
-				title = Component.literal("Test Keycode"),
-			)
-
-			val testColor by color(
-				title = Component.literal("Test Color"),
-				alpha = true
-			)
-
-			val testEnumSelector by enumSelector(
-				title = Component.literal("Test Enum Selector"),
-				kclass = TestEnum::class,
-				default = TestEnum.Foo
-			)
-
-			val testSelector by selector(
-				title = Component.literal("Test Selector"),
-				kclass = String::class,
-				default = "foo",
-				entries = buildArray {
-					add("foo")
-					add("bar")
-				}
-			)
-
-			val testIntList by intList(
-				title = Component.literal("Test Int List"),
-			)
-
-			val testLongList by longList(
-				title = Component.literal("Test Long List"),
-			)
-
-			val testFloatList by floatList(
-				title = Component.literal("Test Float List"),
-			)
-
-			val testDoubleList by doubleList(
-				title = Component.literal("Test Double List"),
-			)
-
-			val testStringList by stringList(
-				title = Component.literal("Test String List"),
-			)
-
-			val testSpecList by specList(
-				title = Component.literal("Test Spec List"),
-				factory = ::TestSpec
-			)
-
-			val testRegistryList: List<BlockItem> by registryList(
-				title = Component.literal("Test Registry List"),
-				factory = Items::COBBLESTONE,
-				subclass = BlockItem::class,
-				registry = BuiltInRegistries.ITEM
-			)
-
-			val testKeycodeList by keycodeList(
-				title = Component.literal("Test Keycode List"),
-			)
-
-			val testColorList by colorList(
-				title = Component.literal("Test Color List"),
-			)
-
-			val testIntMap by intMap(
-				title = Component.literal("Test Int Map"),
-			)
-
-			val testLongMap by longMap(
-				title = Component.literal("Test Long Map"),
-			)
-
-			val testFloatMap by floatMap(
-				title = Component.literal("Test Float Map"),
-			)
-
-			val testDoubleMap by doubleMap(
-				title = Component.literal("Test Double Map"),
-			)
-
-			val testStringMap by stringMap(
-				title = Component.literal("Test String Map"),
-			)
-
-			val testSpecMap by specMap(
-				title = Component.literal("Test Spec Map"),
-				factory = ::TestSpec
-			)
-
-			val testRegistryMap: Map<String, BlockItem> by registryMap(
-				title = Component.literal("Test Registry Map"),
-				factory = Items::COBBLESTONE,
-				subclass = BlockItem::class,
-				registry = BuiltInRegistries.ITEM
-			)
-
-			val testKeycodeMap by keycodeMap(
-				title = Component.literal("Test Keycode Map"),
-			)
-
-			val testColorMap by colorMap(
-				title = Component.literal("Test Color Map")
-			)
-
-			val testNestedSpec by spec(
-				title = Component.literal("Test Nested Spec"),
-				default = TestNestedSpec(),
-				factory = ::TestNestedSpec
-			)
-
-			@Serializable
-			enum class TestEnum
+			object General : CategorySpec(Component.literal("General"), "general")
 			{
-				Foo,
-				Bar
-			}
-
-			class TestSpec : CategorySpec(Component.literal("Test Spec"))
-			{
-				val test by boolean(
-					title = Component.literal("Test"),
+				val tests by boolean(
+					title = Component.literal("Tests"),
+					default = false
 				)
 			}
 
-			class TestNestedSpec : CategorySpec(Component.literal("Test Nested Spec"))
+			@Suppress("unused")
+			object Test : CategorySpec(Component.literal("Test Category"), "test")
 			{
-				val childrenList by specList(
-					title = Component.literal("Children List"),
-					factory = ::TestNestedSpec
+				override val isEnabled: Boolean
+					get() = General.tests
+
+				var testBoolean by boolean(
+					title = Component.literal("Test Boolean"),
+					comment = Component.literal("Test Comment")
 				)
 
-				val childrenMap by specMap(
-					title = Component.literal("Children Map"),
-					factory = ::TestNestedSpec
-				)
-			}
-
-			object TestSub : CategorySpec(Component.literal("Test Subcategory"), "test_sub")
-			{
-				val test by boolean(
-					title = Component.literal("Test"),
+				val testInt by int(
+					title = Component.literal("Test Int"),
 				)
 
-				val testRegistry by registry(
+				val testLong by long(
+					title = Component.literal("Test Long"),
+				)
+
+				val testIntSlider by intSlider(
+					title = Component.literal("Test Int Slider"),
+					min = Int.MIN_VALUE / 2 + 1,
+					max = Int.MAX_VALUE / 2
+				)
+
+				val testLongSlider by longSlider(
+					title = Component.literal("Test Long Slider"),
+					min = Long.MIN_VALUE / 2 + 1,
+					max = Long.MAX_VALUE / 2,
+				)
+
+				val testFloat by float(
+					title = Component.literal("Test Float"),
+				)
+
+				val testDouble by double(
+					title = Component.literal("Test Double"),
+				)
+
+				val testString by string(
+					title = Component.literal("Test String"),
+				)
+
+				val testSpec by spec(
+					title = Component.literal("Test Spec"),
+					default = TestSpec(),
+					factory = ::TestSpec
+				)
+
+				val testRegistry: BlockItem by registry(
 					title = Component.literal("Test Registry"),
-					default = BlockEntityType.CHEST,
-					registry = BuiltInRegistries.BLOCK_ENTITY_TYPE
+					default = Items.COBBLESTONE,
+					subclass = BlockItem::class,
+					registry = BuiltInRegistries.ITEM
 				)
+
+				val testKeycode by keycode(
+					title = Component.literal("Test Keycode"),
+				)
+
+				val testColor by color(
+					title = Component.literal("Test Color"),
+					alpha = true
+				)
+
+				val testEnumSelector by enumSelector(
+					title = Component.literal("Test Enum Selector"),
+					kclass = TestEnum::class,
+					default = TestEnum.Foo
+				)
+
+				val testSelector by selector(
+					title = Component.literal("Test Selector"),
+					kclass = String::class,
+					default = "foo",
+					entries = buildArray {
+						add("foo")
+						add("bar")
+					}
+				)
+
+				val testIntList by intList(
+					title = Component.literal("Test Int List"),
+				)
+
+				val testLongList by longList(
+					title = Component.literal("Test Long List"),
+				)
+
+				val testFloatList by floatList(
+					title = Component.literal("Test Float List"),
+				)
+
+				val testDoubleList by doubleList(
+					title = Component.literal("Test Double List"),
+				)
+
+				val testStringList by stringList(
+					title = Component.literal("Test String List"),
+				)
+
+				val testSpecList by specList(
+					title = Component.literal("Test Spec List"),
+					factory = ::TestSpec
+				)
+
+				val testRegistryList: List<BlockItem> by registryList(
+					title = Component.literal("Test Registry List"),
+					factory = Items::COBBLESTONE,
+					subclass = BlockItem::class,
+					registry = BuiltInRegistries.ITEM
+				)
+
+				val testKeycodeList by keycodeList(
+					title = Component.literal("Test Keycode List"),
+				)
+
+				val testColorList by colorList(
+					title = Component.literal("Test Color List"),
+				)
+
+				val testIntMap by intMap(
+					title = Component.literal("Test Int Map"),
+				)
+
+				val testLongMap by longMap(
+					title = Component.literal("Test Long Map"),
+				)
+
+				val testFloatMap by floatMap(
+					title = Component.literal("Test Float Map"),
+				)
+
+				val testDoubleMap by doubleMap(
+					title = Component.literal("Test Double Map"),
+				)
+
+				val testStringMap by stringMap(
+					title = Component.literal("Test String Map"),
+				)
+
+				val testSpecMap by specMap(
+					title = Component.literal("Test Spec Map"),
+					factory = ::TestSpec
+				)
+
+				val testRegistryMap: Map<String, BlockItem> by registryMap(
+					title = Component.literal("Test Registry Map"),
+					factory = Items::COBBLESTONE,
+					subclass = BlockItem::class,
+					registry = BuiltInRegistries.ITEM
+				)
+
+				val testKeycodeMap by keycodeMap(
+					title = Component.literal("Test Keycode Map"),
+				)
+
+				val testColorMap by colorMap(
+					title = Component.literal("Test Color Map")
+				)
+
+				val testNestedSpec by spec(
+					title = Component.literal("Test Nested Spec"),
+					default = TestNestedSpec(),
+					factory = ::TestNestedSpec
+				)
+
+				@Serializable
+				enum class TestEnum
+				{
+					Foo,
+					Bar
+				}
+
+				class TestSpec : DataSpec(Component.literal("Test Spec"))
+				{
+					val test by boolean(
+						title = Component.literal("Test"),
+					)
+				}
+
+				class TestNestedSpec : DataSpec(Component.literal("Test Nested Spec"))
+				{
+					val childrenList by specList(
+						title = Component.literal("Children List"),
+						factory = ::TestNestedSpec
+					)
+
+					val childrenMap by specMap(
+						title = Component.literal("Children Map"),
+						factory = ::TestNestedSpec
+					)
+				}
+
+				object TestSub : CategorySpec(Component.literal("Test Subcategory"), "test_sub")
+				{
+					val test by boolean(
+						title = Component.literal("Test"),
+					)
+
+					val testRegistry by registry(
+						title = Component.literal("Test Registry"),
+						default = BlockEntityType.CHEST,
+						registry = BuiltInRegistries.BLOCK_ENTITY_TYPE
+					)
+
+					object TestSubSub : CategorySpec(Component.literal("Test Sub Subcategory"), "test_sub_sub")
+					{
+						val test by boolean(
+							title = Component.literal("Test"),
+						)
+					}
+				}
 			}
 		}
 	}

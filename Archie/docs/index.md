@@ -13,7 +13,7 @@ It targets both **Fabric** and **NeoForge** via [Architectury](https://github.co
 | **Networking** | Strongly-typed, CBOR-serialized packet channels |
 | **Registries** | Deferred-register helpers for blocks, items, and creative tabs |
 | **Serialization** | Kotlinx serialization + Mojang Codec bridge; NBT holders; Minecraft type serializers |
-| **Config** | Hierarchical, multi-format config system (JSON5, TOML, JSON) with Cloth Config UI |
+| **Config** | Hierarchical, multi-format config system (JSON5, TOML, JSON) with Cloth Config UI and optional client↔server sync |
 | **GUI** | Compose-for-Minecraft UI framework with layout, modifiers, composables, and themes |
 | **Events** | Architectury event wrappers |
 | **Data Gen** | Data generation provider utilities |

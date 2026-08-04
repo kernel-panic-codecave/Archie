@@ -332,5 +332,4 @@ transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   FOOD
 transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   INGREDIENTS Lnet/minecraft/resources/ResourceKey;
 transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   SPAWN_EGGS  Lnet/minecraft/resources/ResourceKey;
 transitive-accessible   field   net/minecraft/world/item/CreativeModeTabs   OP_BLOCKS   Lnet/minecraft/resources/ResourceKey;
-# GameTest support: access wideners removed (methods validated at runtime via reflection)
-
+accessible method net/minecraft/client/gui/screens/Screen removeWidget (Lnet/minecraft/client/gui/components/events/GuiEventListener;)V

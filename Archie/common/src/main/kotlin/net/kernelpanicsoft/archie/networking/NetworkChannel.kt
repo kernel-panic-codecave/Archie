@@ -8,10 +8,16 @@ import dev.architectury.utils.EnvExecutor
 import dev.architectury.utils.GameInstance
 import kotlinx.coroutines.Runnable
 import kotlinx.serialization.*
+import net.kernelpanicsoft.archie.config.ConfigSpec
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
 import net.kernelpanicsoft.archie.serialization.streamCodec
+import net.kernelpanicsoft.archie.util.foldEnv
+import net.kernelpanicsoft.archie.util.sendSystemMessage
 import net.minecraft.core.RegistryAccess
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextColor
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -100,6 +106,9 @@ open class NetworkChannel(private val id: ResourceLocation) {
     private val serverClasses = mutableListOf<KClass<*>>()
     private val clientClasses = mutableListOf<KClass<*>>()
 
+    private val serverConfigs = mutableListOf<ConfigSpec>()
+    private val clientConfigs = mutableListOf<ConfigSpec>()
+
     private val serverboundHandlers = mutableListOf<PacketHandler<*>>()
     private val clientboundHandlers = mutableListOf<PacketHandler<*>>()
 
@@ -121,6 +130,8 @@ open class NetworkChannel(private val id: ResourceLocation) {
         serverClasses.add(klass)
     }
 
+    inline fun <reified T : Any> serverbound(noinline handler: PacketHandler<T>) = serverbound(T::class, handler)
+
     /**
      * Registers a client-bound packet type and its handler.
      *
@@ -139,6 +150,30 @@ open class NetworkChannel(private val id: ResourceLocation) {
         clientClasses.add(klass)
     }
 
+    inline fun <reified T : Any> clientbound(noinline handler: PacketHandler<T>) = clientbound(T::class, handler)
+
+    internal fun <T : ConfigSpec> configServerbound(klass: KClass<out T>, spec: T)
+    {
+        if (spec in serverConfigs) return
+        serverConfigs.add(spec)
+        serverboundHandlers.add { config: T, context -> config.save() }
+        serverClasses.add(klass)
+    }
+
+    internal inline fun <reified T : ConfigSpec> configServerbound(spec: T) = configServerbound(spec::class, spec)
+
+    internal fun <T : ConfigSpec> configClientbound(klass: KClass<out T>, spec: T)
+    {
+        if (spec in clientConfigs) return
+        clientConfigs.add(spec)
+        clientboundHandlers.add { config: T, context ->
+            config.save()
+        }
+        clientClasses.add(klass)
+    }
+
+    internal inline fun <reified T : ConfigSpec> configClientbound(spec: T) = configClientbound(spec::class, spec)
+
     /**
      * Sends one or more packets from the client to the server.
      *
@@ -152,6 +187,7 @@ open class NetworkChannel(private val id: ResourceLocation) {
             createPayload(
                 packet = it,
                 classes = serverClasses,
+                configs = serverConfigs,
                 payloadId = id.withSuffix("_client"),
                 missingMessage = "Trying to send a packet to server but it hasn't registered the packet and its handler",
             )
@@ -273,6 +309,7 @@ open class NetworkChannel(private val id: ResourceLocation) {
             createPayload(
                 packet = it,
                 classes = clientClasses,
+                configs = clientConfigs,
                 payloadId = id.withSuffix("_server"),
                 missingMessage = "Trying to send a packet to clients but client hasn't registered the packet and its handler",
             )
@@ -283,13 +320,20 @@ open class NetworkChannel(private val id: ResourceLocation) {
     private fun <T : Any> createPayload(
         packet: T,
         classes: List<KClass<*>>,
+        configs: List<ConfigSpec>,
         payloadId: ResourceLocation,
         missingMessage: String,
     ): Payload {
         val klass = classes.find { it == packet::class } as? KClass<T>
             ?: throw IllegalStateException(missingMessage)
         val index = classes.indexOf(klass)
-        val bytes = SerializationManager.cbor.encodeToByteArray(klass.serializer(), packet)
+        val config = configs.find { it::class == klass }
+        val bytes = if (config != null) {
+            SerializationManager.cbor.encodeToByteArray(config.serializer, packet as ConfigSpec)
+        }
+        else {
+            SerializationManager.cbor.encodeToByteArray(klass.serializer(), packet)
+        }
         return Payload(payloadId, index, bytes)
     }
 
@@ -298,14 +342,43 @@ open class NetworkChannel(private val id: ResourceLocation) {
         payload: Payload,
         classes: List<KClass<*>>,
         handlers: List<PacketHandler<*>>,
+        configs: List<ConfigSpec>,
         missingClassMessage: String,
         missingHandlerMessage: String,
+        ctx: NetworkManager.PacketContext
     ): Pair<Any, PacketHandler<Any>> {
         val klass = classes.getOrNull(payload.index)
             ?: throw NoSuchElementException(missingClassMessage)
         val handler = handlers.getOrNull(payload.index) as? PacketHandler<Any>
             ?: throw NoSuchElementException(missingHandlerMessage)
-        val msg = SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
+        val config = configs.find { it::class == klass }
+        val msg = if (config != null) {
+            foldEnv(
+                client = {
+                    SerializationManager.cbor.decodeFromByteArray(config.serializer, payload.data)
+                },
+                server = {
+                    if (ctx.player.hasPermissions(3))
+                    {
+	                    SerializationManager.cbor.decodeFromByteArray(config.serializer, payload.data)
+                        toAllPlayers(config)
+                        config
+                    } else
+                    {
+                        ctx.player.sendSystemMessage {
+                            style {
+                                color = KColor.RED.toTextColor()
+                                underlined = true
+                            }
+                            translate("archie.networking.config.no_permissions")
+                        }
+                        toPlayer(ctx.player as ServerPlayer, config)
+                        config
+                    }
+                })
+        } else {
+            SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
+        }
         return msg to handler
     }
 
@@ -334,13 +407,16 @@ open class NetworkChannel(private val id: ResourceLocation) {
                         payload = payload,
                         classes = clientClasses,
                         handlers = clientboundHandlers,
+                        configs = clientConfigs,
                         missingClassMessage = "No class was found on the clientside. Did you forget to do clientbound?",
                         missingHandlerMessage = "No handler was found on the clientside. Did you forget to do clientbound?",
+                        ctx = ctx
                     )
-                    handler(msg, object : IPacketContext {
-                        override val player: Player get() = ctx.player
-                        override val registryAccess: RegistryAccess get() = ctx.registryAccess()
-                    })
+	                handler(msg, object : IPacketContext
+	                {
+	                    override val player: Player get() = ctx.player
+	                    override val registryAccess: RegistryAccess get() = ctx.registryAccess()
+	                })
                 }
             }
         }
@@ -351,13 +427,16 @@ open class NetworkChannel(private val id: ResourceLocation) {
                 payload = payload,
                 classes = serverClasses,
                 handlers = serverboundHandlers,
+                configs = serverConfigs,
                 missingClassMessage = "No class was found on the serverside. Did you forget to do serverbound?",
                 missingHandlerMessage = "No handler was found on the serverside. Did you forget to do serverbound?",
+                ctx = ctx
             )
-            handler(msg, object : IPacketContext {
-                override val player: Player get() = ctx.player
-                override val registryAccess: RegistryAccess get() = ctx.registryAccess()
-            })
+	        handler(msg, object : IPacketContext
+	        {
+	            override val player: Player get() = ctx.player
+	            override val registryAccess: RegistryAccess get() = ctx.registryAccess()
+	        })
         }
     }
 }

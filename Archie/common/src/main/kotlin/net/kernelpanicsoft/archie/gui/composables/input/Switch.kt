@@ -17,6 +17,7 @@ import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -106,7 +107,7 @@ fun Switch(
 	                mouseX: Int,
 	                mouseY: Int,
 	                partialTick: Float,
-                ) {
+                ) = guiGraphics {
                     val trackStateKey = WidgetState.resolve(
                         trackTheme, variant,
                         WidgetState.clicked(currentChecked), WidgetState.hovered(hovered),
@@ -119,13 +120,11 @@ fun Switch(
                         variant
                     )
 
-                    guiGraphics.drawThemeState(trackState, x, y, node.width, node.height)
+                    drawThemeState(trackState, x, y, node.width, node.height)
 
                     val thumbX = x + resolveSwitchThumbOffset(thumbOffset, node.width)
                     val thumbY = y + ((node.height - SWITCH_THUMB_SIZE) / 2)
-                    guiGraphics.drawThemeState(thumbState, thumbX, thumbY, SWITCH_THUMB_SIZE, SWITCH_THUMB_SIZE)
-
-                    super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
+                    drawThemeState(thumbState, thumbX, thumbY, SWITCH_THUMB_SIZE, SWITCH_THUMB_SIZE)
                 }
             },
         )

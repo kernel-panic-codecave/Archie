@@ -6,7 +6,7 @@ import me.shedaniel.clothconfig2.api.Modifier
 import me.shedaniel.clothconfig2.api.ModifierKeyCode
 
 /**
- * A serializable, client-independent representation of a keybind, used by [CategorySpec.keycode]
+ * A serializable, client-independent representation of a keybind, used by [DataSpec.keycode]
  * fields so config files don't depend on Cloth Config's [ModifierKeyCode]. Convert to/from the
  * client type with [toClient]/[toCommon].
  */

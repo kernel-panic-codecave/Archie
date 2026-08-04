@@ -18,6 +18,9 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.PaddingValues
 import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
+import net.kernelpanicsoft.archie.gui.util.extension.pose
+import net.kernelpanicsoft.archie.util.minecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
@@ -101,8 +104,8 @@ fun Collapsible(
 	                    mouseX: Int,
 	                    mouseY: Int,
 	                    partialTick: Float,
-                    ) {
-                        guiGraphics.enableScissor(x, y, x + node.width, y + node.height)
+                    ) = guiGraphics {
+                        enableScissor(x, y, x + node.width, y + node.height)
                     }
 
                     override fun renderAfterChildren(
@@ -113,8 +116,8 @@ fun Collapsible(
 	                    mouseX: Int,
 	                    mouseY: Int,
 	                    partialTick: Float,
-                    ) {
-                        guiGraphics.disableScissor()
+                    ) = guiGraphics {
+                        disableScissor()
                     }
                 },
             ) {
@@ -150,13 +153,13 @@ private fun CollapsibleArrow(isExpanded: Boolean) {
             override fun render(
 	            node: UINode, x: Int, y: Int,
 	            guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
-            ) {
-                guiGraphics.pose().pushPose()
-                guiGraphics.pose().translate(x + node.width / 2f, y + node.height / 2f, 0f)
-                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(rotation))
-                guiGraphics.pose().translate(-(x + node.width / 2f), -(y + node.height / 2f), 0f)
-                guiGraphics.drawString(Minecraft.getInstance().font, ">", x + 1, y, KColor.WHITE.argb)
-                guiGraphics.pose().popPose()
+            ) = guiGraphics {
+                pose {
+                    translate(x + node.width / 2f, y + node.height / 2f, 0f)
+                    mulPose(Axis.ZP.rotationDegrees(rotation))
+                    translate(-(x + node.width / 2f), -(y + node.height / 2f), 0f)
+                    drawString(minecraftClient.font, ">", x + 1, y, KColor.WHITE.argb)
+                }
             }
         },
     )

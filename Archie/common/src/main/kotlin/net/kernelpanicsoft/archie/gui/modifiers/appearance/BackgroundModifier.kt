@@ -6,6 +6,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.DrawModifier
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.fillGradient
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 
 /**
  * The direction along which a background gradient transitions.
@@ -35,13 +36,16 @@ data class BackgroundModifier(
 ) : Modifier.Element<BackgroundModifier>, DrawModifier {
 
     override fun ContentDrawScope.draw() {
-        val (topLeft, topRight, bottomLeft, bottomRight) = when (gradientDirection) {
-            GradientDirection.TOP_TO_BOTTOM -> listOf(startColor, startColor, endColor,   endColor)
-            GradientDirection.BOTTOM_TO_TOP -> listOf(endColor,   endColor,   startColor, startColor)
-            GradientDirection.LEFT_TO_RIGHT -> listOf(startColor, endColor,   startColor, endColor)
-            GradientDirection.RIGHT_TO_LEFT -> listOf(endColor,   startColor, endColor,   startColor)
+        guiGraphics {
+            val (topLeft, topRight, bottomLeft, bottomRight) = when (gradientDirection)
+            {
+                GradientDirection.TOP_TO_BOTTOM -> listOf(startColor, startColor, endColor, endColor)
+                GradientDirection.BOTTOM_TO_TOP -> listOf(endColor, endColor, startColor, startColor)
+                GradientDirection.LEFT_TO_RIGHT -> listOf(startColor, endColor, startColor, endColor)
+                GradientDirection.RIGHT_TO_LEFT -> listOf(endColor, startColor, endColor, startColor)
+            }
+            fillGradient(x, y, width, height, topLeft, topRight, bottomLeft, bottomRight)
         }
-        guiGraphics.fillGradient(x, y, width, height, topLeft, topRight, bottomLeft, bottomRight)
         drawContent()
     }
 

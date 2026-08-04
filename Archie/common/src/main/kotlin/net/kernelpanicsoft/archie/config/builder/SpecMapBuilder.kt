@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.config.builder
 
-import net.kernelpanicsoft.archie.config.CategorySpec
+import net.kernelpanicsoft.archie.config.DataSpec
 import net.kernelpanicsoft.archie.util.MutableEntry
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
 import me.shedaniel.clothconfig2.gui.entries.MultiElementListEntry
@@ -8,8 +8,8 @@ import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
 import net.minecraft.network.chat.Component
 
-/** [MapFieldBuilder] for nested [CategorySpec] entries, using [SpecFieldBuilder] per row. */
-class SpecMapBuilder<T : CategorySpec>(
+/** [MapFieldBuilder] for nested [DataSpec] entries, using [SpecFieldBuilder] per row. */
+class SpecMapBuilder<T : DataSpec>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,
 	value: Map<String, T>,

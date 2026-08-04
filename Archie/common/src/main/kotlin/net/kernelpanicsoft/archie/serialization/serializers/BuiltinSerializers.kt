@@ -10,6 +10,7 @@ import kotlinx.serialization.modules.SerializersModule
 import me.shedaniel.clothconfig2.api.Modifier
 import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import me.shedaniel.math.Color
+import net.kernelpanicsoft.archie.util.onClient
 
 /* ------------------ TypeAliases ------------------ */
 
@@ -122,6 +123,8 @@ object ColorSerializer : KSerializer<Color>
  * ([ModifierKeyCodeSerializer], [ColorSerializer]) as contextual serializers.
  */
 val BuiltInSerializersModule = SerializersModule {
-	contextual(ModifierKeyCode::class, ModifierKeyCodeSerializer)
+	onClient {
+		contextual(ModifierKeyCode::class, ModifierKeyCodeSerializer)
+	}
 	contextual(Color::class, ColorSerializer)
 }

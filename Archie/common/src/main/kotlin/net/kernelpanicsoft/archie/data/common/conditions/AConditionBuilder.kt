@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation
 
 /**
  * DSL for building [IACondition] trees with infix/operator combinators (`and`, `or`, `xor`,
- * `eql`, their negated `n*` counterparts, and `+`/`*`/`%`/`-`/`!` operator aliases) plus factory
+ * `eql`, their negated `n*` counterparts, and `!` operator aliases) plus factory
  * functions for the leaf conditions ([mod], [registry], [platform], [TRUE], [FALSE]).
  *
  * Import the members (`import ...AConditionBuilder.*`) to write conditions like
@@ -15,15 +15,7 @@ import net.minecraft.resources.ResourceLocation
 object AConditionBuilder
 {
 	/** [AAndCondition] of `this` and [other]. */
-	infix fun IACondition.and(other: IACondition): IACondition = AAndCondition(this, other)
-	infix fun IACondition.or(other: IACondition): IACondition = AOrCondition(this, other)
-	infix fun IACondition.xor(other: IACondition): IACondition = AXorCondition(this, other)
-	infix fun IACondition.eql(other: IACondition): IACondition = AEqualsCondition(this, other)
 
-	infix fun IACondition.nand(other: IACondition): IACondition = !(this and other)
-	infix fun IACondition.nor(other: IACondition): IACondition = !(this or other)
-	infix fun IACondition.xnor(other: IACondition): IACondition = !(this xor other)
-	infix fun IACondition.neql(other: IACondition): IACondition = !(this eql other)
 
 	fun and(vararg values: IACondition): IACondition = AAndCondition(*values)
 	fun or(vararg values: IACondition): IACondition = AOrCondition(*values)
@@ -35,10 +27,15 @@ object AConditionBuilder
 	fun xnor(vararg values: IACondition): IACondition = !xor(*values)
 	fun neql(vararg values: IACondition): IACondition = !eql(*values)
 
-	operator fun IACondition.plus(other: IACondition): IACondition = AAndCondition(this, other)
-	operator fun IACondition.times(other: IACondition): IACondition = AOrCondition(this, other)
-	operator fun IACondition.rem(other: IACondition): IACondition = AXorCondition(this, other)
-	operator fun IACondition.minus(other: IACondition): IACondition = AEqualsCondition(this, other)
+	infix fun IACondition.and(other: IACondition): IACondition = and(this, other)
+	infix fun IACondition.or(other: IACondition): IACondition = or(this, other)
+	infix fun IACondition.xor(other: IACondition): IACondition = xor(this, other)
+	infix fun IACondition.eql(other: IACondition): IACondition = eql(this, other)
+
+	infix fun IACondition.nand(other: IACondition): IACondition = !(this and other)
+	infix fun IACondition.nor(other: IACondition): IACondition = !(this or other)
+	infix fun IACondition.xnor(other: IACondition): IACondition = !(this xor other)
+	infix fun IACondition.neql(other: IACondition): IACondition = !(this eql other)
 
 	operator fun IACondition.not(): IACondition = ANotCondition(this)
 
@@ -57,10 +54,9 @@ object AConditionBuilder
 	/** Condition that holds when every one of [entries] is registered in [registry]. */
 	fun registry(registry: Registry<*>, vararg entries: ResourceLocation): IACondition = ARegistryCondition(registry.key().location(), *entries)
 
-	/** Condition that holds when the running loader's platform id equals [platform]; see [FABRIC]/[FORGE]/[NEOFORGE]. */
+	/** Condition that holds when the running loader's platform id equals [platform]; see [FABRIC]/[NEOFORGE]. */
 	fun platform(platform: String): IACondition = APlatformCondition(platform)
 
 	const val FABRIC = "fabric"
-	const val FORGE = "forge"
 	const val NEOFORGE = "neoforge"
 }

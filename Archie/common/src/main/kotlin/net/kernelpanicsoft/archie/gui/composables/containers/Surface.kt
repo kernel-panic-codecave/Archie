@@ -15,6 +15,7 @@ import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 
 
@@ -57,10 +58,8 @@ fun Surface(
 				mouseX: Int,
 				mouseY: Int,
 				partialTick: Float
-			) {
-				guiGraphics.drawThemeState(state, x, y, node.width, node.height)
-
-				super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
+			) = guiGraphics {
+				drawThemeState(state, x, y, node.width, node.height)
 			}
 		},
 		modifier = Modifier.debug(state.texture.toString()).apply {

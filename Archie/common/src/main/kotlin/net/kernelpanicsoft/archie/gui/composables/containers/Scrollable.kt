@@ -11,6 +11,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.onSizeChanged
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.util.Mth
 import org.lwjgl.glfw.GLFW
@@ -158,41 +159,41 @@ fun Scrollable(
             name = "Scrollable",
             measurePolicy = measurePolicy,
             renderer = object : Renderer {
-            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-                guiGraphics.enableScissor(x, y, x + node.width, y + node.height)
-            }
+                override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = guiGraphics {
+                    enableScissor(x, y, x + node.width, y + node.height)
+                }
 
-            override fun renderAfterChildren(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-                val lerpFactor = (0.4f * partialTick).coerceIn(0.05f, 1f).toDouble()
-                val next = state.currentScrollPosition + (state.scrollOffset - state.currentScrollPosition) * lerpFactor
-                state.currentScrollPosition = if (abs(state.scrollOffset - next) <= SCROLL_SNAP_EPSILON) state.scrollOffset else next
+                override fun renderAfterChildren(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = guiGraphics {
+                    val lerpFactor = (0.4f * partialTick).coerceIn(0.05f, 1f).toDouble()
+                    val next = state.currentScrollPosition + (state.scrollOffset - state.currentScrollPosition) * lerpFactor
+                    state.currentScrollPosition = if (abs(state.scrollOffset - next) <= SCROLL_SNAP_EPSILON) state.scrollOffset else next
 
-                if (state.maxScroll > 0) {
-                    val timeSinceInteract = System.currentTimeMillis() - state.lastInteractTime
-                    if (!(timeSinceInteract > SCROLLBAR_FADE_DURATION_MS && !state.isDraggingScrollbar)) {
-                        val fadeAlpha = if (state.isDraggingScrollbar) 1f else 1f - (timeSinceInteract.toFloat() / SCROLLBAR_FADE_DURATION_MS)
-                        val alpha = Mth.clamp((fadeAlpha * scrollbarColor.alpha).toInt(), 0, 255)
-                        if (alpha > 0) {
-                            val colorWithAlpha = scrollbarColor.rgb or (alpha shl 24)
-                            val trackSize = state.containerSize
-                            val thumbSize = max(MIN_SCROLLBAR_THUMB_SIZE, (trackSize.toFloat() / state.childSize * trackSize).toInt())
-                            val scrollPct = if (state.maxScroll > 0) state.currentScrollPosition / state.maxScroll else 0.0
-                            val thumbPos = scrollPct * (trackSize - thumbSize)
+                    if (state.maxScroll > 0) {
+                        val timeSinceInteract = System.currentTimeMillis() - state.lastInteractTime
+                        if (!(timeSinceInteract > SCROLLBAR_FADE_DURATION_MS && !state.isDraggingScrollbar)) {
+                            val fadeAlpha = if (state.isDraggingScrollbar) 1f else 1f - (timeSinceInteract.toFloat() / SCROLLBAR_FADE_DURATION_MS)
+                            val alpha = Mth.clamp((fadeAlpha * scrollbarColor.alpha).toInt(), 0, 255)
+                            if (alpha > 0) {
+                                val colorWithAlpha = scrollbarColor.rgb or (alpha shl 24)
+                                val trackSize = state.containerSize
+                                val thumbSize = max(MIN_SCROLLBAR_THUMB_SIZE, (trackSize.toFloat() / state.childSize * trackSize).toInt())
+                                val scrollPct = if (state.maxScroll > 0) state.currentScrollPosition / state.maxScroll else 0.0
+                                val thumbPos = scrollPct * (trackSize - thumbSize)
 
-                            if (direction == ScrollDirection.VERTICAL) {
-                                val tx = x + node.width - SCROLLBAR_THICKNESS
-                                val ty = y + thumbPos.roundToInt()
-                                guiGraphics.fill(tx, ty, tx + SCROLLBAR_THICKNESS, ty + thumbSize, colorWithAlpha)
-                            } else {
-                                val tx = x + thumbPos.roundToInt()
-                                val ty = y + node.height - SCROLLBAR_THICKNESS
-                                guiGraphics.fill(tx, ty, tx + thumbSize, ty + SCROLLBAR_THICKNESS, colorWithAlpha)
+                                if (direction == ScrollDirection.VERTICAL) {
+                                    val tx = x + node.width - SCROLLBAR_THICKNESS
+                                    val ty = y + thumbPos.roundToInt()
+                                    fill(tx, ty, tx + SCROLLBAR_THICKNESS, ty + thumbSize, colorWithAlpha)
+                                } else {
+                                    val tx = x + thumbPos.roundToInt()
+                                    val ty = y + node.height - SCROLLBAR_THICKNESS
+                                    fill(tx, ty, tx + thumbSize, ty + SCROLLBAR_THICKNESS, colorWithAlpha)
+                                }
                             }
                         }
                     }
+                    disableScissor()
                 }
-                guiGraphics.disableScissor()
-            }
             },
             modifier = modifier
             .onGloballyPositioned { coords ->
@@ -202,7 +203,12 @@ fun Scrollable(
                 clipSource.updateSize(size)
             }
             .onScroll<UINode> { _, event ->
-                state.scrollBy(-event.scrollY * SCROLL_SENSITIVITY)
+                val rawDelta = if (direction == ScrollDirection.HORIZONTAL && event.scrollX != 0.0) {
+                    -event.scrollX
+                } else {
+                    -event.scrollY
+                }
+                state.scrollBy(rawDelta * SCROLL_SENSITIVITY)
                 event.consume()
             }
             .onPointerEvent<UINode>(PointerEventType.PRESS) { node, event ->

@@ -19,6 +19,7 @@ import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
 
@@ -102,7 +103,7 @@ fun RadioButton(
 	                mouseX: Int,
 	                mouseY: Int,
 	                partialTick: Float,
-                ) {
+                ) = guiGraphics {
                     val stateKey = WidgetState.resolve(
                         composableTheme, variant,
                         WidgetState.clicked(currentSelected), WidgetState.hovered(hovered),
@@ -111,9 +112,7 @@ fun RadioButton(
                     node.renderState = stateKey
                     val state = composableTheme.getState(stateKey, variant)
 
-                    guiGraphics.drawThemeState(state, x, y, node.width, node.height)
-
-                    super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
+                    drawThemeState(state, x, y, node.width, node.height)
                 }
             },
         )

@@ -50,7 +50,7 @@ fun removeBlockEntityState(pos: BlockPos) {
 object BlockEntityStatePacketRegistry {
     /** Registers the clientbound and serverbound packet handlers described above. */
     fun register() {
-        ArchieNetworkChannel.clientbound(BlockEntityStatePacket::class) { packet, context ->
+        ArchieNetworkChannel.clientbound<BlockEntityStatePacket> { packet, context ->
             // Update the client-side state with new values from the packet
             val state = getOrCreateBlockEntityState(packet.pos)
             packet.updates.forEach { (propertyName, value) ->
@@ -58,7 +58,7 @@ object BlockEntityStatePacketRegistry {
             }
         }
 
-        ArchieNetworkChannel.serverbound(BlockEntityUpdatePacket::class) { packet, context ->
+        ArchieNetworkChannel.serverbound<BlockEntityUpdatePacket> { packet, context ->
             val player = context.player
             val level = player.level() as? ServerLevel ?: return@serverbound
             val blockEntity = level.getBlockEntity(packet.pos) as? NBTBlockEntity ?: return@serverbound

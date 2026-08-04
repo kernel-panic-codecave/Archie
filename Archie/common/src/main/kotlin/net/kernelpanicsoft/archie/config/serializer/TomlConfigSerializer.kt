@@ -2,7 +2,6 @@ package net.kernelpanicsoft.archie.config.serializer
 
 import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.kernelpanicsoft.archie.config.IConfigSerializer
-import dev.architectury.platform.Platform
 import net.peanuuutz.tomlkt.Toml
 import net.peanuuutz.tomlkt.TomlIndentation
 import java.nio.file.Path
@@ -15,9 +14,9 @@ object TomlConfigSerializer : IConfigSerializer
 		indentation = TomlIndentation.Tab
 	}
 
-	override fun configPath(config: ConfigSpec): Path
+	override fun configPath(config: ConfigSpec, configFolder: Path): Path
 	{
-		return Platform.getConfigFolder().resolve("${config.filename}.toml")
+		return configFolder.resolve("${config.filename}.toml")
 	}
 
 	override fun loadString(config: ConfigSpec, string: String)

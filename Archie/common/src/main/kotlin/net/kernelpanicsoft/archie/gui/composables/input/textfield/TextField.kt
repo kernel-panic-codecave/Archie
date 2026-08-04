@@ -7,6 +7,9 @@ import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
+import net.kernelpanicsoft.archie.gui.util.extension.pose
+import net.kernelpanicsoft.archie.gui.util.extension.scissor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
@@ -116,36 +119,44 @@ fun TextField(
                 MeasureResult(w, h) {}
             },
             renderer = object : Renderer {
-                override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+                override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = guiGraphics {
                     val (w, h) = state.layoutInfo
-                    if (w <= 0 || h <= 0) return
+                    if (w <= 0 || h <= 0) return@guiGraphics
 
                     val sprite = if (enabled && state.isFocused) TEXT_FIELD_HIGHLIGHTED else TEXT_FIELD_SPRITE
-                    guiGraphics.blitSprite(sprite, x, y, w, h)
+                    blitSprite(sprite, x, y, w, h)
 
                     val cw = w - BORDER_PADDING * 2
                     val ch = h - BORDER_PADDING * 2
                     val cx = x + BORDER_PADDING
                     val cy = y + BORDER_PADDING
 
-                    guiGraphics.enableScissor(cx, cy, cx + cw, cy + ch)
-                    guiGraphics.pose().pushPose()
-                    guiGraphics.pose().translate(cx.toDouble(), cy.toDouble(), 0.0)
+                    scissor(cx, cy, cx + cw, cy + ch) {
+                        pose {
+                            translate(cx.toDouble(), cy.toDouble(), 0.0)
 
-                    if (singleLine) renderSingleLine(guiGraphics, value, font, state, cw, textColor.argb,
-                        if (state.showCursor && state.isFocused) cursorColor.argb else 0, selectionColor.argb)
-                    else {
-                        guiGraphics.pose().translate(0.0, -state.scrollY, 0.0)
-                        renderMultiLine(guiGraphics, value, font, value.text.lines(),
-                            if (state.showCursor && state.isFocused) cursorColor.argb else 0, selectionColor.argb, textColor.argb)
+                            if (singleLine) renderSingleLine(
+                                value, font, state, cw, textColor.argb,
+                                if (state.showCursor && state.isFocused) cursorColor.argb else 0, selectionColor.argb
+                            )
+                            else
+                            {
+                                translate(0.0, -state.scrollY, 0.0)
+                                renderMultiLine(
+                                    value,
+                                    font,
+                                    value.text.lines(),
+                                    if (state.showCursor && state.isFocused) cursorColor.argb else 0,
+                                    selectionColor.argb,
+                                    textColor.argb
+                                )
+                            }
+                        }
                     }
-
-                    guiGraphics.pose().popPose()
-                    guiGraphics.disableScissor()
 
                     if (!singleLine) {
                         val contentH = value.text.lines().size * font.lineHeight
-                        if (contentH > ch) renderScrollBar(guiGraphics, x + w - SCROLL_BAR_W, y, h, contentH, state.scrollY)
+                        if (contentH > ch) renderScrollBar(x + w - SCROLL_BAR_W, y, h, contentH, state.scrollY)
                     }
                 }
             },
@@ -155,35 +166,35 @@ fun TextField(
 
 // ── Rendering helpers ──────────────────────────────────────────────────────
 
-private fun renderSingleLine(gui: GuiGraphics, value: TextFieldValue, font: Font, state: TextFieldState, width: Int, tc: Int, cc: Int, sc: Int) {
+private fun GuiGraphics.renderSingleLine(value: TextFieldValue, font: Font, state: TextFieldState, width: Int, tc: Int, cc: Int, sc: Int) {
     val text = value.text; val sel = value.selection
     val visible = font.plainSubstrByWidth(text.substring(state.displayPos), width)
-    gui.drawString(font, visible, 0, 0, tc)
+    drawString(font, visible, 0, 0, tc)
     if (sel.length > 0) {
         val s = (sel.min - state.displayPos).coerceAtLeast(0)
         val e = (sel.max - state.displayPos).coerceAtLeast(0)
         val vp = text.substring(state.displayPos)
         val sx = font.width(vp.take(s.coerceAtMost(vp.length)))
         val ex = font.width(vp.take(e.coerceAtMost(vp.length)))
-        gui.fill(RenderType.guiTextHighlight(), sx, -1, ex, font.lineHeight, sc)
+        fill(RenderType.guiTextHighlight(), sx, -1, ex, font.lineHeight, sc)
     }
     if (cc != 0 && sel.isCollapsed && sel.start >= state.displayPos) {
         val cx = font.width(text.substring(state.displayPos, sel.start))
-        gui.fill(cx, -1, cx + 1, font.lineHeight, cc)
+        fill(cx, -1, cx + 1, font.lineHeight, cc)
     }
 }
 
-private fun renderMultiLine(gui: GuiGraphics, value: TextFieldValue, font: Font, lines: List<String>, cc: Int, sc: Int, tc: Int) {
+private fun GuiGraphics.renderMultiLine(value: TextFieldValue, font: Font, lines: List<String>, cc: Int, sc: Int, tc: Int) {
     val text = value.text; val sel = value.selection
     var y = 0; var charIdx = 0
     for (line in lines) {
-        gui.drawString(font, line, 0, y, tc)
+        drawString(font, line, 0, y, tc)
         if (sel.length > 0) {
             val ls = charIdx; val le = ls + line.length
             if (sel.min <= le && sel.max >= ls) {
                 val sil = max(sel.min, ls) - ls; val eil = min(sel.max, le) - ls
                 val sx = font.width(line.take(sil)); val ex = font.width(line.take(eil))
-                gui.fill(RenderType.guiTextHighlight(), sx, y, ex, y + font.lineHeight, sc)
+                fill(RenderType.guiTextHighlight(), sx, y, ex, y + font.lineHeight, sc)
             }
         }
         y += font.lineHeight; charIdx += line.length + 1
@@ -196,15 +207,15 @@ private fun renderMultiLine(gui: GuiGraphics, value: TextFieldValue, font: Font,
         if (li < lines.size) {
             val curX = font.width(lines[li].substring(0, col.coerceAtMost(lines[li].length)))
             val curY = li * font.lineHeight
-            gui.fill(curX, curY, curX + 1, curY + font.lineHeight, cc)
+            fill(curX, curY, curX + 1, curY + font.lineHeight, cc)
         }
     }
 }
 
-private fun renderScrollBar(gui: GuiGraphics, x: Int, y: Int, nodeH: Int, contentH: Int, scrollY: Double) {
+private fun GuiGraphics.renderScrollBar(x: Int, y: Int, nodeH: Int, contentH: Int, scrollY: Double) {
     val innerH = nodeH - BORDER_PADDING * 2
     val thumbH = Mth.clamp((innerH * innerH) / contentH, 32, innerH)
     val maxScroll = (contentH - innerH).coerceAtLeast(1)
     val sby = y + BORDER_PADDING + Mth.clamp((scrollY * (innerH - thumbH)) / maxScroll, 0.0, (innerH - thumbH).toDouble()).toInt()
-    gui.blitSprite(SCROLLER_SPRITE, x, sby, SCROLL_BAR_W, thumbH)
+    blitSprite(SCROLLER_SPRITE, x, sby, SCROLL_BAR_W, thumbH)
 }

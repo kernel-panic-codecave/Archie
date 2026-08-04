@@ -9,6 +9,7 @@ import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
+import net.kernelpanicsoft.archie.util.minecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.screens.Screen
@@ -153,7 +154,7 @@ fun TextFieldCore(
                     else -> { val after = handleMovementKey(event, value, singleLine, readOnly); if (after == value) handled = false; after }
                 }
                 if (result != value) onValueChangeAndScroll(result)
-                if (handled || Minecraft.getInstance().options.keyInventory.matches(event.keyCode, 0)) event.consume(true)
+                if (handled || minecraftClient.options.keyInventory.matches(event.keyCode, 0)) event.consume(true)
             }
             .onCharTyped { _, event ->
                 if (enabled && !readOnly && state.isFocused && StringUtil.isAllowedChatCharacter(event.codePoint)) {

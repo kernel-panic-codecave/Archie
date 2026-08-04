@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.config.builder
 
-import net.kernelpanicsoft.archie.config.CategorySpec
+import net.kernelpanicsoft.archie.config.DataSpec
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
 import me.shedaniel.clothconfig2.gui.entries.MultiElementListEntry
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
@@ -10,10 +10,10 @@ import java.util.function.Supplier
 import kotlin.jvm.optionals.getOrNull
 
 /**
- * Cloth Config builder for a nested [CategorySpec] field, rendered as a collapsible group
- * containing [value]'s own fields and subcategories (via [CategorySpec.client]).
+ * Cloth Config builder for a nested [DataSpec] field, rendered as a collapsible group
+ * containing [value]'s own fields and subcategories (via [DataSpec.client]).
  */
-class SpecFieldBuilder<T : CategorySpec>(
+class SpecFieldBuilder<T : DataSpec>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,
 	value: T
@@ -39,9 +39,9 @@ class SpecFieldBuilder<T : CategorySpec>(
 					add(entryBuilder.builder())
 				}
 
-				value.subcategories.forEach { cat ->
-					add(cat.client.buildSub(entryBuilder))
-				}
+//				value.subcategories.forEach { cat ->
+//					add(cat.client.buildSub(entryBuilder))
+//				}
 			},
 			isExpanded
 		)

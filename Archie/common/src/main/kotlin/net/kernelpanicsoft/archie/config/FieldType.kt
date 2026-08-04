@@ -14,18 +14,18 @@ import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KClass
 
 /**
- * Tags a [CategorySpec] field with its runtime type and the [KSerializer] used to read/write it,
- * so [CategorySpec.ConfigCategorySerializer] can (de)serialize each field generically without a
- * `when` over the raw value type. One subtype per builder function in [CategorySpec] (e.g.
+ * Tags a [DataSpec] field with its runtime type and the [KSerializer] used to read/write it,
+ * so [DataSpec.ConfigCategorySerializer] can (de)serialize each field generically without a
+ * `when` over the raw value type. One subtype per builder function in [DataSpec] (e.g.
  * [Boolean] for `boolean()`, [IntList] for `intList()`).
  */
 internal sealed class FieldType<T>
 {
 	abstract val serializer: KSerializer<T>
 
-	data class Category(val category: CategorySpec) : FieldType<CategorySpec>()
+	data class Category(val category: DataSpec) : FieldType<DataSpec>()
 	{
-		override val serializer: KSerializer<CategorySpec> = category.serializer
+		override val serializer: KSerializer<DataSpec> = category.serializer
 	}
 
 	data object Boolean : FieldType<kotlin.Boolean>()
@@ -58,10 +58,10 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<kotlin.String> = kotlin.String.serializer()
 	}
 
-	data class Spec(val factory: () -> CategorySpec) : FieldType<CategorySpec>()
+	data class Spec(val factory: () -> DataSpec) : FieldType<DataSpec>()
 	{
-		override val serializer: KSerializer<CategorySpec> =
-			CategorySpec.ConfigCategorySerializer(factory)
+		override val serializer: KSerializer<DataSpec> =
+			DataSpec.ConfigCategorySerializer(factory)
 	}
 
 	data object Registry : FieldType<ResourceLocation>()
@@ -116,10 +116,10 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<List<kotlin.String>> = ListSerializer(kotlin.String.serializer())
 	}
 
-	data class SpecList(val factory: () -> CategorySpec) : FieldType<List<CategorySpec>>()
+	data class SpecList(val factory: () -> DataSpec) : FieldType<List<DataSpec>>()
 	{
-		override val serializer: KSerializer<List<CategorySpec>> = DeferredListSerializer(
-			CategorySpec.ConfigCategorySerializer(factory)
+		override val serializer: KSerializer<List<DataSpec>> = DeferredListSerializer(
+			DataSpec.ConfigCategorySerializer(factory)
 		)
 	}
 
@@ -164,10 +164,10 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<Map<kotlin.String, kotlin.String>> = MapSerializer(kotlin.String.serializer(), kotlin.String.serializer())
 	}
 
-	data class SpecMap(val factory: () -> CategorySpec) : FieldType<Map<kotlin.String, CategorySpec>>()
+	data class SpecMap(val factory: () -> DataSpec) : FieldType<Map<kotlin.String, DataSpec>>()
 	{
-		override val serializer: KSerializer<Map<kotlin.String, CategorySpec>> = DeferredMapSerializer(kotlin.String.serializer(),
-			CategorySpec.ConfigCategorySerializer(factory)
+		override val serializer: KSerializer<Map<kotlin.String, DataSpec>> = DeferredMapSerializer(kotlin.String.serializer(),
+			DataSpec.ConfigCategorySerializer(factory)
 		)
 	}
 

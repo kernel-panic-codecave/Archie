@@ -24,8 +24,8 @@ internal object ArchieDatagen : ADatagenEventObject(Archie.MOD)
 	override fun ADataGenerator.handler()
 	{
 		client {
-			blockStates {
-				simpleBlock(Blocks.COBBLESTONE)
+			languages {
+				add("archie.networking.config.no_permissions", "You do not have the required permissions to edit the server config")
 			}
 		}
 		common {
@@ -34,25 +34,6 @@ internal object ArchieDatagen : ADatagenEventObject(Archie.MOD)
 			biomeTags(::AInternalBiomeTagsProvider)
 			entityTags(::AInternalEntityTypeTagsProvider)
 			fluidTags(::AInternalFluidTagsProvider)
-
-			recipes {
-				shapeless {
-					ingredients {
-						1 of AComponentsIngredient.of(
-							Ingredient.of(ACommonTags.Items.GEMS_DIAMOND)
-						) {
-							set(DataComponents.CUSTOM_NAME, Component.literal("Emerald"))
-						}
-					}
-
-					result = Items.EMERALD
-					category = RecipeCategory.MISC
-					unlockedBy(ACommonTags.Items.GEMS_DIAMOND)
-					save(it.withCondition {
-						platform(FABRIC) or TRUE
-					})
-				}
-			}
 		}
 	}
 }

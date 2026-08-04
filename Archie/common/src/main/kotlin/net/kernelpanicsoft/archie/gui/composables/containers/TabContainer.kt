@@ -27,7 +27,9 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.client.gui.GuiGraphics
@@ -324,15 +326,15 @@ fun rememberTabContainerState(
  */
 @Composable
 fun Tab(
-    spec: TabSpec,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    elevateSelected: Boolean = false,
-    enabled: Boolean = spec.enabled,
-    texture: String = TabTextures.GAME,
-    variant: String = net.kernelpanicsoft.archie.gui.theme.ThemeVariants.DEFAULT,
-    iconSpacing: Int = DEFAULT_ICON_SPACING,
-    onClick: (TabSpec) -> Unit,
+	spec: TabSpec,
+	selected: Boolean,
+	modifier: Modifier = Modifier,
+	elevateSelected: Boolean = false,
+	enabled: Boolean = spec.enabled,
+	texture: String = TabTextures.GAME,
+	variant: String = ThemeVariants.DEFAULT,
+	iconSpacing: Int = DEFAULT_ICON_SPACING,
+	onClick: (TabSpec) -> Unit,
 ) {
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
@@ -343,9 +345,6 @@ fun Tab(
         enabled = enabled,
         modifier = modifier,
     ) { isHovered, isPressed ->
-        // Selected-or-pressed and hovered are independent axes here (not just "selected &&
-        // hovered" as before) - a pressed-but-unselected-and-hovered tab now keeps its hover
-        // visual, matching every other stateful composable's behavior. See WidgetState.resolve.
         val stateKey = WidgetState.resolve(
             composableTheme, variant,
             WidgetState.clicked(selected || isPressed), WidgetState.hovered(isHovered),
@@ -373,10 +372,9 @@ fun Tab(
                     mouseX: Int,
                     mouseY: Int,
                     partialTick: Float,
-                ) {
+                ) = guiGraphics {
                     node.renderState = stateKey
-                    guiGraphics.drawThemeState(state, x, y, node.width, node.height)
-                    super.render(node, x, y, guiGraphics, mouseX, mouseY, partialTick)
+                    drawThemeState(state, x, y, node.width, node.height)
                 }
             },
             modifier = sizeModifier.then(offsetModifier),
