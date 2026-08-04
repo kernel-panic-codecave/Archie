@@ -49,13 +49,16 @@ one spot needed platform-specific code rather than a single cross-loader call.
 
 ## ArchieEnergyStorage
 
-A single `capacity`-capped `Long` buffer with resource-style `insert`/`extract`, mirroring
-`ArchieItemStorage`/`ArchieFluidStorage`'s shape but without a Common Storage Lib backing —
-there's no cross-loader "EnergyResource" the way there is for items and fluids, so
-`ArchieEnergyStorage` doesn't implement `CommonStorage` and Archie doesn't bridge it to a
-platform capability (NeoForge's `IEnergyStorage`, Fabric's Team Reborn Energy API) for you. Wire
-that yourself in loader-specific code, reading/writing through `getAmount()`/`getCapacity()`/
-`insert()`/`extract()`.
+Implements Common Storage Lib's `ValueStorage` — the energy analogue of the
+`CommonStorage<ItemResource>`/`CommonStorage<FluidResource>` `ArchieItemStorage`/
+`ArchieFluidStorage` implement — plus Archie's NBT serialization, mirroring their shape:
+a `capacity`-capped `Long` buffer with resource-style `insert`/`extract`.
+
+Archie doesn't register this with Common Storage Lib's `EnergyApi.BLOCK`/`ITEM`/`ENTITY` lookups
+for you, the same way it doesn't for `ArchieItemStorage`/`ArchieFluidStorage` today — wire that
+lookup registration, and any platform-specific capability bridge (NeoForge's `IEnergyStorage`,
+Fabric's Team Reborn Energy API) you still want on top of it, in your own mod. Read/write through
+`getStoredAmount()`/`getCapacity()`/`insert()`/`extract()`.
 
 ```kotlin
 class MyBlockEntity(pos, state) : NBTBlockEntity(TYPE, pos, state) {

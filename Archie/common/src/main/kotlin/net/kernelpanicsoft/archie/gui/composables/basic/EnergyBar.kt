@@ -12,7 +12,7 @@ import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
  * Shares [ProgressBar]'s rendering core but defaults to a bottom-up fill and an energy-flavored
  * color, matching how most tech mods orient a power gauge.
  *
- * @param energy    The current stored amount (see [ArchieEnergyStorage.getAmount]).
+ * @param energy    The current stored amount (see [ArchieEnergyStorage.getStoredAmount]).
  * @param capacity  The maximum capacity (see [ArchieEnergyStorage.getCapacity]); a non-positive
  *   value renders as empty rather than dividing by zero.
  * @param modifier  Additional modifiers applied to the outer container.
@@ -42,4 +42,4 @@ fun EnergyBar(
 	direction: ProgressDirection = ProgressDirection.BOTTOM_TO_TOP,
 	fillColor: Int = 0xFFFF5C33.toInt(),
 	variant: String = ThemeVariants.DEFAULT,
-) = EnergyBar(storage.getAmount(), storage.getCapacity(), modifier, direction, fillColor, variant)
+) = EnergyBar(storage.getStoredAmount(), storage.getCapacity(), modifier, direction, fillColor, variant)
