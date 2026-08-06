@@ -157,6 +157,13 @@ data class AClientGameTestFailure(
     val rootCause: String,
 )
 
+/**
+ * Synthetic input dispatch for a client GameTest's active [Screen], bypassing GLFW entirely
+ * (each call feeds the corresponding `mouseClicked`/`keyPressed`/... callback directly). Reached
+ * via [ClientGameTestContext.getInput] - most tests should prefer the higher-level, node-scoped
+ * [TestNodeScope] helpers (`click()`, `hover()`, `type()`, `scroll()`) instead of calling this
+ * directly, since those also resolve the target node's on-screen position first.
+ */
 interface TestInput {
     fun click(x: Double, y: Double, button: Int = 0)
     fun keyPress(keyCode: Int, scanCode: Int = 0, modifiers: Int = 0)
@@ -180,6 +187,12 @@ interface TestInput {
     fun clearInputs()
 }
 
+/**
+ * Builds a test world from [ClientGameTestContext.worldBuilder]: either a singleplayer world via
+ * [create]/[withSingleplayer], or a same-JVM dedicated server via [createServer]/[withServer] for
+ * tests that need a real client↔server boundary (e.g. exercising [ConfigSpec.Server] sync or
+ * other multiplayer-only codepaths) rather than the integrated server a singleplayer world uses.
+ */
 @Suppress("unused")
 interface TestWorldBuilder {
     fun setUseConsistentSettings(useConsistentSettings: Boolean): TestWorldBuilder
@@ -209,6 +222,7 @@ interface TestWorldBuilder {
     }
 }
 
+/** A running singleplayer test world created by [TestWorldBuilder.create], with server-side access via [server]. Closing (see [TestWorldBuilder.withSingleplayer]) disconnects and waits for the world to unload. */
 @Suppress("unused")
 interface TestSingleplayerContext {
     val clientContext: ClientGameTestContext
@@ -219,6 +233,7 @@ interface TestSingleplayerContext {
     fun close()
 }
 
+/** A running same-JVM dedicated server created by [TestWorldBuilder.createServer]. [connect] joins the client to it; closing (see [TestWorldBuilder.withServer]) stops the server process. */
 @Suppress("unused")
 interface TestDedicatedServerContext {
     val clientContext: ClientGameTestContext
@@ -242,6 +257,7 @@ interface TestDedicatedServerContext {
     fun close()
 }
 
+/** The client's connection to a [TestDedicatedServerContext], returned by [TestDedicatedServerContext.connect]. */
 @Suppress("unused")
 interface TestServerConnection {
     val clientContext: ClientGameTestContext
@@ -250,6 +266,7 @@ interface TestServerConnection {
     fun disconnect()
 }
 
+/** Client-side world-loading waits (chunk download/render), independent of world type - available on both [TestSingleplayerContext.clientWorld] and [TestServerConnection.clientWorld]. */
 @Suppress("unused")
 interface TestClientWorldContext {
     fun waitForChunksDownload(timeout: Int = ClientGameTestContext.DEFAULT_TIMEOUT): Int
@@ -257,6 +274,7 @@ interface TestClientWorldContext {
     fun waitForChunksRender(waitForDownload: Boolean = true, timeout: Int = ClientGameTestContext.DEFAULT_TIMEOUT): Int
 }
 
+/** Server-side access for a [TestSingleplayerContext]'s integrated server: run commands or arbitrary code on the server thread. */
 @Suppress("unused")
 interface TestServerContext {
     fun runCommand(command: String)
@@ -1457,6 +1475,7 @@ private class DefaultTestClientWorldContext(
     }
 }
 
+/** Aggregate result of an [AClientGameTestHarness.run] invocation. */
 data class AClientGameTestSummary(
     val passed: Int,
     val failed: Int,
@@ -1465,6 +1484,12 @@ data class AClientGameTestSummary(
     val failedDetails: List<AClientGameTestFailure> = emptyList(),
 )
 
+/**
+ * Runs every [ClientGameTest]-annotated method across [modToClasses] (as collected by
+ * [AGameTestPlatform.register] via [AGameTestEventObject]/[AEvents.ArchieGameTestBuilder]'s
+ * `client { }` block) sequentially on the client thread, then returns to the title screen.
+ * No-ops (returning an all-zero summary) unless [side] is [AGameTestSide.CLIENT].
+ */
 object AClientGameTestHarness {
     fun run(modToClasses: Map<Mod, List<Class<*>>>, side: AGameTestSide?): AClientGameTestSummary {
         if (side != AGameTestSide.CLIENT) return AClientGameTestSummary(passed = 0, failed = 0, skipped = 0)

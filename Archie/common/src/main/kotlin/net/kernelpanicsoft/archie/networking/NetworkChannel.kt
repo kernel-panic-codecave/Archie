@@ -130,6 +130,16 @@ open class NetworkChannel(private val id: ResourceLocation) {
         serverClasses.add(klass)
     }
 
+    /**
+     * Registers a server-bound packet type and its handler, inferring the packet class from the
+     * reified type parameter [T] instead of requiring `T::class` to be passed explicitly.
+     *
+     * Equivalent to `serverbound(T::class, handler)`.
+     *
+     * @param T The packet data class type.
+     * @param handler The handler invoked on the receiving side.
+     * @throws IllegalArgumentException if [T] is not a data class, lacks a serializer, or is already registered.
+     */
     inline fun <reified T : Any> serverbound(noinline handler: PacketHandler<T>) = serverbound(T::class, handler)
 
     /**
@@ -150,8 +160,31 @@ open class NetworkChannel(private val id: ResourceLocation) {
         clientClasses.add(klass)
     }
 
+    /**
+     * Registers a client-bound packet type and its handler, inferring the packet class from the
+     * reified type parameter [T] instead of requiring `T::class` to be passed explicitly.
+     *
+     * Equivalent to `clientbound(T::class, handler)`.
+     *
+     * @param T The packet data class type.
+     * @param handler The handler invoked on the receiving side.
+     * @throws IllegalArgumentException if [T] is not a data class, lacks a serializer, or is already registered.
+     */
     inline fun <reified T : Any> clientbound(noinline handler: PacketHandler<T>) = clientbound(T::class, handler)
 
+    /**
+     * Registers [spec] as a server-bound "save my changes" packet: when the server receives one,
+     * it is decoded with [spec]'s own [kotlinx.serialization.KSerializer] (via
+     * [net.kernelpanicsoft.archie.config.ConfigSpec.serializer]) rather than the reflective one
+     * used for ordinary packet classes, since a `ConfigSpec` singleton isn't itself
+     * `@Serializable`. The permission check, persistence, and broadcast/rejection of the
+     * resulting value happen in `decodeDispatchData`, not in the handler registered here (which
+     * just calls [net.kernelpanicsoft.archie.config.ConfigSpec.save] again for symmetry with
+     * [configClientbound]). No-op if [spec] is already registered.
+     *
+     * Internal: used by [net.kernelpanicsoft.archie.config.ConfigSpec.init] to wire up
+     * server/client config sync. Not part of the public packet API.
+     */
     internal fun <T : ConfigSpec> configServerbound(klass: KClass<out T>, spec: T)
     {
         if (spec in serverConfigs) return
@@ -162,6 +195,16 @@ open class NetworkChannel(private val id: ResourceLocation) {
 
     internal inline fun <reified T : ConfigSpec> configServerbound(spec: T) = configServerbound(spec::class, spec)
 
+    /**
+     * Registers [spec] as a client-bound config-sync packet: when the client receives one, it is
+     * decoded with [spec]'s own [kotlinx.serialization.KSerializer] and saved locally via
+     * [net.kernelpanicsoft.archie.config.ConfigSpec.save]. Used to push a
+     * [net.kernelpanicsoft.archie.config.ConfigSpec.Server] config's values to a joining player.
+     * No-op if [spec] is already registered.
+     *
+     * Internal: used by [net.kernelpanicsoft.archie.config.ConfigSpec.init] to wire up
+     * server/client config sync. Not part of the public packet API.
+     */
     internal fun <T : ConfigSpec> configClientbound(klass: KClass<out T>, spec: T)
     {
         if (spec in clientConfigs) return

@@ -10,10 +10,14 @@ import java.nio.file.StandardCopyOption
  * Reads and writes a [ConfigSpec] to/from a specific file format (JSON, JSON5, TOML, ...). Built-in
  * implementations live in `net.kernelpanicsoft.archie.config.serializer`; [ConfigSpec.fileSerializer]
  * picks one per-platform by default.
+ *
+ * [configPath], [load], and [save] all take a [configFolder] that defaults to the platform's shared
+ * config folder ([Platform.getConfigFolder]); [ConfigSpec] passes its own [ConfigSpec.configFolder]
+ * instead, which a [ConfigSpec.Server] repoints at the current world's per-save `serverconfig/` folder.
  */
 interface IConfigSerializer
 {
-	/** File the given [config] is read from and written to. */
+	/** File the given [config] is read from and written to, resolved under [configFolder]. */
 	fun configPath(config: ConfigSpec, configFolder: Path = Platform.getConfigFolder()): Path
 	/**
 	 * Reads [config]'s file if present via [loadString], then always [save]s it back out - this

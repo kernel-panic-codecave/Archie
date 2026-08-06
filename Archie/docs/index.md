@@ -20,6 +20,7 @@ It targets both **Fabric** and **NeoForge** via [Architectury](https://github.co
 | **Transfer** | Cross-platform item storage and inventory slot helpers |
 | **Block Entities** | NBT-backed block entity base class |
 | **Resource Packs** | Deserialization-based resource reload listeners |
+| **GameTest** | Server-side `GameTestHelper` registration plus a client GameTest DSL for driving/asserting Compose screens |
 
 ---
 

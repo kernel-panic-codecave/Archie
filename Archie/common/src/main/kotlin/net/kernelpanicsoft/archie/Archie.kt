@@ -94,9 +94,9 @@ object Archie
 
 	/**
 	 * Reserved for client-only initialization that must run after [init], from a client
-	 * entrypoint. Currently a no-op: Archie's own config screen already registers synchronously
-	 * inside [init], since deferring it to a client entrypoint would race Catalogue's config
-	 * screen discovery (see [ConfigSpec.init]).
+	 * entrypoint. Currently a no-op: Archie's own config screen(s) already register synchronously
+	 * inside [init] via `Config.init()` (see [ConfigContainer.initClient]), so there's nothing left
+	 * to do here.
 	 */
 	@JvmStatic
 	fun initClient()

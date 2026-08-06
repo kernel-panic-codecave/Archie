@@ -111,6 +111,12 @@ fun GuiGraphics.drawRectOutline(
     fill(type, x + width - thickness, y + thickness, x + width, y + height - thickness, color)
 }
 
+/**
+ * Runs [block] with this [GuiGraphics]'s [PoseStack][com.mojang.blaze3d.vertex.PoseStack] pushed,
+ * popping it again afterwards (including when [block] throws). Saves the manual
+ * `pose().pushPose()` / `pose().popPose()` pairing renderers otherwise need around
+ * translate/scale/rotate calls.
+ */
 fun <T> GuiGraphics.pose(block: PoseStack.() -> T): T
 {
     val pose = pose()
@@ -120,6 +126,11 @@ fun <T> GuiGraphics.pose(block: PoseStack.() -> T): T
     return ret
 }
 
+/**
+ * Runs [block] with scissoring enabled to the `[minX, minY, maxX, maxY)` rectangle, disabling
+ * it again afterwards. Saves the manual `enableScissor(...)` / `disableScissor()` pairing
+ * renderers otherwise need around clipped content.
+ */
 fun <T> GuiGraphics.scissor(minX: Int, minY: Int, maxX: Int, maxY: Int, block: () -> T): T
 {
     enableScissor(minX, minY, maxX, maxY)
@@ -128,6 +139,7 @@ fun <T> GuiGraphics.scissor(minX: Int, minY: Int, maxX: Int, maxY: Int, block: (
     return ret
 }
 
+/** Overload of [scissor] taking the clip bounds as an [IntRect]. */
 fun <T> GuiGraphics.scissor(rect: IntRect, block: () -> T): T
 {
     val (minX: Int, minY: Int, maxX: Int, maxY: Int) = rect
@@ -137,4 +149,9 @@ fun <T> GuiGraphics.scissor(rect: IntRect, block: () -> T): T
     return ret
 }
 
+/**
+ * Lets a [GuiGraphics] receiver be invoked like `guiGraphics { ... }`, running [block] with
+ * `this` as the receiver. Used throughout the built-in composables' `Renderer` implementations
+ * to avoid repeating the `guiGraphics.` prefix on every draw call.
+ */
 operator fun GuiGraphics.invoke(block: GuiGraphics.() -> Unit): Unit = block()

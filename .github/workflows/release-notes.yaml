@@ -1,0 +1,79 @@
+name: release-notes
+
+# Generates Archie/CHANGELOG.md and a dated Archie/docs/news/posts/ blog entry for a tagged
+# release, then opens a PR with both. See .github/scripts/generate_release_notes.py for how
+# entries are sourced (merged PR titles, parsed for a Conventional Commits prefix) and
+# .github/workflows/pr-title-lint.yml for how those titles are kept in that shape.
+#
+# Cut a release by tagging the branch tip: `git tag v1.1.0 && git push origin v1.1.0` (or via
+# `gh release create v1.1.0 --target 1.21.x`). Tag names must match `v*`.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Determine the branch this tag was cut from
+        id: base
+        run: |
+          git fetch origin --prune
+          BRANCH=$(git branch -r --contains "${{ github.sha }}" \
+            | sed 's/^[* ]*origin\///' \
+            | grep -E '^[0-9]+\.[0-9]+\.x$|^main$' \
+            | head -n1)
+          if [ -z "$BRANCH" ]; then
+            echo "::error::Tag ${{ github.ref_name }} isn't on a recognized release branch (expected an N.N.x or main branch tip)."
+            exit 1
+          fi
+          echo "Releasing from $BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog and news post
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python .github/scripts/generate_release_notes.py \
+            --repo "${{ github.repository }}" \
+            --new-tag "${{ github.ref_name }}" \
+            --changelog-path Archie/CHANGELOG.md \
+            --posts-dir Archie/docs/news/posts
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- Archie/CHANGELOG.md Archie/docs/news/posts; then
+            echo "Nothing new to record since the previous tag - skipping PR."
+            exit 0
+          fi
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+          BRANCH_NAME="release-notes/${{ github.ref_name }}"
+          git checkout -b "$BRANCH_NAME"
+          git add Archie/CHANGELOG.md Archie/docs/news/posts
+          git commit -m "docs: release notes for ${{ github.ref_name }}"
+          git push origin "$BRANCH_NAME"
+
+          gh pr create \
+            --base "${{ steps.base.outputs.branch }}" \
+            --head "$BRANCH_NAME" \
+            --title "docs: release notes for ${{ github.ref_name }}" \
+            --body "Auto-generated changelog and news post for [${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})."
