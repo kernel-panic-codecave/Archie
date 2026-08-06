@@ -104,6 +104,34 @@ Column(verticalArrangement = Arrangement.spacedBy(4)) {
 | `ColorPicker` | HSV + alpha colour picker |
 | `TabContainer` | Create World style tab bar |
 | `AlertDialog` / `PromptDialog` / `ChoiceDialog` | Additional modal dialog primitives |
+| `ProgressBar` | Themed linear fill indicator (crafting/processing progress) |
+| `EnergyBar` | `ProgressBar` tuned for an [`ArchieEnergyStorage`](transfer.md#archieenergystorage) (bottom-up fill by default) |
+| `FluidTank` | Themed tank indicator rendering the real fluid texture + tint, bottom-up |
+
+### Progress, energy, and fluid indicators
+
+`ProgressBar` and `EnergyBar` share a themed track (looked up as `"progress_bar"`/`"energy_bar"`)
+filled with a solid color up to a `0f..1f` fraction, in any of four directions:
+
+```kotlin
+ProgressBar(
+    progress = observeProperty("progress", 0).value ?: 0 / smeltTicks.toFloat(),
+    direction = ProgressDirection.LEFT_TO_RIGHT,
+)
+
+EnergyBar(storage = myBlockEntity.energy) // or EnergyBar(energy = 400, capacity = 10_000)
+```
+
+`FluidTank` renders the real fluid texture and tint (resolved per-loader - see
+[transfer.md](transfer.md#archiefluidstorage)) inside a themed tank frame, filled bottom-up:
+
+```kotlin
+FluidTank(fluid = myBlockEntity.tank[0].getFluid(), capacity = FluidStack.bucketAmount() * 4)
+```
+
+None of these three animate or poll on their own - drive them from an `observeProperty` read
+(see [serialization.md](serialization.md#sync)) of a `@Sync`-annotated block entity field for a
+live indicator that updates as the block entity changes server-side.
 
 ### `TabContainer`
 
