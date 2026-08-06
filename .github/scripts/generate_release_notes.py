@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
-"""Generates a CHANGELOG.md section and a mkdocs-material news/blog post for a tagged release.
+"""Generates a CHANGELOG.md section and/or a mkdocs-material news/blog post for a release.
 
-Walks the first-parent history between the previous tag (auto-detected if not given) and the
-new tag. Each entry on that line is either a merged pull request (its title, author, and URL are
-looked up via `gh pr view`) or a commit pushed directly to the branch (its own subject line is
-used as-is). Entries are parsed for a Conventional Commits prefix (`feat:`, `fix:`, ...) and
-grouped into sections; anything that doesn't parse lands in "Other Changes" rather than being
-dropped, since pre-adoption history won't be Conventional-Commits-shaped.
+Walks the first-parent history between the previous tag (auto-detected if not given) and
+--range-end (a real ref - defaults to --new-tag, but see below). Each entry on that line is
+either a merged pull request (its title, author, and URL are looked up via `gh pr view`) or a
+commit pushed directly to the branch (its own subject line is used as-is). Entries are parsed for
+a Conventional Commits prefix (`feat:`, `fix:`, ...) and grouped into sections; anything that
+doesn't parse lands in "Other Changes" rather than being dropped, since pre-adoption history won't
+be Conventional-Commits-shaped.
 
-Requires `git` (full history - the caller must checkout with fetch-depth: 0) and the `gh` CLI
+Two call shapes:
+  - Post-tag (.github/workflows/release-notes.yaml): --new-tag is a real, already-pushed tag; used
+    as both the git ref to end the walk at and the version display string. Writes both the
+    changelog section and a news post.
+  - Pre-publish (Archie/build.gradle.kts's `generateChangelog` task): the tag doesn't exist yet at
+    this point, so pass --new-tag as the *intended* version (e.g. `v1.2.0`, not yet a real ref)
+    together with --range-end HEAD (or another real ref) to walk up to. Only pass --changelog-path,
+    not --posts-dir, in this mode - modpublisher's `changelog = file(...)` needs CHANGELOG.md
+    correct *before* it tags/publishes; the news post has no such ordering requirement and stays
+    the reactive post-tag workflow's job.
+
+Requires `git` (full history - the caller must checkout/clone with full depth) and the `gh` CLI
 (authenticated via GH_TOKEN) for PR metadata lookups. See .github/workflows/release-notes.yaml.
 """
 from __future__ import annotations
@@ -209,19 +221,30 @@ def write_news_post(posts_dir: Path, repo: str, version_display: str, date: str,
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True, help="owner/name")
-    parser.add_argument("--new-tag", required=True)
+    parser.add_argument("--new-tag", required=True,
+                         help="version identity for headings/filenames - a real tag ref in the "
+                              "post-tag flow, or the not-yet-created intended tag in the "
+                              "pre-publish flow (see --range-end)")
+    parser.add_argument("--range-end", default=None,
+                         help="real git ref to end the walk at; defaults to --new-tag. Set this "
+                              "explicitly (e.g. HEAD) when --new-tag isn't a ref that exists yet")
     parser.add_argument("--prev-tag", default=None, help="auto-detected if omitted")
-    parser.add_argument("--changelog-path", required=True, type=Path)
-    parser.add_argument("--posts-dir", required=True, type=Path)
+    parser.add_argument("--changelog-path", type=Path, default=None)
+    parser.add_argument("--posts-dir", type=Path, default=None,
+                         help="omit to skip news-post generation (e.g. the pre-publish flow)")
     parser.add_argument("--dry-run", action="store_true", help="print instead of writing files")
     args = parser.parse_args()
 
-    prev_tag = args.prev_tag or detect_previous_tag(args.new_tag)
+    if not args.dry_run and not args.changelog_path and not args.posts_dir:
+        parser.error("nothing to do - pass --changelog-path and/or --posts-dir, or --dry-run")
+
+    range_end = args.range_end or args.new_tag
+    prev_tag = args.prev_tag or detect_previous_tag(range_end)
     start = range_start(prev_tag)
 
-    records = walk_first_parent(start, args.new_tag)
+    records = walk_first_parent(start, range_end)
     if not records:
-        print(f"No commits between {prev_tag or '(root)'} and {args.new_tag} - nothing to generate.")
+        print(f"No commits between {prev_tag or '(root)'} and {range_end} - nothing to generate.")
         return
 
     entries = [resolve_entry(args.repo, sha, subject, parents) for sha, subject, parents in records]
@@ -237,12 +260,15 @@ def main() -> None:
         print(body)
         return
 
-    update_changelog(args.changelog_path, f"[{version_display}]", date, body)
-    post_path = write_news_post(
-        args.posts_dir, args.repo, version_display, date, prev_tag, body, len(entries),
-    )
-    print(f"Updated {args.changelog_path}")
-    print(f"Wrote {post_path}")
+    if args.changelog_path:
+        update_changelog(args.changelog_path, f"[{version_display}]", date, body)
+        print(f"Updated {args.changelog_path}")
+
+    if args.posts_dir:
+        post_path = write_news_post(
+            args.posts_dir, args.repo, version_display, date, prev_tag, body, len(entries),
+        )
+        print(f"Wrote {post_path}")
 
 
 if __name__ == "__main__":

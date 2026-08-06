@@ -47,9 +47,16 @@ All commands below are run from inside `Archie/` (`cd Archie` first).
 ## Dependency and integration touchpoints
 - Versions and plugin IDs are centralized in `gradle/libs.versions.toml` (repo root); update there first.
 - Packaging/publishing is configured at the `Archie/` build root via `modfusioner` (`fusejars`) and
-  `modpublisher` (CurseForge/Modrinth IDs and required deps) in `Archie/build.gradle.kts` - `modpublisher`
-  reads its changelog text straight from `Archie/CHANGELOG.md`, the same file the release-notes workflow
-  maintains.
+  `modpublisher` (CurseForge/Modrinth/GitHub IDs and required deps, tasks `publishCurseforge`/
+  `publishModrinth`/`publishGitHub`/`publishMod`) in `Archie/build.gradle.kts` - `modpublisher` reads its
+  changelog text straight off disk from `Archie/CHANGELOG.md` when a publish task runs, so those four
+  tasks `dependsOn` a `generateChangelog` task (same file, same script, same `Archie/build.gradle.kts`)
+  that regenerates it synchronously first. This is deliberately *not* left to the reactive, tag-triggered
+  `release-notes.yaml` workflow: if `modpublisher` auto-tags as part of the same `./gradlew publish*`
+  invocation, that workflow can't possibly have generated this release's entry yet by the time
+  `changelog` is read, and if that invocation runs in CI under the default `GITHUB_TOKEN`, the tag it
+  creates won't even fire the workflow (GitHub's anti-recursion rule for that token). `release-notes.yaml`
+  still owns the `Archie/docs/news/posts/` blog entry, which has no such ordering requirement.
 - Mixins are split by scope: loader mixins in `Archie/fabric/src/main/resources/archie.mixins.json` and
   `Archie/neoforge/src/main/resources/archie.mixins.json`, common mixin config in
   `Archie/common/src/main/resources/archie-common.mixins.json`.
