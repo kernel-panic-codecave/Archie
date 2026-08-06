@@ -6,6 +6,7 @@ net.kernelpanicsoft.archie
 net.kernelpanicsoft.archie.block.entity
 net.kernelpanicsoft.archie.config
 net.kernelpanicsoft.archie.config.builder
+net.kernelpanicsoft.archie.config.entry
 net.kernelpanicsoft.archie.config.serializer
 net.kernelpanicsoft.archie.data
 net.kernelpanicsoft.archie.data.client
@@ -55,6 +56,7 @@ net.kernelpanicsoft.archie
 net.kernelpanicsoft.archie.block.entity
 net.kernelpanicsoft.archie.config
 net.kernelpanicsoft.archie.config.builder
+net.kernelpanicsoft.archie.config.entry
 net.kernelpanicsoft.archie.config.serializer
 net.kernelpanicsoft.archie.data
 net.kernelpanicsoft.archie.data.client
@@ -107,6 +109,7 @@ net.kernelpanicsoft.archie
 net.kernelpanicsoft.archie.block.entity
 net.kernelpanicsoft.archie.config
 net.kernelpanicsoft.archie.config.builder
+net.kernelpanicsoft.archie.config.entry
 net.kernelpanicsoft.archie.config.serializer
 net.kernelpanicsoft.archie.data
 net.kernelpanicsoft.archie.data.client
