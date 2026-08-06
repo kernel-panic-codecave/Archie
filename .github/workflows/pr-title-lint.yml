@@ -6,7 +6,7 @@ name: PR title lint
 # break anything, it just lands in the catch-all "Other Changes" section instead of a proper one.
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - edited
@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: amannn/action-semantic-pull-request@v6
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           types: |
             feat

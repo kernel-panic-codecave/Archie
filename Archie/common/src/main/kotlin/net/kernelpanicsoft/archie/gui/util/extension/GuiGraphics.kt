@@ -121,9 +121,14 @@ fun <T> GuiGraphics.pose(block: PoseStack.() -> T): T
 {
     val pose = pose()
     pose.pushPose()
-    val ret  = pose.block()
-    pose.popPose()
-    return ret
+    try
+    {
+        return pose.block()
+    }
+    finally
+    {
+        pose.popPose()
+    }
 }
 
 /**
@@ -134,19 +139,21 @@ fun <T> GuiGraphics.pose(block: PoseStack.() -> T): T
 fun <T> GuiGraphics.scissor(minX: Int, minY: Int, maxX: Int, maxY: Int, block: () -> T): T
 {
     enableScissor(minX, minY, maxX, maxY)
-    val ret = block()
-    disableScissor()
-    return ret
+    try
+    {
+        return block()
+    }
+    finally
+    {
+        disableScissor()
+    }
 }
 
 /** Overload of [scissor] taking the clip bounds as an [IntRect]. */
 fun <T> GuiGraphics.scissor(rect: IntRect, block: () -> T): T
 {
     val (minX: Int, minY: Int, maxX: Int, maxY: Int) = rect
-    enableScissor(minX, minY, maxX, maxY)
-    val ret = block()
-    disableScissor()
-    return ret
+    return scissor(minX, minY, maxX, maxY, block)
 }
 
 /**

@@ -177,10 +177,11 @@ open class NetworkChannel(private val id: ResourceLocation) {
      * it is decoded with [spec]'s own [kotlinx.serialization.KSerializer] (via
      * [net.kernelpanicsoft.archie.config.ConfigSpec.serializer]) rather than the reflective one
      * used for ordinary packet classes, since a `ConfigSpec` singleton isn't itself
-     * `@Serializable`. The permission check, persistence, and broadcast/rejection of the
-     * resulting value happen in `decodeDispatchData`, not in the handler registered here (which
-     * just calls [net.kernelpanicsoft.archie.config.ConfigSpec.save] again for symmetry with
-     * [configClientbound]). No-op if [spec] is already registered.
+     * `@Serializable`. The permission check, in-memory decode (mutating [spec]'s fields directly),
+     * and broadcast-or-reject all happen in `decodeDispatchData`, before the handler registered
+     * here ever runs - that handler is the one place that actually persists the result, calling
+     * [net.kernelpanicsoft.archie.config.ConfigSpec.save] to write it to disk. No-op if [spec] is
+     * already registered.
      *
      * Internal: used by [net.kernelpanicsoft.archie.config.ConfigSpec.init] to wire up
      * server/client config sync. Not part of the public packet API.
