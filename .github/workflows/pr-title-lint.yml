@@ -1,0 +1,41 @@
+name: PR title lint
+
+# Enforces Conventional Commits (https://www.conventionalcommits.org/) on PR titles. The
+# release-notes workflow (.github/workflows/release-notes.yaml) reads merged PR titles to build
+# the changelog and news post for each tag, grouped by this prefix - an unparsed title doesn't
+# break anything, it just lands in the catch-all "Other Changes" section instead of a proper one.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+permissions:
+  pull-requests: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            docs
+            test
+            build
+            ci
+            chore
+            style
+            revert
+          requireScope: false
+          # Squash-merged PRs commonly get "(#123)" appended by GitHub - allow trailing
+          # whitespace/punctuation around that without rejecting an otherwise-valid title.
+          subjectPattern: ^(?!\s*$).+$

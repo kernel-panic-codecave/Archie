@@ -35,11 +35,21 @@ All commands below are run from inside `Archie/` (`cd Archie` first).
 - `common/build.gradle.kts` intentionally uses `modImplementation(libs.fabric.loader)` only for annotations/mixin deps; avoid importing random Fabric-only classes in common code.
 - Utility operators are used pervasively for IDs (`Archie % "main"`, `mod % "path"`, `"namespace" % "path"`)
   from `Archie/common/src/main/kotlin/net/kernelpanicsoft/archie/util/ResourceLocation.kt`.
+- PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
+  `docs:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`, `chore:`, `style:`, `revert:`, optionally
+  scoped `type(scope):`) - enforced by `.github/workflows/pr-title-lint.yml`. Individual commits within a
+  PR don't need to conform, but a direct push to a release branch (no PR) does, since it's read the same
+  way. This isn't just style: cutting a release (`git tag vX.Y.Z`) triggers
+  `.github/workflows/release-notes.yaml`, which walks merged PR titles since the last tag to generate
+  `Archie/CHANGELOG.md` and a `Archie/docs/news/posts/` entry, grouped by this prefix - an unparsed title
+  doesn't break anything, it just lands in the catch-all "Other Changes" section instead of a real one.
 
 ## Dependency and integration touchpoints
 - Versions and plugin IDs are centralized in `gradle/libs.versions.toml` (repo root); update there first.
 - Packaging/publishing is configured at the `Archie/` build root via `modfusioner` (`fusejars`) and
-  `modpublisher` (CurseForge/Modrinth IDs and required deps) in `Archie/build.gradle.kts`.
+  `modpublisher` (CurseForge/Modrinth IDs and required deps) in `Archie/build.gradle.kts` - `modpublisher`
+  reads its changelog text straight from `Archie/CHANGELOG.md`, the same file the release-notes workflow
+  maintains.
 - Mixins are split by scope: loader mixins in `Archie/fabric/src/main/resources/archie.mixins.json` and
   `Archie/neoforge/src/main/resources/archie.mixins.json`, common mixin config in
   `Archie/common/src/main/resources/archie-common.mixins.json`.
