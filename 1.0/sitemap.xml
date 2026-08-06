@@ -1597,11 +1597,23 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-energy-bar.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-fluid-tank.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-horizontal-divider.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-icon.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-progress-bar.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -1622,6 +1634,26 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/get-text-size.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-b-o-t-t-o-m_-t-o_-t-o-p/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-l-e-f-t_-t-o_-r-i-g-h-t/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-r-i-g-h-t_-t-o_-l-e-f-t/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-t-o-p_-t-o_-b-o-t-t-o-m/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -2297,6 +2329,14 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.render/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.render/-a-fluid-render-platform/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.gui.theme/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
@@ -2798,6 +2838,14 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.transfer/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.transfer/-archie-energy-storage/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/common/net.kernelpanicsoft.archie.transfer/-archie-energy-storage/-serializer/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -4501,11 +4549,23 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-energy-bar.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-fluid-tank.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-horizontal-divider.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-icon.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-progress-bar.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -4526,6 +4586,26 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/get-text-size.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-b-o-t-t-o-m_-t-o_-t-o-p/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-l-e-f-t_-t-o_-r-i-g-h-t/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-r-i-g-h-t_-t-o_-l-e-f-t/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-t-o-p_-t-o_-b-o-t-t-o-m/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -5201,6 +5281,14 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.render/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.render/-a-fluid-render-platform/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.gui.theme/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
@@ -5738,6 +5826,14 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.transfer/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.transfer/-archie-energy-storage/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/fabric/net.kernelpanicsoft.archie.transfer/-archie-energy-storage/-serializer/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -7441,11 +7537,23 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-energy-bar.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-fluid-tank.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-horizontal-divider.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-icon.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-progress-bar.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -7466,6 +7574,26 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/get-text-size.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-b-o-t-t-o-m_-t-o_-t-o-p/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-l-e-f-t_-t-o_-r-i-g-h-t/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-r-i-g-h-t_-t-o_-l-e-f-t/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.composables.basic/-progress-direction/-t-o-p_-t-o_-b-o-t-t-o-m/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
@@ -8141,6 +8269,14 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.render/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.render/-a-fluid-render-platform/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.gui.theme/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
@@ -8694,6 +8830,14 @@
     </url>
     <url>
          <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.transfer/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.transfer/-archie-energy-storage/index.html</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.kernelpanicsoft.net/Archie/1.0/api/neoforge/net.kernelpanicsoft.archie.transfer/-archie-energy-storage/-serializer/index.html</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>

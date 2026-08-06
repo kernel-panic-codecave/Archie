@@ -40,6 +40,7 @@ net.kernelpanicsoft.archie.gui.modifiers.appearance
 net.kernelpanicsoft.archie.gui.modifiers.input
 net.kernelpanicsoft.archie.gui.modifiers.position
 net.kernelpanicsoft.archie.gui.nodes
+net.kernelpanicsoft.archie.gui.render
 net.kernelpanicsoft.archie.gui.theme
 net.kernelpanicsoft.archie.gui.util
 net.kernelpanicsoft.archie.gui.util.extension
@@ -90,6 +91,7 @@ net.kernelpanicsoft.archie.gui.modifiers.appearance
 net.kernelpanicsoft.archie.gui.modifiers.input
 net.kernelpanicsoft.archie.gui.modifiers.position
 net.kernelpanicsoft.archie.gui.nodes
+net.kernelpanicsoft.archie.gui.render
 net.kernelpanicsoft.archie.gui.theme
 net.kernelpanicsoft.archie.gui.util
 net.kernelpanicsoft.archie.gui.util.extension
@@ -143,6 +145,7 @@ net.kernelpanicsoft.archie.gui.modifiers.appearance
 net.kernelpanicsoft.archie.gui.modifiers.input
 net.kernelpanicsoft.archie.gui.modifiers.position
 net.kernelpanicsoft.archie.gui.nodes
+net.kernelpanicsoft.archie.gui.render
 net.kernelpanicsoft.archie.gui.theme
 net.kernelpanicsoft.archie.gui.util
 net.kernelpanicsoft.archie.gui.util.extension
