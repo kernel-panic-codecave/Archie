@@ -30,6 +30,17 @@ jobs:
       # Force Mesa's software rasterizer - GitHub-hosted runners have no GPU, and LWJGL/GLFW
       # need a working GL context (even offscreen) to boot the Minecraft client for gametests.
       LIBGL_ALWAYS_SOFTWARE: "1"
+      # build.gradle.kts reads github_actor/github_token from the environment (GITHUB_ACTOR/GITHUB_TOKEN)
+      # for Basic Auth against the MrCrayfish GitHub Packages Maven repo (catalogue/menulogue).
+      # GITHUB_ACTOR is provided by the runner, but GITHUB_TOKEN is only available via expressions
+      # unless explicitly exported to the step environment, so Gradle runs need it set here.
+      # Packages 401s, even for a public package. Note this may still not be sufficient on its
+      # own: secrets.GITHUB_TOKEN is scoped to this repo, and cross-owner GitHub Packages reads
+      # commonly need a real PAT (with read:packages) that's been granted access to MrCrayfish's
+      # packages specifically - if this repo's actor/token combination still 401s, that's the
+      # next thing to check, likely needing a dedicated PAT secret instead.
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 
