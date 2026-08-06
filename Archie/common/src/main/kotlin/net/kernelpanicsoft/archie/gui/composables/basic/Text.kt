@@ -44,7 +44,7 @@ fun getTextSize(
  * Text(
  *     text = Component.literal("Hello, Archie!"),
  *     fontScale = 1.5f,
- *     color = KColor.YELLOW.argb,
+ *     color = KColor.YELLOW,
  * )
  * ```
  *

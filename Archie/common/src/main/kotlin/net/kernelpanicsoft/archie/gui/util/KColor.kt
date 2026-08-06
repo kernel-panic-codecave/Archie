@@ -130,5 +130,6 @@ data class KColor(
      */
     val argb: Int get() = (alpha shl 24) or (red shl 16) or (green shl 8) or blue
 
+    /** Converts this to a vanilla [TextColor] (RGB only - [TextColor] carries no alpha channel). */
     fun toTextColor(): TextColor = TextColor.fromRgb(rgb)
 }

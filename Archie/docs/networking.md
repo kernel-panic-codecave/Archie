@@ -30,24 +30,41 @@ data class RequestDataPacket(val id: Int)
 
 ### Registering handlers
 
-Register handlers **before** calling `register()`:
+Register handlers **before** calling `register()`. The reified `serverbound<T>`/`clientbound<T>`
+overloads infer the packet class from the type parameter, so you don't need to pass `::class`
+yourself:
 
 ```kotlin
 // Server receives this packet from the client
-CHANNEL.serverbound(RequestDataPacket::class) { packet, ctx ->
+CHANNEL.serverbound<RequestDataPacket> { packet, ctx ->
     val player = ctx.player as ServerPlayer
     val data = fetchData(packet.id)
     CHANNEL.toPlayer(player, SyncEnergyPacket(data.energy, data.pos))
 }
 
 // Client receives this packet from the server
-CHANNEL.clientbound(SyncEnergyPacket::class) { packet, ctx ->
+CHANNEL.clientbound<SyncEnergyPacket> { packet, ctx ->
     ClientEnergyCache.update(packet.pos, packet.energy)
 }
 
 // Called once during mod init
 CHANNEL.register()
 ```
+
+A `KClass`-based overload (`serverbound(RequestDataPacket::class) { ... }`) is also available if
+you already have the class reference in hand; both forms register the same way.
+
+### Validation
+
+`serverbound`/`clientbound` validate the packet class as soon as you register it, throwing
+`IllegalArgumentException` if:
+
+- the class isn't a Kotlin **data class**,
+- the class isn't annotated `@Serializable` (or otherwise has no serializer), or
+- that exact class was already registered on that side of the channel.
+
+Sending an unregistered packet type (via `toServer`/`toPlayer`/etc.) throws `IllegalStateException`
+instead, since that failure can only be detected at send time.
 
 ### Sending packets
 
@@ -92,3 +109,14 @@ data class TeleportPacket(
 Available contextual serializers: `BlockPos`, `ChunkPos`, `GlobalPos`, `Vec3`, `Vec3i`,
 `BlockHitResult`, `ResourceLocation`, `ItemStack`, `FriendlyByteBuf` — see
 [Serialization](serialization.md#minecraft-type-serializers) for the full alias table.
+
+---
+
+## Config sync
+
+`ConfigSpec.Server` configs (see [Config](config.md)) use a `NetworkChannel` of their own,
+internally, to sync per-world server config values to clients — the same channel mechanism
+described above, just with the `ConfigSpec` itself as the payload instead of a hand-written
+packet class. This is wired up automatically by `ConfigSpec`; you don't register anything with
+it yourself. See [Config § Server configs sync over the network](config.md#server-configs-sync-over-the-network)
+for how it behaves.

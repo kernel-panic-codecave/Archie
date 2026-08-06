@@ -121,6 +121,10 @@ object ColorSerializer : KSerializer<Color>
 /**
  * A [SerializersModule] that registers Archie's Cloth Config-related type serializers
  * ([ModifierKeyCodeSerializer], [ColorSerializer]) as contextual serializers.
+ *
+ * [ModifierKeyCodeSerializer] is only registered on the physical client (via [onClient]), since
+ * [ModifierKeyCode] is a client-only Cloth Config type that a dedicated server shouldn't
+ * class-load; [ColorSerializer] is registered on both sides.
  */
 val BuiltInSerializersModule = SerializersModule {
 	onClient {
