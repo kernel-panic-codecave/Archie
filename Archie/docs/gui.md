@@ -261,33 +261,10 @@ layerManager.modal(transitionSpec = ModalTransitionSpec(durationMillis = 220)) {
 
 ## Automated GUI Testing
 
-Archie includes a backport client harness for GUI-focused tests on 1.21.1.
-
-- Mark client test methods with `@ClientGameTest`, written as an extension function on
-  `ClientGameTestContext` (not a function taking a context parameter).
-- `ClientGameTestContext` gives you `setScreen`, `waitForScreen`, `waitForLayer`, `hasNode`/`node`,
-  `computeOnClient`, and assertion helpers (`assertTrue`, `assertEquals`, ...).
-- Register test classes in `ArchieGameTest.kt`'s `archieGameTests()` under `client { }`.
-
-```kotlin
-class GuiClientHarnessTests {
-    @ClientGameTest
-    fun ClientGameTestContext.testSliderClamp() {
-        assertEquals(1f, normalizeSliderValue(2f))
-    }
-}
-```
-
-See `ComposeRenderingTests.kt` for a fuller example that drives an actual screen.
-
-Run commands:
-
-```zsh
-./gradlew fabric:runGametestClient
-./gradlew neoforge:runGametestClient
-```
-
-The harness logs `[ClientGameTest] PASS/FAIL` lines and fails the run when any client test fails.
+Archie has a from-scratch client GameTest harness for driving and asserting against composables
+and screens built with this framework — clicking, hovering, typing, and reading component state
+back out of a live screen. See [GameTest § Client GameTest DSL](gametest.md#client-gametest-dsl)
+for the full guide.
 
 ---
 
