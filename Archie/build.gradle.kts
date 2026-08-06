@@ -265,4 +265,25 @@ tasks {
 		workingDir = rootDir
 		commandLine("mike", "deploy", "--push", "--update-aliases", tag, "latest")
 	}
+	// modpublisher's `changelog = file("CHANGELOG.md")` (see the `publisher { }` block above)
+	// reads that file straight off disk when a publish task runs - it doesn't know about git tags
+	// or PRs. .github/workflows/release-notes.yaml (reactive, post-tag) can't help here: by the
+	// time it would generate this release's entry, the publish task attached to the tag has
+	// already read (and shipped) whatever was on disk before. This task closes that gap by
+	// generating CHANGELOG.md synchronously, right before any publish task reads it - see
+	// .github/scripts/generate_release_notes.py's module docstring for the two call shapes.
+	register<Exec>("generateChangelog") {
+		group = "publishing"
+		workingDir = rootDir
+		commandLine(
+			"python3", "../.github/scripts/generate_release_notes.py",
+			"--repo", "mod_source".prop!!.removePrefix("https://github.com/"),
+			"--new-tag", "v${project.version}",
+			"--range-end", "HEAD",
+			"--changelog-path", "CHANGELOG.md",
+		)
+	}
+	listOf("publishCurseforge", "publishModrinth", "publishGitHub", "publishMod").forEach {
+		named(it) { dependsOn(getByName("generateChangelog")) }
+	}
 }
