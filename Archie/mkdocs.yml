@@ -115,7 +115,9 @@ nav:
       - Serialization: serialization.md
       - Config System: config.md
       - GUI Framework: gui.md
+      - GameTest: gametest.md
       - Events: events.md
+      - Data Gen: datagen.md
       - Transfer & Inventory: transfer.md
       - Resource Packs: resource-packs.md
 # !!! EMBEDDED DOKKA START, DO NOT COMMIT !!! #
