@@ -119,9 +119,11 @@ val tabs = listOf(
 )
 val tabState = rememberTabContainerState(tabs)
 
-TabContainer(tabs = tabs, state = tabState) { selected ->
-    println("Selected tab: ${selected.id}")
-}
+TabContainer(
+    tabs = tabs,
+    state = tabState,
+    onTabSelected = { selected -> println("Selected tab: ${selected.id}") },
+)
 ```
 
 ### Animation helpers
@@ -188,6 +190,34 @@ Modifier
         onLongClick  = { _, _ -> println("held") },
     )
 ```
+
+---
+
+## Custom rendering helpers
+
+All built-in composables render via a `Layout(... renderer = object : Renderer { ... })`
+callback that receives a `GuiGraphics`. When writing your own `Renderer` (for a custom
+composable), a few extension helpers on `GuiGraphics` remove the usual boilerplate:
+
+```kotlin
+renderer = object : Renderer {
+    override fun render(
+        node: UINode, x: Int, y: Int,
+        guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float,
+    ) = guiGraphics {                  // GuiGraphics.invoke - `this` is the GuiGraphics below
+        pose {                         // pushes/pops the pose stack around the block
+            translate(x.toDouble(), y.toDouble(), 0.0)
+            scale(1.5f, 1.5f, 1.5f)
+        }
+        scissor(x, y, x + node.width, y + node.height) {  // enable/disableScissor around the block
+            drawString(minecraftClient.font, "Hi", x, y, KColor.WHITE.argb)
+        }
+    }
+}
+```
+
+`pose { }` and `scissor(minX, minY, maxX, maxY) { }` (also overloaded to take an `IntRect`)
+always restore the previous pose/scissor state afterwards, even if the block throws.
 
 ---
 
@@ -271,6 +301,7 @@ val custom = KColor.ofRgb(0xFF8000)
 val semi   = KColor.ofArgb(0x80FF0000L)
 val hsv    = KColor.ofHsv(0.33f, 1f, 0.8f)
 val argb   = custom.argb    // Int: 0xAARRGGBB
+val text   = custom.toTextColor()  // net.minecraft.network.chat.TextColor (RGB only, no alpha)
 ```
 
 ### `HsvColor`

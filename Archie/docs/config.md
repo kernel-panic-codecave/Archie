@@ -181,5 +181,10 @@ You don't build the settings screen yourself. `ConfigContainer.client` lazily bu
 matching `ClientDataSpec`) that mirrors your spec into a Cloth Config `ConfigBuilder` — one
 category per enabled entry. Saving routes through `ConfigSpec.save()` for `Common`/`Client`/
 `Startup` configs, or over the network via `ConfigSpec.Server`'s channel for `Server` configs.
-`ConfigContainer.init()` registers the resulting screen with the platform's mod-list UI — open it
-wherever you'd open any mod's config screen, e.g. via Mod Menu or Catalogue.
+`ConfigContainer.init()` registers the resulting screen via Architectury's
+`Mod.registerConfigurationScreen`, which surfaces it wherever the platform normally exposes a mod's
+config screen — Mod Menu's mod list on Fabric, the vanilla mod list's "Config" button on NeoForge.
+There's no more Archie-specific Mod Menu/Catalogue entrypoint to register yourself; the dedicated
+`ArchieModMenu`/`ArchieCatalogue` bridge classes were retired along with the old
+`AConfigPlatform.registerScreenHandler` mechanism they depended on, and Catalogue no longer has a
+working integration path as a result.

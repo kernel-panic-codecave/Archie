@@ -4,6 +4,11 @@ Archie provides a multi-layered serialization stack built on top of
 [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) and Mojang's
 [`Codec`](https://github.com/Mojang/DataFixerUpper) system.
 
+> This page covers the general-purpose NBT/Codec/kotlinx.serialization mechanisms (contextual
+> Minecraft-type serializers, the Codec bridge, `NBTHolder`, `@Sync`). Config file persistence
+> (`IConfigSerializer` and the JSON/JSON5/TOML/no-op implementations) is a separate, config-specific
+> layer documented in [config.md](config.md#formats).
+
 ---
 
 ## NBT helpers (`serialization/NBT.kt`)

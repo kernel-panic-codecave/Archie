@@ -98,17 +98,16 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, val title: Component, val 
 	abstract val predicate: () -> Boolean
 
 	/**
-	 * Registers all [categories] (and their subcategories) and [load]s the config file, then, on
-	 * the client, builds and registers the Cloth Config UI screen via [initClient]. Call once
-	 * during common mod init, on both physical sides.
+	 * Registers all [categories] (and their subcategories) and, for a [synchronized] spec,
+	 * registers this spec's [NetworkChannel] plus the player-join/quit listeners that push it to
+	 * joining clients and reset [isLoaded] on disconnect.
 	 *
-	 * [initClient] is invoked from here - synchronously, during the common `main` entrypoint -
-	 * rather than being left for callers to invoke from their own client entrypoint. Fabric loader
-	 * runs every mod's `main` entrypoint before any mod's `client` entrypoint, so this guarantees
-	 * the screen is registered with [AConfigPlatform] before Catalogue's own client entrypoint
-	 * takes its one-time snapshot of `configFactory` providers. Registering later (e.g. from a
-	 * `client` entrypoint) races that snapshot: depending on unrelated mods' load order, the
-	 * config button would intermittently be missing from Catalogue's mod list.
+	 * This does **not** load the config file or touch the client UI - each of [Common], [Client],
+	 * [Server], and [Startup] overrides this to additionally register the lifecycle event
+	 * (documented on that subclass) that calls [load] at the right time. The client-side settings
+	 * screen is built and registered separately, once every nested spec in the container is
+	 * initialized, by [ConfigContainer.initClient]. Call [ConfigContainer.init], not this method
+	 * directly.
 	 */
 	open fun init()
 	{
