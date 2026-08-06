@@ -115,7 +115,7 @@ filled with a solid color up to a `0f..1f` fraction, in any of four directions:
 
 ```kotlin
 ProgressBar(
-    progress = observeProperty("progress", 0).value ?: 0 / smeltTicks.toFloat(),
+    progress = (observeProperty("progress", 0).value ?: 0) / smeltTicks.toFloat(),
     direction = ProgressDirection.LEFT_TO_RIGHT,
 )
 

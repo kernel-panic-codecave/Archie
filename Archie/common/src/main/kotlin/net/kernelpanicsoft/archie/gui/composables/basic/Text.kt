@@ -86,11 +86,11 @@ fun Text(
                     pose {
                         scale(fontScale, fontScale, fontScale)
                         translate(x / fontScale, y / fontScale, 0f)
-                        drawString(font, text, 0, 0, color.rgb, dropShadow)
+                        drawString(font, text, 0, 0, color.argb, dropShadow)
                     }
                 } else
                 {
-                    drawString(font, text, x, y, color.rgb, dropShadow)
+                    drawString(font, text, x, y, color.argb, dropShadow)
                 }
             }
         },

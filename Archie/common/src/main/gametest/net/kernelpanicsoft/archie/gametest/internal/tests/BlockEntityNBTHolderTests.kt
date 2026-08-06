@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.gametest.internal.tests
 
+import dev.architectury.fluid.FluidStack
 import net.kernelpanicsoft.archie.gametest.internal.EMPTY
 import net.kernelpanicsoft.archie.serialization.NBTHolder
 import net.kernelpanicsoft.archie.serialization.Sync
@@ -8,10 +9,14 @@ import net.kernelpanicsoft.archie.serialization.mapField
 import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+import net.minecraft.world.level.material.Fluids
 
 /**
  * GameTest coverage for [NBTHolder]: default values, save/load round-tripping for scalar,
- * list, and map delegated fields, and that only [Sync]-annotated fields appear in the sync tag.
+ * list, map, item, fluid, and energy delegated fields, and that only [Sync]-annotated fields
+ * appear in the sync tag.
  */
 @Suppress("unused")
 class BlockEntityNBTHolderTests
@@ -26,6 +31,14 @@ class BlockEntityNBTHolderTests
 
 		@Sync
 		var syncedCounter by intField { 7 }
+	}
+
+	/** [NBTHolder] with one of each resource-storage field kind, used only by the test below. */
+	private class ResourceFixture : NBTHolder by NBTHolder.create()
+	{
+		val items by itemField(1)
+		val tank by fluidField(FluidStack.bucketAmount() * 2)
+		val energy by energyField(1_000)
 	}
 
 	@GameTest(template = EMPTY)
@@ -81,6 +94,31 @@ class BlockEntityNBTHolderTests
 		assertTrue("counter" !in syncTag) {
 			"Expected sync tag to exclude non-synced field"
 		}
+		succeed()
+	}
+
+	@GameTest(template = EMPTY)
+	fun GameTestHelper.testItemFluidAndEnergyFieldsPersistMutations()
+	{
+		val holder = ResourceFixture()
+		holder.items[0].set(ItemStack(Items.DIAMOND, 5))
+		holder.tank[0].set(FluidStack.create(Fluids.WATER, FluidStack.bucketAmount()))
+		holder.energy.insert(400, false)
+
+		val tag = CompoundTag()
+		holder.saveToTag(tag)
+
+		val loaded = ResourceFixture()
+		loaded.loadFromTag(tag)
+
+		assertEquals(ItemStack(Items.DIAMOND, 5).item, loaded.items[0].getItem().item)
+		assertEquals(5, loaded.items[0].getItem().count)
+		assertEquals(FluidStack.bucketAmount(), loaded.tank[0].getFluid().amount)
+		assertTrue(loaded.tank[0].getFluid().fluid == Fluids.WATER) {
+			"Expected loaded tank to still hold water"
+		}
+		assertEquals(400L, loaded.energy.getStoredAmount())
+		assertEquals(1_000L, loaded.energy.getCapacity())
 		succeed()
 	}
 

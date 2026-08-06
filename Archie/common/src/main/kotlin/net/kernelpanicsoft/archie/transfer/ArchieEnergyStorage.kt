@@ -92,12 +92,17 @@ class ArchieEnergyStorage(
 	/** Snapshots this storage's [getCapacity] and stored amount as an [NbtTag], for save/sync. */
 	override fun createSnapshot(): NbtTag = NBT.encodeToNbtTagRootless(serializer(), this)
 
-	/** Restores this storage's capacity and stored amount from a snapshot produced by [createSnapshot]. */
+	/**
+	 * Restores this storage's capacity and stored amount from a snapshot produced by
+	 * [createSnapshot]. `capacity` is clamped to non-negative and `amount` to `0..capacity` - a
+	 * malformed or stale snapshot (e.g. from before a capacity change) shouldn't be able to leave
+	 * this storage over-capacity or negative, which would otherwise wedge [insert]/[extract].
+	 */
 	override fun readSnapshot(snapshot: NbtTag)
 	{
 		val decoded = NBT.decodeFromNbtTagRootless(serializer(), snapshot)
-		this.capacity = decoded.capacity
-		this.amount = decoded.amount
+		this.capacity = decoded.capacity.coerceAtLeast(0)
+		this.amount = decoded.amount.coerceIn(0, this.capacity)
 	}
 
 	override fun update() = onUpdate()
@@ -112,8 +117,8 @@ class ArchieEnergyStorage(
 
 		override fun deserialize(decoder: Decoder): ArchieEnergyStorage
 		{
-			val capacity = decoder.decodeLong()
-			val amount = decoder.decodeLong()
+			val capacity = decoder.decodeLong().coerceAtLeast(0)
+			val amount = decoder.decodeLong().coerceIn(0, capacity)
 			return ArchieEnergyStorage(capacity).also { it.amount = amount }
 		}
 
