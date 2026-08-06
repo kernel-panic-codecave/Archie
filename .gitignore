@@ -25,6 +25,8 @@ docs/api
 site
 .architectury-transformer
 */.kotlin
+__pycache__/
+*.pyc
 
 # Engram local graph (personal)
 .engram/
