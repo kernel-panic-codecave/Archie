@@ -69,6 +69,12 @@ subprojects {
 		val githubToken = "github_token".localOrEnv
 		mavenCentral()
 		mavenLocal()
+		google {
+			content {
+				includeGroupByRegex("androidx\\..*")
+				includeGroupByRegex("com\\.android.*")
+			}
+		}
 		maven {
 			name = "kernelpanic releases"
 			url = uri("https://maven.kernelpanicsoft.net/releases")
@@ -87,7 +93,11 @@ subprojects {
 		maven("https://maven.isxander.dev/releases") {
 			name = "Xander Maven"
 		}
-		maven("https://maven.resourcefulbees.com/repository/maven-public/")
+		maven("https://maven.resourcefulbees.com/repository/maven-public/") {
+			content {
+				includeGroup("earth.terrarium.common_storage_lib")
+			}
+		}
 		maven {
 			url = uri("https://maven.pkg.github.com/MrCrayfish/Maven")
 			credentials {
