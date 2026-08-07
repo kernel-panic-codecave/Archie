@@ -231,6 +231,7 @@ publisher {
 
 	curseID = "1029738"
 	modrinthID = "archie"
+	githubRepo = "https://github.com/kernel-panic-codecave/Archie"
 
 	projectVersion = "${libs.versions.minecraft.get()}-${project.version}"
 	displayName = "Archie-Merged-${projectVersion.get()}"
@@ -244,15 +245,18 @@ publisher {
 	changelog = file("CHANGELOG.md")
 
 	curseDepends {
-		required = listOf("fabric-api", "fabric-language-kotlin", "kotlin-for-forge", "architectury-api", "cloth-config")
+		required = listOf("fabric-api", "fabric-language-kotlin", "kotlinlangforge", "architectury-api", "cloth-config")
 	}
 
 	modrinthDepends {
-		required = listOf("fabric-api", "fabric-language-kotlin", "kotlin-for-forge", "architectury-api", "cloth-config")
+		required = listOf("fabric-api", "fabric-language-kotlin", "kotlin-lang-forge", "architectury-api", "cloth-config")
 	}
 }
 
 tasks {
+	named("publish") {
+		dependsOn(publishMod)
+	}
 	check {
 		dependsOn(project(":common").tasks.check)
 		dependsOn(project(":fabric").tasks.check)

@@ -142,27 +142,27 @@ tasks {
 	}
 }
 
-//publishing {
-//	publications.create<MavenPublication>("mavenCommon") {
-//		artifactId = base.archivesName.get()
-//		from(components["java"])
-//	}
-//
-//	repositories {
-//		mavenLocal()
-//		maven {
-//			val releasesRepoUrl = "https://example.com/releases"
-//			val snapshotsRepoUrl = "https://example.com/snapshots"
-//			url = uri(
-//				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
-//						.startsWith("0")
-//				) snapshotsRepoUrl else releasesRepoUrl
-//			)
-//			name = "ExampleRepo"
-//			credentials {
-//				username = project.properties["repoLogin"]?.toString()
-//				password = project.properties["repoPassword"]?.toString()
-//			}
-//		}
-//	}
-//}
+publishing {
+	publications.create<MavenPublication>("mavenCommon") {
+		artifactId = base.archivesName.get()
+		from(components["java"])
+	}
+
+	repositories {
+		mavenLocal()
+		maven {
+			name = "Reposilite"
+			val releasesUrl = "https://maven.kernelpanicsoft.net/releases"
+			val snapshotsUrl = "https://maven.kernelpanicsoft.net/snapshots"
+
+			url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl)
+
+			credentials {
+				username = localProperties?.getProperty("reposilite.username")
+					?: System.getenv("REPOSILITE_USERNAME")
+				password = localProperties?.getProperty("reposilite.password")
+					?: System.getenv("REPOSILITE_PASSWORD")
+			}
+		}
+	}
+}

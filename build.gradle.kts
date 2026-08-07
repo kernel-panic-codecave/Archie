@@ -15,7 +15,7 @@ tasks {
         dependsOn(gradle.includedBuild("Archie-Test").task(":check"))
     }
 
-    val syncRunConfigurations by registering {
+    register("syncRunConfigurations") {
         group = "ide"
         description = "Regenerates each included build's run configurations, then copies them up to the composite root's .idea folder."
 
@@ -44,9 +44,5 @@ tasks {
                 }
             }
         }
-    }
-
-    task("ideaSyncTask") {
-        dependsOn(syncRunConfigurations)
     }
 }

@@ -31,6 +31,8 @@ data class IntRect(
         return if (ax <= ix || ay <= iy) null else IntRect(ix, iy, ax, ay)
     }
 
+    operator fun div(other: IntRect): IntRect? = intersect(other)
+
     companion object {
         /** A rect with zero bounds on every side. */
         val EMPTY: IntRect = IntRect(0, 0, 0, 0)

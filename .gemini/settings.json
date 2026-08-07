@@ -2,7 +2,7 @@
   "mcpServers": {
     "engram": {
       "command": "/home/kernelpanic/.local/bin/engram-alpha",
-      "args": ["mcp", "--db", "/home/kernelpanic/IdeaProjects/Archie/.engram/graph.db"]
+      "args": ["mcp", "--db", "/home/kernelpanic/IdeaProjects/Archie/.engram/graph.tepin"]
     }
   }
 }
