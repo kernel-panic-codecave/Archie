@@ -10,8 +10,11 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
+import kotlinx.serialization.encoding.encodeStructure
 import net.benwoodworth.knbt.NbtTag
 import net.kernelpanicsoft.archie.serialization.NBT
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
@@ -93,14 +96,31 @@ open class ArchieFluidStorage private constructor(
 
 		override fun deserialize(decoder: Decoder): ArchieFluidStorage
 		{
-			val limit = decoder.decodeLong()
-			return ArchieFluidStorage(limit, NonNullList.of(ArchieFluidSlot(limit), *surrogate.deserialize(decoder).toTypedArray()))
+			return decoder.decodeStructure(descriptor)
+			{
+				var limit = 0L
+				var slots: List<ArchieFluidSlot> = emptyList()
+				while (true)
+				{
+					when (val index = decodeElementIndex(descriptor))
+					{
+						0 -> limit = decodeLongElement(descriptor, 0)
+						1 -> slots = decodeSerializableElement(descriptor, 1, surrogate)
+						CompositeDecoder.DECODE_DONE -> break
+						else -> error("Unexpected index: $index")
+					}
+				}
+				ArchieFluidStorage(limit, NonNullList.of(ArchieFluidSlot(limit), *slots.toTypedArray()))
+			}
 		}
 
 		override fun serialize(encoder: Encoder, value: ArchieFluidStorage)
 		{
-			encoder.encodeLong(value.limit)
-			surrogate.serialize(encoder, value.slots)
+			encoder.encodeStructure(descriptor)
+			{
+				encodeLongElement(descriptor, 0, value.limit)
+				encodeSerializableElement(descriptor, 1, surrogate, value.slots)
+			}
 		}
 	}
 }

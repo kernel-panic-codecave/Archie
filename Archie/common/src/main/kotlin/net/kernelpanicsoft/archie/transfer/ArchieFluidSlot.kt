@@ -12,8 +12,11 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
 import kotlinx.serialization.descriptors.nullable
+import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
+import kotlinx.serialization.encoding.encodeStructure
 import net.benwoodworth.knbt.NbtTag
 import net.kernelpanicsoft.archie.serialization.NBT
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
@@ -154,7 +157,22 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 
 		override fun deserialize(decoder: Decoder): ArchieFluidSlot
 		{
-			return ArchieFluidSlot(decoder.decodeLong(), surrogate.deserialize(decoder))
+			return decoder.decodeStructure(descriptor)
+			{
+				var limit = 0L
+				var resourceStack: ResourceStack<FluidResource>? = null
+				while (true)
+				{
+					when (val index = decodeElementIndex(descriptor))
+					{
+						0 -> limit = decodeLongElement(descriptor, 0)
+						1 -> resourceStack = decodeNullableSerializableElement(descriptor, 1, surrogate)
+						CompositeDecoder.DECODE_DONE -> break
+						else -> error("Unexpected index: $index")
+					}
+				}
+				ArchieFluidSlot(limit, resourceStack ?: ResourceStack(FluidResource.BLANK, 0))
+			}
 		}
 
 		override fun serialize(
@@ -162,8 +180,11 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 			value: ArchieFluidSlot
 		)
 		{
-			encoder.encodeLong(value.limit)
-			surrogate.serialize(encoder, value.resourceStack)
+			encoder.encodeStructure(descriptor)
+			{
+				encodeLongElement(descriptor, 0, value.limit)
+				encodeNullableSerializableElement(descriptor, 1, surrogate, value.resourceStack)
+			}
 		}
 	}
 }
