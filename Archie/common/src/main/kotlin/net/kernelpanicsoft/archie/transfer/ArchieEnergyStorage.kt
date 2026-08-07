@@ -7,8 +7,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
+import kotlinx.serialization.encoding.encodeStructure
 import net.benwoodworth.knbt.NbtTag
 import net.kernelpanicsoft.archie.serialization.NBT
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
@@ -117,15 +120,31 @@ class ArchieEnergyStorage(
 
 		override fun deserialize(decoder: Decoder): ArchieEnergyStorage
 		{
-			val capacity = decoder.decodeLong().coerceAtLeast(0)
-			val amount = decoder.decodeLong().coerceIn(0, capacity)
-			return ArchieEnergyStorage(capacity).also { it.amount = amount }
+			return decoder.decodeStructure(descriptor)
+			{
+				var capacity = 0L
+				var amount = 0L
+				while (true)
+				{
+					when (val index = decodeElementIndex(descriptor))
+					{
+						0 -> capacity = decodeLongElement(descriptor, 0).coerceAtLeast(0)
+						1 -> amount = decodeLongElement(descriptor, 1)
+						CompositeDecoder.DECODE_DONE -> break
+						else -> error("Unexpected index: $index")
+					}
+				}
+				ArchieEnergyStorage(capacity).also { it.amount = amount.coerceIn(0, capacity) }
+			}
 		}
 
 		override fun serialize(encoder: Encoder, value: ArchieEnergyStorage)
 		{
-			encoder.encodeLong(value.capacity)
-			encoder.encodeLong(value.amount)
+			encoder.encodeStructure(descriptor)
+			{
+				encodeLongElement(descriptor, 0, value.capacity)
+				encodeLongElement(descriptor, 1, value.amount)
+			}
 		}
 	}
 }

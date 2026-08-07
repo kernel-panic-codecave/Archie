@@ -123,6 +123,23 @@ fun ClientGameTestContext.testComposeScreenMeasuresRenderableNode() {
 See `ComposeRenderingTests.kt` for a full example. Registered the same way, via `register<TestClass>()`
 inside the `client { }` block.
 
+**Known open issue - client GameTests are intermittently flaky (~1-in-5), cause not confirmed.**
+Repeated local runs of `neoforge:runGametestClient` show a different click/animation-driven test
+failing each time (`ConfirmDialog`, `RadioGroup`, ...) with `IllegalStateException: Predicate did
+not become true within 200 ticks` and no logged exception - not a per-test logic bug. The specific
+`isComposeIdle()` TOCTOU gap documented in `ComposeScreen.kt`'s KDoc is already fixed (it now uses
+`Recomposer.hasPendingWork`, not the old `recomposeJob`-based check), so that's not the live cause.
+The likely remaining gap: `ComposeScreen`'s coroutine scope (`CoroutineScope(Dispatchers.Default) +
+BroadcastFrameClock`) runs on **real** threads/wall-clock time, so a composable's `delay(...)` (e.g.
+`ConfirmDialog`'s close animation) genuinely races the harness's tick-based polling and the real
+render loop's frame delivery. Real Jetpack Compose's own test tooling
+(`ComposeTestRule`/`runComposeUiTest`) avoids this whole class of race by backing the composition
+with a *virtual* clock/dispatcher (`TestMonotonicFrameClock` over `StandardTestDispatcher`) that
+`waitForIdle()` drives forward deterministically, instead of polling real concurrency - Archie's
+harness has no equivalent. A real fix likely means a test-only virtual-clock/dispatcher swap for
+`ComposeScreen` during GameTests, not another polling tweak. Not yet attempted - would need live
+instrumentation to confirm before changing anything.
+
 ### Current test coverage
 - `ArchieItemHandlerTests` (`server`) – item storage/handler behavior
 - `BlockEntityNBTHolderTests` (`server`) – `NBTHolder` field defaults, save/load round-tripping, `@Sync` filtering
