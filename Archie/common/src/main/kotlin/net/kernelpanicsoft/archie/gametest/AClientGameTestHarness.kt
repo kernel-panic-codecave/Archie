@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.gametest
 
 import com.mojang.realmsclient.RealmsMainScreen
 import dev.architectury.platform.Mod
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import net.kernelpanicsoft.archie.Archie
@@ -1494,6 +1495,7 @@ data class AClientGameTestSummary(
  * No-ops (returning an all-zero summary) unless [side] is [AGameTestSide.CLIENT].
  */
 object AClientGameTestHarness {
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun run(modToClasses: Map<Mod, List<Class<*>>>, side: AGameTestSide?): AClientGameTestSummary {
         if (side != AGameTestSide.CLIENT) return AClientGameTestSummary(passed = 0, failed = 0, skipped = 0)
 

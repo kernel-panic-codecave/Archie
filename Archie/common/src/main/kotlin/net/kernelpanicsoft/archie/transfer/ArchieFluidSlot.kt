@@ -5,6 +5,7 @@ import earth.terrarium.common_storage_lib.resources.ResourceStack
 import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
 import earth.terrarium.common_storage_lib.storage.base.StorageSlot
 import earth.terrarium.common_storage_lib.storage.base.UpdateManager
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
@@ -147,6 +148,7 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 	}
 
 	/** Serializes an [ArchieFluidSlot] as its [limit] followed by its [ResourceStack] (or `null` when blank). */
+	@OptIn(ExperimentalSerializationApi::class)
 	object Serializer : KSerializer<ArchieFluidSlot>
 	{
 		private val surrogate = ResourceStack.FLUID_CODEC.kSerializer
