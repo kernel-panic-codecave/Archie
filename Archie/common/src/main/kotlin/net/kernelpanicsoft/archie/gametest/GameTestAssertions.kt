@@ -1,11 +1,11 @@
-package net.kernelpanicsoft.archie.gametest.internal.tests
+package net.kernelpanicsoft.archie.gametest
 
 import net.minecraft.gametest.framework.GameTestHelper
 
 /**
  * Fails this GameTest via [GameTestHelper.fail] with [message] if [condition] is `false`.
  */
-internal fun GameTestHelper.assertTrue(condition: Boolean, message: () -> String)
+fun GameTestHelper.assertTrue(condition: Boolean, message: () -> String)
 {
 	if (!condition) {
 		fail(message())
@@ -17,7 +17,7 @@ internal fun GameTestHelper.assertTrue(condition: Boolean, message: () -> String
  *
  * @param message Failure message builder; defaults to reporting both values.
  */
-internal fun <T> GameTestHelper.assertEquals(
+fun <T> GameTestHelper.assertEquals(
 	expected: T,
 	actual: T,
 	message: () -> String = { "Expected <$expected>, got <$actual>" },
@@ -34,7 +34,7 @@ internal fun <T> GameTestHelper.assertEquals(
  *
  * @return The caught exception of type [T].
  */
-internal inline fun <reified T : Throwable> GameTestHelper.expectThrows(noinline block: () -> Unit): T
+inline fun <reified T : Throwable> GameTestHelper.expectThrows(noinline block: () -> Unit): T
 {
 	return try {
 		block()
@@ -48,5 +48,3 @@ internal inline fun <reified T : Throwable> GameTestHelper.expectThrows(noinline
 		}
 	}
 }
-
-

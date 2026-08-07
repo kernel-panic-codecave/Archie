@@ -94,8 +94,9 @@ fun GameTestHelper.testFieldDefaultsAndPersistenceRoundTrip() {
 }
 ```
 
-- **Assertions**: internal extension functions on `GameTestHelper` from `GameTestAssertions.kt`
-  (`.../gametest/internal/tests/GameTestAssertions.kt`), called unqualified inside a test method:
+- **Assertions**: public extension functions on `GameTestHelper` from `GameTestAssertions.kt`
+  (`net.kernelpanicsoft.archie.gametest.GameTestAssertions.kt` — import them, they're not
+  same-package with your test class), usable by consuming mods too, not just Archie's own suite:
   - `assertEquals(expected, actual)` – check equality, with an optional custom `message` lambda
   - `assertTrue(condition) { message }` – check a boolean condition
   - `expectThrows<ExceptionType> { block }` – assert `block` throws `ExceptionType`, returns the caught exception

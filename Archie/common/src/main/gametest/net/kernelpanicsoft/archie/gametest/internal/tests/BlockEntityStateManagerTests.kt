@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie.gametest.internal.tests
 
 import kotlinx.serialization.builtins.serializer
+import net.kernelpanicsoft.archie.gametest.assertEquals
+import net.kernelpanicsoft.archie.gametest.assertTrue
 import net.kernelpanicsoft.archie.gametest.internal.EMPTY
 import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
 import net.minecraft.core.BlockPos
