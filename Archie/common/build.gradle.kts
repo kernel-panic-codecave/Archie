@@ -62,6 +62,14 @@ sourceSets {
 dependencies {
 	compileOnly(kotlin("reflect"))
 	implementation(libs.junit.jupiter.api)
+	// Used by the client GameTest harness only (AClientGameTestHarness.kt) to give ComposeScreen a
+	// virtual clock/dispatcher during tests. compileOnly (not implementation/api) deliberately -
+	// this must never end up in the shipped jar. ComposeScreen itself never references
+	// kotlinx.coroutines.test.* symbols directly (only AClientGameTestHarness.kt's method bodies
+	// do, and those only ever run under AGameTestPlatform.isGameTest), so a real player's game -
+	// which never has this on its classpath - never needs to resolve it. Loader modules add it
+	// back as runtimeOnly (not bundled - see AGENTS.md) so local `runGametestClient` has it.
+	compileOnly(libs.kotlinx.coroutines.test)
 	testImplementation(libs.junit.jupiter.api)
 	testImplementation(kotlin("reflect"))
 	testRuntimeOnly(libs.junit.jupiter.engine)

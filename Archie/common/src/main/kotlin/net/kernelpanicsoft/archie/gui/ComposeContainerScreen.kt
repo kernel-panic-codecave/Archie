@@ -86,7 +86,11 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
     private var hasFrameWaiters = false
     private val clock = BroadcastFrameClock { hasFrameWaiters = true }
 
-    private val composeScope = CoroutineScope(Dispatchers.Default) + clock
+    // See ComposeScreen's identical fields for why this is captured once and untyped against
+    // kotlinx-coroutines-test.
+    private val testPump = ComposeTestClockOverride.pump
+
+    private val composeScope = CoroutineScope(ComposeTestClockOverride.dispatcher ?: Dispatchers.Default) + clock
     final override val coroutineContext: CoroutineContext = composeScope.coroutineContext
 
     final override lateinit var layerManager: LayerStackManager
@@ -165,6 +169,8 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
      * job is launched if there are pending frame waiters.
      */
     open fun renderNodes(baseLayer: Boolean, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        // See ComposeScreen.renderNodes for why this runs first.
+        testPump?.invoke()
         if (asynchronous) {
             recomposeJob?.let { job ->
                 runBlocking {

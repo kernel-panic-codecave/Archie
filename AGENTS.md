@@ -123,6 +123,35 @@ fun ClientGameTestContext.testComposeScreenMeasuresRenderableNode() {
 See `ComposeRenderingTests.kt` for a full example. Registered the same way, via `register<TestClass>()`
 inside the `client { }` block.
 
+**Client GameTests run on a virtual clock/dispatcher, not real threads.** `ComposeScreen`/
+`ComposeContainerScreen` normally back their coroutine scope with `Dispatchers.Default` and real
+wall-clock time, so a composable's `delay(...)` (e.g. a dialog's close animation) genuinely raced
+real thread scheduling and frame delivery against the harness's tick-based polling - roughly a
+1-in-5 failure rate, a different test failing each time, no logged exception. Real Jetpack
+Compose's own test tooling avoids this whole class of race by backing composition with a virtual
+clock/dispatcher instead of real concurrency; `AClientGameTestHarness.kt`'s `run()` now does the
+same, installing a `ComposeTestClockOverride` (`common/src/main/kotlin/net/kernelpanicsoft/archie/gui/ComposeScreen.kt`)
+around each test - a `StandardTestDispatcher` plus a per-frame `scheduler.advanceTimeBy(50)` pump
+called from `renderNodes()`. Confirmed fixed: 8 consecutive full local `neoforge:runGametestClient`
+runs (131 individual tests total, including the previously-flaky ones), zero failures.
+
+Use `advanceTimeBy(bounded)`, never `advanceUntilIdle()`, for that pump - composables can run
+legitimately infinite `delay()` loops (e.g. `TextFieldCore`'s blinking-cursor `LaunchedEffect`),
+and `advanceUntilIdle()` only returns once truly nothing is scheduled anywhere, which for an
+unboundedly-recurring loop is never. The first attempt at this fix used `advanceUntilIdle()` and
+hung the render thread permanently the moment any screen with a focused text field was tested -
+every subsequent test in that run then failed too, since the client's main-thread executor queue
+never got a chance to run again (`client.screen` frozen at whatever it was when the hang started).
+
+`kotlinx-coroutines-test` (the dependency this needs) is dev/test-only - `compileOnly` in
+`common/build.gradle.kts`, `runtimeLibrary(...)` (present for local runs like
+`runGametestClient`, never bundled into the shipped jar) in the loader modules. `ComposeScreen`
+itself never references `kotlinx.coroutines.test.*` symbols directly (only `AClientGameTestHarness`'s
+method bodies do, and those only run under `AGameTestPlatform.isGameTest`) - it only holds a plain
+`CoroutineDispatcher?` and a `(() -> Unit)?` pump callback, both already-bundled core/stdlib types,
+specifically so a real player's game (which never has the test dependency on its classpath) never
+needs to resolve it.
+
 ### Current test coverage
 - `ArchieItemHandlerTests` (`server`) – item storage/handler behavior
 - `BlockEntityNBTHolderTests` (`server`) – `NBTHolder` field defaults, save/load round-tripping, `@Sync` filtering
