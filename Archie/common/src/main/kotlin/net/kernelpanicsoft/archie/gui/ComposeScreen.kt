@@ -44,6 +44,40 @@ interface LayerManagerProvider
 }
 
 /**
+ * Test-only override, installed by the client GameTest harness (`AClientGameTestHarness.kt`),
+ * that swaps [ComposeScreen]'s real-time coroutine dispatcher for a virtual one so a composable's
+ * `delay(...)` (e.g. a dialog's close animation) resolves deterministically against a scheduler
+ * the harness drives itself, instead of racing real wall-clock time, real thread scheduling, and
+ * the harness's tick-based polling - the same class of flakiness Jetpack Compose's own test
+ * tooling (`ComposeTestRule`/`runComposeUiTest`) avoids by construction, backing composition with
+ * a virtual clock/dispatcher that `waitForIdle()` drives forward instead of polling real
+ * concurrency. `null` unless a client GameTest explicitly installs one; the running game never
+ * touches this.
+ *
+ * Deliberately untyped against `kotlinx-coroutines-test` (`CoroutineDispatcher` is a
+ * kotlinx-coroutines-core type; `pump` is a plain lambda) - that dependency is dev/test-only
+ * (`compileOnly` in `common`, `runtimeLibrary` - present for local runs, never bundled - in the
+ * loader modules; see `common/build.gradle.kts`). [ComposeScreen] is loaded by every screen in
+ * the mod, so its own class file must never reference a symbol that isn't resolvable in a real
+ * player's game; only [AClientGameTestHarness]'s method bodies (never invoked outside
+ * `AGameTestPlatform.isGameTest`) construct the actual `StandardTestDispatcher`/
+ * `TestCoroutineScheduler` instances installed here.
+ */
+internal object ComposeTestClockOverride {
+    /** The dispatcher to back new [ComposeScreen]s' coroutine scope with, in place of [kotlinx.coroutines.Dispatchers.Default]. */
+    @Volatile
+    var dispatcher: CoroutineDispatcher? = null
+
+    /**
+     * Called once per real rendered frame by every live [ComposeScreen] while installed - drains
+     * all outstanding virtual-time work (recomposition, effects, `delay(...)`) synchronously on
+     * the render thread. Set alongside [dispatcher] to `{ scheduler.advanceUntilIdle() }`.
+     */
+    @Volatile
+    var pump: (() -> Unit)? = null
+}
+
+/**
  * A Compose-driven Minecraft [Screen] base class with layer support, async recomposition,
  * and full pointer/keyboard input dispatch.
  *
@@ -75,7 +109,12 @@ abstract class ComposeScreen(
     private var hasFrameWaiters = false
     private val clock = BroadcastFrameClock { hasFrameWaiters = true }
 
-    private val composeScope = CoroutineScope(Dispatchers.Default) + clock
+    // Captured once at construction (not read live from ComposeTestClockOverride elsewhere) so
+    // this screen keeps working consistently even if a later test installs/clears the override
+    // while this screen is still disposing.
+    private val testPump = ComposeTestClockOverride.pump
+
+    private val composeScope = CoroutineScope(ComposeTestClockOverride.dispatcher ?: Dispatchers.Default) + clock
     final override val coroutineContext: CoroutineContext = composeScope.coroutineContext
 
     final override lateinit var layerManager: LayerStackManager
@@ -149,6 +188,11 @@ abstract class ComposeScreen(
      * job is launched if there are pending frame waiters.
      */
     open fun renderNodes(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        // Under a client GameTest's virtual dispatcher (see ComposeTestClockOverride), nothing
+        // launched on composeScope runs on its own - it only progresses when the scheduler backing
+        // it is advanced. Doing that here, once per real rendered frame, deterministically flushes
+        // recomposition/effects/delay() before the join below, instead of racing real threads.
+        testPump?.invoke()
         if (asynchronous) {
             recomposeJob?.let { runBlocking { it.join() } }
             recomposeJob = null

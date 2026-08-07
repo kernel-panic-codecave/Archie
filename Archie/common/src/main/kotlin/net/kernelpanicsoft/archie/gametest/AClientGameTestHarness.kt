@@ -2,8 +2,12 @@ package net.kernelpanicsoft.archie.gametest
 
 import com.mojang.realmsclient.RealmsMainScreen
 import dev.architectury.platform.Mod
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.ComposeIdleAware
+import net.kernelpanicsoft.archie.gui.ComposeTestClockOverride
 import net.kernelpanicsoft.archie.gui.LayerManagerProvider
 import net.kernelpanicsoft.archie.util.setReflection
 import net.minecraft.SharedConstants
@@ -1491,6 +1495,7 @@ data class AClientGameTestSummary(
  * No-ops (returning an all-zero summary) unless [side] is [AGameTestSide.CLIENT].
  */
 object AClientGameTestHarness {
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun run(modToClasses: Map<Mod, List<Class<*>>>, side: AGameTestSide?): AClientGameTestSummary {
         if (side != AGameTestSide.CLIENT) return AClientGameTestSummary(passed = 0, failed = 0, skipped = 0)
 
@@ -1531,21 +1536,43 @@ object AClientGameTestHarness {
                         return@forEach
                     }
 
-                    runCatching {
-                        context.getInput().clearInputs()
-                        method.isAccessible = true
-                        if (params.isEmpty()) method.invoke(instance)
-                        else method.invoke(instance, context)
-                    }.onSuccess {
-                        context.getInput().clearInputs()
-                        passed++
-                        Archie.LOGGER.info("[ClientGameTest] PASS {}", testId)
-                    }.onFailure { error ->
-                        runCatching { context.getInput().clearInputs() }
-                        failed++
-                        failedTests += testId
-                        failedDetails += AClientGameTestFailure(testId, rootCauseSummary(error))
-                        Archie.LOGGER.error("[ClientGameTest] FAIL {}", testId, error)
+                    // Give every ComposeScreen this test opens a virtual clock/dispatcher (see
+                    // ComposeTestClockOverride's KDoc) instead of real threads/wall-clock time -
+                    // installed here (not the render thread) since setScreen{} dispatches actual
+                    // screen construction there, but reads the override via a plain shared
+                    // static, not a ThreadLocal. Always cleared, even on failure, so it can never
+                    // leak into the next test or (in principle) the running game.
+                    //
+                    // advanceTimeBy(bounded), NOT advanceUntilIdle() - composables can run
+                    // legitimately infinite delay() loops (e.g. TextFieldCore's blinking-cursor
+                    // LaunchedEffect), and advanceUntilIdle() only returns once truly nothing is
+                    // scheduled, which for an unboundedly-recurring loop is never: it hangs the
+                    // render thread forever the first time such a composable is on screen. A fixed
+                    // per-pump increment (~1 tick) makes every delay() progress a little on every
+                    // real frame instead, bounded and hang-proof either way.
+                    val scheduler = TestCoroutineScheduler()
+                    ComposeTestClockOverride.dispatcher = StandardTestDispatcher(scheduler)
+                    ComposeTestClockOverride.pump = { scheduler.advanceTimeBy(50) }
+                    try {
+                        runCatching {
+                            context.getInput().clearInputs()
+                            method.isAccessible = true
+                            if (params.isEmpty()) method.invoke(instance)
+                            else method.invoke(instance, context)
+                        }.onSuccess {
+                            context.getInput().clearInputs()
+                            passed++
+                            Archie.LOGGER.info("[ClientGameTest] PASS {}", testId)
+                        }.onFailure { error ->
+                            runCatching { context.getInput().clearInputs() }
+                            failed++
+                            failedTests += testId
+                            failedDetails += AClientGameTestFailure(testId, rootCauseSummary(error))
+                            Archie.LOGGER.error("[ClientGameTest] FAIL {}", testId, error)
+                        }
+                    } finally {
+                        ComposeTestClockOverride.dispatcher = null
+                        ComposeTestClockOverride.pump = null
                     }
                 }
             }

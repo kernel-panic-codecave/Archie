@@ -123,22 +123,34 @@ fun ClientGameTestContext.testComposeScreenMeasuresRenderableNode() {
 See `ComposeRenderingTests.kt` for a full example. Registered the same way, via `register<TestClass>()`
 inside the `client { }` block.
 
-**Known open issue - client GameTests are intermittently flaky (~1-in-5), cause not confirmed.**
-Repeated local runs of `neoforge:runGametestClient` show a different click/animation-driven test
-failing each time (`ConfirmDialog`, `RadioGroup`, ...) with `IllegalStateException: Predicate did
-not become true within 200 ticks` and no logged exception - not a per-test logic bug. The specific
-`isComposeIdle()` TOCTOU gap documented in `ComposeScreen.kt`'s KDoc is already fixed (it now uses
-`Recomposer.hasPendingWork`, not the old `recomposeJob`-based check), so that's not the live cause.
-The likely remaining gap: `ComposeScreen`'s coroutine scope (`CoroutineScope(Dispatchers.Default) +
-BroadcastFrameClock`) runs on **real** threads/wall-clock time, so a composable's `delay(...)` (e.g.
-`ConfirmDialog`'s close animation) genuinely races the harness's tick-based polling and the real
-render loop's frame delivery. Real Jetpack Compose's own test tooling
-(`ComposeTestRule`/`runComposeUiTest`) avoids this whole class of race by backing the composition
-with a *virtual* clock/dispatcher (`TestMonotonicFrameClock` over `StandardTestDispatcher`) that
-`waitForIdle()` drives forward deterministically, instead of polling real concurrency - Archie's
-harness has no equivalent. A real fix likely means a test-only virtual-clock/dispatcher swap for
-`ComposeScreen` during GameTests, not another polling tweak. Not yet attempted - would need live
-instrumentation to confirm before changing anything.
+**Client GameTests run on a virtual clock/dispatcher, not real threads.** `ComposeScreen`/
+`ComposeContainerScreen` normally back their coroutine scope with `Dispatchers.Default` and real
+wall-clock time, so a composable's `delay(...)` (e.g. a dialog's close animation) genuinely raced
+real thread scheduling and frame delivery against the harness's tick-based polling - roughly a
+1-in-5 failure rate, a different test failing each time, no logged exception. Real Jetpack
+Compose's own test tooling avoids this whole class of race by backing composition with a virtual
+clock/dispatcher instead of real concurrency; `AClientGameTestHarness.kt`'s `run()` now does the
+same, installing a `ComposeTestClockOverride` (`common/src/main/kotlin/net/kernelpanicsoft/archie/gui/ComposeScreen.kt`)
+around each test - a `StandardTestDispatcher` plus a per-frame `scheduler.advanceTimeBy(50)` pump
+called from `renderNodes()`. Confirmed fixed: 8 consecutive full local `neoforge:runGametestClient`
+runs (131 individual tests total, including the previously-flaky ones), zero failures.
+
+Use `advanceTimeBy(bounded)`, never `advanceUntilIdle()`, for that pump - composables can run
+legitimately infinite `delay()` loops (e.g. `TextFieldCore`'s blinking-cursor `LaunchedEffect`),
+and `advanceUntilIdle()` only returns once truly nothing is scheduled anywhere, which for an
+unboundedly-recurring loop is never. The first attempt at this fix used `advanceUntilIdle()` and
+hung the render thread permanently the moment any screen with a focused text field was tested -
+every subsequent test in that run then failed too, since the client's main-thread executor queue
+never got a chance to run again (`client.screen` frozen at whatever it was when the hang started).
+
+`kotlinx-coroutines-test` (the dependency this needs) is dev/test-only - `compileOnly` in
+`common/build.gradle.kts`, `runtimeLibrary(...)` (present for local runs like
+`runGametestClient`, never bundled into the shipped jar) in the loader modules. `ComposeScreen`
+itself never references `kotlinx.coroutines.test.*` symbols directly (only `AClientGameTestHarness`'s
+method bodies do, and those only run under `AGameTestPlatform.isGameTest`) - it only holds a plain
+`CoroutineDispatcher?` and a `(() -> Unit)?` pump callback, both already-bundled core/stdlib types,
+specifically so a real player's game (which never has the test dependency on its classpath) never
+needs to resolve it.
 
 ### Current test coverage
 - `ArchieItemHandlerTests` (`server`) – item storage/handler behavior
