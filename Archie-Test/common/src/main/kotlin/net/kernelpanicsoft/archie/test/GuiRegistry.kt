@@ -1,12 +1,14 @@
 package net.kernelpanicsoft.archie.test
 
 import net.kernelpanicsoft.archie.Archie
+import net.kernelpanicsoft.archie.gui.item.PlayerInventoryItemAccess
 import net.kernelpanicsoft.archie.registries.ADeferredRegistryHolder
 import dev.architectury.registry.menu.MenuRegistry
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.inventory.MenuType
+import net.minecraft.world.item.Items
 
 object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries.MENU)
 {
@@ -20,9 +22,20 @@ object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries
 		}
 	}
 
+	val TestItemMenu: MenuType<TestItemMenu> by register("test_item_menu") {
+		MenuRegistry.ofExtended { id, inventory, buf ->
+			TestItemMenu(
+				id,
+				inventory,
+				PlayerInventoryItemAccess(inventory.player, buf.readVarInt(), Items.PAPER)
+			)
+		}
+	}
+
 	override fun initClient()
 	{
 		MenuRegistry.registerScreenFactory(TestMenu, ::TestScreen)
+		MenuRegistry.registerScreenFactory(TestItemMenu, ::TestItemContainerScreen)
 	}
 
 }

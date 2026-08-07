@@ -3,15 +3,11 @@ package net.kernelpanicsoft.archie.gui
 import earth.terrarium.common_storage_lib.item.impl.vanilla.AbstractVanillaContainer
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.CommonStorage
-import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
-import net.kernelpanicsoft.archie.gui.blockentity.ComposeBlockEntityState
-import net.kernelpanicsoft.archie.gui.blockentity.getOrCreateBlockEntityState
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.transfer.ArchieItemMenuSlot
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import net.kernelpanicsoft.archie.transfer.VanillaMenuSlot
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.Container
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
@@ -21,11 +17,13 @@ import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.entity.BlockEntity
 import java.util.function.Predicate
 
 /**
- * Base class for Compose-backed container menus.
+ * Holder-agnostic base for Compose-backed container menus: everything about slot layout,
+ * registration, and vanilla-menu plumbing that doesn't care whether the menu is backed by a
+ * [net.minecraft.world.level.block.entity.BlockEntity] ([ComposeBlockContainerMenu]) or an
+ * [net.minecraft.world.item.ItemStack] ([net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu]).
  *
  * Slots are pre-registered at construction time with placeholder pixel positions so that
  * [AbstractContainerMenu.initializeContents] (triggered by the server's slot-sync packet)
@@ -33,29 +31,15 @@ import java.util.function.Predicate
  * on-screen positions via [updateSlotData], existing slot objects have their pixel coordinates
  * updated in-place rather than the slot list being rebuilt from scratch.
  *
- * ### Subclassing
- * ```kotlin
- * class MyMenu(id: Int, inventory: Inventory, tile: MyTile) :
- *     ComposeContainerMenu<MyTile, MyMenu>(MY_MENU_TYPE, id, inventory, tile) {
- *
- *     override fun registerSlotHandlers() {
- *         handler("inventory", tile.items)   // ties the "inventory" slot group to the storage
- *     }
- * }
- * ```
- *
- * @param T    The [BlockEntity] type that owns the storage.
  * @param SELF The concrete menu subclass (self-referential for the [MenuType]).
  * @param type The registered [MenuType] for this menu.
- * @param id   The container id assigned by the server.
+ * @param id The container id assigned by the server.
  * @param playerInventory The opening player's inventory.
- * @param tile The block entity instance.
  */
-abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu<T, SELF>>(
+abstract class ComposeContainerMenuBase<SELF : ComposeContainerMenuBase<SELF>>(
     type: MenuType<SELF>,
     id: Int,
     protected val playerInventory: Inventory,
-    protected val tile: T,
 ) : AbstractContainerMenu(type, id) {
 
     /**
@@ -82,8 +66,6 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
      */
     private var registeredGroupIds: List<String> = emptyList()
 
-    val blockEntityState: ComposeBlockEntityState = getOrCreateBlockEntityState(tile.blockPos)
-
     /**
      * The screen's `leftPos` offset — set by [ComposeContainerScreen] so that absolute
      * Compose coordinates can be converted to slot-relative coordinates that vanilla's
@@ -102,17 +84,33 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
     private val slotHandlers: MutableMap<String, CommonStorage<ItemResource>> = mutableMapOf()
     private val slotFilters: MutableMap<String, Predicate<ItemStack>> = mutableMapOf()
 
-    protected val player: Player  = playerInventory.player
-    protected val level: Level    = player.level()
+    protected val player: Player = playerInventory.player
+    protected val level: Level = player.level()
 
-    init
-    {
-        BlockEntityStateManager.registerBlockEntity(tile)
-        if (!level.isClientSide)
-        {
-            BlockEntityStateManager.addTrackedPlayer(tile, player as ServerPlayer)
-        }
-    }
+    /**
+     * Register whatever state-tracking this menu's holder needs here. **Not called
+     * automatically** - each concrete subclass must call this from its own `init {}` block,
+     * after its own constructor-parameter properties (e.g. `tile`) are assigned. Calling it from
+     * *this* class's own `init {}` instead would dispatch into the subclass's override before
+     * those properties exist yet (Kotlin/JVM run a subclass's own property initializers only
+     * after its superclass's constructor - including this class's `init {}` - has fully
+     * returned), silently observing them as null despite their non-null declared type.
+     */
+    protected abstract fun onMenuOpened()
+
+    /** Called from [removed] - unregister whatever [onMenuOpened] registered here. */
+    protected abstract fun onMenuClosed(player: Player)
+
+    /**
+     * Excludes the player-inventory slot at container-relative [index] (0-35, matching
+     * [Inventory]'s own numbering: hotbar 0-8, main 9-35) from placement/pickup - frozen in
+     * place rather than removed from the slot list, to avoid reworking [addPlayerSlots]'s
+     * hardcoded 36-slot/3x9+9 assumptions elsewhere. Used by
+     * [net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu] to freeze the backpack's
+     * own slot in the player's inventory while its GUI is open (also special-cased in
+     * [quickMoveStack], so shift-clicking it doesn't duplicate its contents into itself).
+     */
+    protected open fun isPlayerSlotExcluded(index: Int): Boolean = false
 
     // ── Slot registration ──────────────────────────────────────────────────
 
@@ -309,9 +307,6 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
             if (!group.enabled) return@forEach
             slotHandlers[id]?.let { handler ->
                 // Use slot-relative coords (subtract screen offset so vanilla adds it back correctly)
-//	            group.slots.forEachIndexed { slot, coords ->
-//		            slot(handler, slot, coords.x - screenLeftPos, coords.y - screenTopPos)
-//	            }
                 slotGrid(group.pos.x - screenLeftPos, group.pos.y - screenTopPos, group.size.width, group.size.height, handler, slotFilters[id] ?: Predicate { true })
             }
         }
@@ -324,14 +319,28 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
             // 3 rows of 9 (main inventory: playerInventory indices 9–35)
             for (row in 0 until 3) {
                 for (col in 0 until 9) {
-                    slot(playerInventory, {true}, col + row * 9 + 9, relX + col * 18, relY + row * 18)
+                    playerSlot(col + row * 9 + 9, relX + col * 18, relY + row * 18)
                 }
             }
             // Hotbar (playerInventory indices 0–8), 58px below main inventory
             for (col in 0 until 9) {
-                slot(playerInventory, {true}, col, relX + col * 18, relY + 58)
+                playerSlot(col, relX + col * 18, relY + 58)
             }
         }
+    }
+
+    /**
+     * Adds one player-inventory slot at container-relative [containerIndex], frozen against
+     * placement/pickup if [isPlayerSlotExcluded] says so - see its KDoc.
+     */
+    private fun playerSlot(containerIndex: Int, x: Int, y: Int) {
+        val excluded = isPlayerSlotExcluded(containerIndex)
+        addSlot(object : Slot(playerInventory, containerIndex, x, y)
+        {
+            override fun mayPlace(itemStack: ItemStack): Boolean = !excluded
+            override fun mayPickup(player: Player): Boolean = !excluded
+            override fun isActive(): Boolean = isSlotVisible(index)
+        })
     }
 
     // ── Slot grid helper ───────────────────────────────────────────────────
@@ -388,9 +397,14 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
      * slots move into the menu, falling back between main inventory and hotbar when the menu
      * has no room. Slot ranges are derived from [slots].size rather than hardcoded, since the
      * number of menu slots varies with which groups are enabled.
+     *
+     * The player-inventory slot excluded via [isPlayerSlotExcluded] (if any) is special-cased
+     * to return [ItemStack.EMPTY] immediately - shift-clicking a backpack's own slot while its
+     * GUI is open must not be able to move the backpack into itself.
      */
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
         val slot = slots.getOrNull(index) ?: return ItemStack.EMPTY
+        if (slot.container === playerInventory && isPlayerSlotExcluded(slot.containerSlot)) return ItemStack.EMPTY
         if (!slot.hasItem()) return ItemStack.EMPTY
 
         val stackInSlot = slot.item
@@ -439,15 +453,10 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
         broadcastChanges()
     }
 
-    override fun stillValid(player: Player): Boolean = true
     override fun removed(player: Player)
     {
         super.removed(player)
-        BlockEntityStateManager.unregisterBlockEntity(tile)
-        if (!level.isClientSide)
-        {
-            BlockEntityStateManager.removeTrackedPlayer(tile, player as ServerPlayer)
-        }
+        onMenuClosed(player)
     }
 
     // ── Networking ─────────────────────────────────────────────────────────
@@ -456,13 +465,13 @@ abstract class ComposeContainerMenu<T : BlockEntity, SELF : ComposeContainerMenu
 
         /**
          * Registers the serverbound [SlotData] packet handler that keeps the server's slot
-         * positions/clip bounds in sync with whichever [ComposeContainerMenu] the sending
+         * positions/clip bounds in sync with whichever [ComposeContainerMenuBase] the sending
          * player has open. Call once during network channel setup.
          */
         fun register() {
             ArchieNetworkChannel.serverbound(SlotData::class) { data, context ->
                  val menu = context.player.containerMenu
-                 if (menu is ComposeContainerMenu<*, *>) {
+                 if (menu is ComposeContainerMenuBase<*>) {
                      menu.slotData = data
                      // Match slot positions on the server to the client layout
                      menu.applySlotData()

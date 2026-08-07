@@ -8,6 +8,10 @@ internal fun AEvents.ArchieGameTestBuilder.archieTestGameTests()
 {
 	client {
 		register<TestScreenGameTest>()
+		register<ComposeItemContainerMenuClientTests>()
+	}
+	server {
+		register<ComposeItemContainerMenuTests>()
 	}
 }
 

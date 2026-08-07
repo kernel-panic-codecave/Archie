@@ -13,6 +13,8 @@ import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
 import net.kernelpanicsoft.archie.gui.blockentity.LocalBlockEntityState
 import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
+import net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu
+import net.kernelpanicsoft.archie.gui.item.LocalItemState
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
@@ -30,16 +32,15 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.inventory.Slot
-import net.minecraft.world.level.block.entity.BlockEntity
 import org.lwjgl.glfw.GLFW
 import kotlin.coroutines.CoroutineContext
 
 /** Provides the current [ComposeContainerScreen] to any composable in its tree. */
-val LocalContainerScreen: ProvidableCompositionLocal<ComposeContainerScreen<*, *>> =
+val LocalContainerScreen: ProvidableCompositionLocal<ComposeContainerScreen<*>> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
 
-/** Provides the current [ComposeContainerMenu] to any composable in its tree. */
-val LocalContainerMenu: ProvidableCompositionLocal<ComposeContainerMenu<*, *>> =
+/** Provides the current [ComposeContainerMenuBase] to any composable in its tree. */
+val LocalContainerMenu: ProvidableCompositionLocal<ComposeContainerMenuBase<*>> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
 
 /**
@@ -52,10 +53,10 @@ val LocalContainerMenu: ProvidableCompositionLocal<ComposeContainerMenu<*, *>> =
  * clipping so scrolled-out-of-view slots don't paint over unrelated content.
  *
  * Extend this class and call [start] inside your `init()` override, the same way as
- * [ComposeScreen].
+ * [ComposeScreen]. Works uniformly for both [ComposeBlockContainerMenu] (BlockEntity-backed) and
+ * [ComposeItemContainerMenu] (ItemStack-backed) subclasses - nothing here is holder-specific.
  *
- * @param T The concrete [ComposeContainerMenu] subclass driving this screen.
- * @param B The [BlockEntity] type backing [T].
+ * @param T The concrete [ComposeContainerMenuBase] subclass driving this screen.
  * @param menu The container menu instance for this screen.
  * @param playerInventory The opening player's inventory.
  * @param title The screen title passed to the vanilla [AbstractContainerScreen] constructor.
@@ -63,7 +64,7 @@ val LocalContainerMenu: ProvidableCompositionLocal<ComposeContainerMenu<*, *>> =
  *   the result is joined at the start of the next frame for smooth, non-blocking updates.
  *   Set to `false` to force synchronous recomposition (simpler but may stutter).
  */
-abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockEntity>(
+abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 	menu: T, playerInventory: Inventory, title: Component,
     val asynchronous: Boolean = true,
 ) : AbstractContainerScreen<T>(menu, playerInventory, title),
@@ -150,7 +151,12 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockE
                 LocalContainerScreen provides this,
                 LocalContainerMenu provides menu,
                 LocalSlotData provides menu.slotData,
-                LocalBlockEntityState provides menu.blockEntityState,
+                // Only one of these is non-null for any given menu - LocalBlockEntityState /
+                // LocalItemState are both nullable-by-default composition locals precisely so
+                // composables reaching for the "wrong" one for this menu's holder kind get a
+                // clear null rather than a bogus fallback value.
+                LocalBlockEntityState provides (menu as? ComposeBlockContainerMenu<*, *>)?.blockEntityState,
+                LocalItemState provides (menu as? ComposeItemContainerMenu<*>)?.itemState,
                 LocalLayerManager provides layerManager,
             ) {
                 RootContainer {

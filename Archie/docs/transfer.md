@@ -3,8 +3,9 @@
 Archie provides cross-platform item and fluid storage abstractions, built on top of
 [Common Storage Lib](https://github.com/Fuzss/CommonStorageLib)'s resource/slot model, that work
 on both Fabric and NeoForge without platform-specific code. They're designed to back a block
-entity's inventory/tank and expose it through Archie's [GUI framework](gui.md) — the slot types
-below plug directly into `ComposeContainerMenu`.
+entity's or an item stack's inventory/tank and expose it through Archie's [GUI framework](gui.md)
+— the slot types below plug directly into `ComposeContainerMenuBase` (via either
+`ComposeBlockContainerMenu` or `ComposeItemContainerMenu`).
 
 ---
 
@@ -90,16 +91,29 @@ slot.set(ItemStack(Items.DIAMOND, 4))
 
 ## Wiring storage into a menu
 
-You don't usually build `net.minecraft.world.inventory.Slot`s by hand. `ComposeContainerMenu`
+You don't usually build `net.minecraft.world.inventory.Slot`s by hand. `ComposeContainerMenuBase`
 (see [`gui.md`](gui.md)) takes a declarative approach instead: implement `registerSlotHandlers()`
-and register each storage under a named group with `handler(group, storage, filter)`.
+and register each storage under a named group with `handler(group, storage, filter)`. The same
+mechanism works identically whether the menu is backed by a block entity
+(`ComposeBlockContainerMenu`) or an item stack (`ComposeItemContainerMenu`) — only how you get at
+the storage in the first place differs.
 
 ```kotlin
+// Block-entity-backed
 class MyMenu(
     id: Int, playerInventory: Inventory, blockEntity: MyBlockEntity,
-) : ComposeContainerMenu<MyBlockEntity, MyMenu>(MY_MENU_TYPE, id, playerInventory, blockEntity) {
+) : ComposeBlockContainerMenu<MyBlockEntity, MyMenu>(MY_MENU_TYPE, id, playerInventory, blockEntity) {
     override fun registerSlotHandlers() {
         handler("inventory", tile.items)   // ties the "inventory" group to the block entity's storage
+    }
+}
+
+// Item-backed (e.g. a backpack) - see gui.md's ComposeItemContainerMenu section for the full shape
+class MyBackpackMenu(
+    id: Int, playerInventory: Inventory, access: ItemContainerAccess,
+) : ComposeItemContainerMenu<MyBackpackMenu>(MY_BACKPACK_MENU_TYPE, id, playerInventory, access) {
+    override fun registerSlotHandlers() {
+        handler("inventory", holder.itemField(27))
     }
 }
 ```
@@ -112,7 +126,7 @@ the same for a Common Storage Lib `AbstractVanillaContainer`, for adapting an ex
 vanilla-style container instead of an `ArchieItemStorage`. Both accept an `ItemStack -> Boolean`
 filter for `mayPlace`.
 
-See [`gui.md`](gui.md) for how `ComposeContainerMenu`/`ComposeContainerScreen` fit together.
+See [`gui.md`](gui.md) for how `ComposeContainerMenuBase`/`ComposeContainerScreen` fit together.
 
 ---
 
