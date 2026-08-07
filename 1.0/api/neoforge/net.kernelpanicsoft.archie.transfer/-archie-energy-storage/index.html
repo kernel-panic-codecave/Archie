@@ -145520,7 +145520,7 @@
 </div>
 </div>
 <div>
-<p>Restores this storage's capacity and stored amount from a snapshot produced by <a href="index.html#createsnapshot"><code>createSnapshot</code></a>.</p>
+<p>Restores this storage's capacity and stored amount from a snapshot produced by <a href="index.html#createsnapshot"><code>createSnapshot</code></a>. <code>capacity</code> is clamped to non-negative and <code>amount</code> to <code>0..capacity</code> - a malformed or stale snapshot (e.g. from before a capacity change) shouldn't be able to leave this storage over-capacity or negative, which would otherwise wedge <a href="index.html#insert"><code>insert</code></a>/<a href="index.html#extract"><code>extract</code></a>.</p>
 </div>
 <h3 id="set">set<a class="headerlink" href="#set" title="Permanent link">&para;</a></h3>
 <div>
