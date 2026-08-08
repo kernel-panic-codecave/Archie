@@ -11,6 +11,7 @@ internal fun AEvents.ArchieGameTestBuilder.archieTestGameTests()
 	}
 	server {
 		register<DataAttachmentTests>()
+		register<CapabilityLookupTests>()
 	}
 }
 

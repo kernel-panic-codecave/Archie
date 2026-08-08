@@ -184,7 +184,10 @@ category per enabled entry. Saving routes through `ConfigSpec.save()` for `Commo
 `ConfigContainer.init()` registers the resulting screen via Architectury's
 `Mod.registerConfigurationScreen`, which surfaces it wherever the platform normally exposes a mod's
 config screen — Mod Menu's mod list on Fabric, the vanilla mod list's "Config" button on NeoForge.
-There's no more Archie-specific Mod Menu/Catalogue entrypoint to register yourself; the dedicated
+There's no more Archie-specific Mod Menu/Catalogue entrypoint to register yourself — the dedicated
 `ArchieModMenu`/`ArchieCatalogue` bridge classes were retired along with the old
-`AConfigPlatform.registerScreenHandler` mechanism they depended on, and Catalogue no longer has a
-working integration path as a result.
+`AConfigPlatform.registerScreenHandler` mechanism they depended on. Catalogue still works, though:
+MrCrayfish's [MenuLogue](https://www.curseforge.com/minecraft/mc-mods/menulogue) (a
+`modLocalRuntime` dev dependency on Fabric) bridges Mod Menu's registered config screens into
+Catalogue automatically, so registering via `Mod.registerConfigurationScreen` is enough to reach
+both.

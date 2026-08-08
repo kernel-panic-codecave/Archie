@@ -10,6 +10,7 @@ kotlin-neoforge = "2.11.1-k2.2.21-3.0+neoforge"
 #kotlin-neoforge-range = "5"
 kotlin-neoforge-range = "2"
 kotlinx-serialization = { require = "[1.8.0,)", prefer = "1.9.0" }
+kotlinx-coroutines-test = "1.8.0"
 # Minecraft
 
 minecraft = { strictly = "1.21.1" }
@@ -70,6 +71,7 @@ kotlinx-serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-serialization-json5 = { module = "io.github.xn32:json5k-jvm", version.ref = "json5k" }
 kotlinx-serialization-nbt = { module = "net.benwoodworth.knbt:knbt-jvm", version.ref = "knbt" }
 kotlinx-serialization-toml = { module = "net.peanuuutz.tomlkt:tomlkt-jvm", version.ref = "tomlkt" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines-test" }
 
 minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
 parchment = { module = "org.parchmentmc.data:parchment-1.21.1", version.ref = "parchment" }

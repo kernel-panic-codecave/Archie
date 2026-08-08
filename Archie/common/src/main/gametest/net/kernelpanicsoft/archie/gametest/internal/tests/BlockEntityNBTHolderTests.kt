@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie.gametest.internal.tests
 
 import dev.architectury.fluid.FluidStack
+import net.kernelpanicsoft.archie.gametest.assertEquals
+import net.kernelpanicsoft.archie.gametest.assertTrue
 import net.kernelpanicsoft.archie.gametest.internal.EMPTY
 import net.kernelpanicsoft.archie.serialization.NBTHolder
 import net.kernelpanicsoft.archie.serialization.Sync

@@ -9,6 +9,7 @@ import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.test.gametest.ArchieTestGameTest
 import net.kernelpanicsoft.archie.test.gametest.DataAttachmentTestFixtures
+import net.kernelpanicsoft.archie.test.gametest.CapabilityLookupTestFixtures
 import net.kernelpanicsoft.archie.test.data.ArchieTestDatagen
 import net.kernelpanicsoft.archie.util.onClient
 import net.minecraft.resources.ResourceLocation
@@ -39,12 +40,13 @@ object ArchieTest
 		ItemRegistry.init()
 		TileRegistry.init()
 		GuiRegistry.init()
-		// Gated the same way as ArchieTestGameTest.init() above, for the same reason: this is a
-		// dev-only test fixture, not something real gameplay needs registered. Referencing
-		// DataAttachmentTestFixtures here also runs its property initializers (which queue up its
-		// attachments) before init() actually registers them.
 		if (AGameTestPlatform.isGameTest)
 			DataAttachmentTestFixtures.init()
+		// Must come after TileRegistry.init() (needs TestTile to actually exist), but is otherwise
+		// still normal mod-init timing - see CapabilityLookupTestFixtures's KDoc for why this can't
+		// be deferred to inside the @GameTest methods themselves.
+		if (AGameTestPlatform.isGameTest)
+			CapabilityLookupTestFixtures.init()
 	}
 
 	@JvmStatic

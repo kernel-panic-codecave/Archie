@@ -24,10 +24,13 @@ import kotlin.math.min
  * [ArchieItemStorage]/[ArchieFluidStorage] implement - plus Archie's NBT serialization for
  * save/load, mirroring their shape.
  *
- * Archie doesn't register this with Common Storage Lib's `EnergyApi.BLOCK`/`ITEM`/`ENTITY`
- * lookups for you, the same way it doesn't for `ArchieItemStorage`/`ArchieFluidStorage` today -
- * wire that lookup registration, and any platform-specific capability bridge (NeoForge's
- * `IEnergyStorage`, Fabric's Team Reborn Energy API) you still want on top of it, in your own mod.
+ * Not exposed to third-party mods' pipes/hoppers by default - call
+ * [BlockEntityType.exposeEnergyStorage][net.kernelpanicsoft.archie.transfer.exposeEnergyStorage]
+ * once, at registration time, to register it with Common Storage Lib's `EnergyApi.BLOCK`, which
+ * (unlike a lookup you'd build yourself) is wired straight through to each platform's native
+ * capability system - no dependency on Common Storage Lib required on the consuming side. Any
+ * additional platform-specific bridge you still want on top of that (NeoForge's `IEnergyStorage`,
+ * Fabric's Team Reborn Energy API) is still on you to wire in your own mod.
  *
  * Usually created through [net.kernelpanicsoft.archie.serialization.NBTHolder.energyField]
  * rather than directly.
