@@ -17,7 +17,7 @@ import net.kernelpanicsoft.archie.gui.composables.containers.Scrollable
 import net.minecraft.client.gui.GuiGraphics
 
 /**
- * Per-slot-group layout data reported back from the Compose layout to [ComposeContainerMenu].
+ * Per-slot-group layout data reported back from the Compose layout to [ComposeContainerMenuBase].
  *
  * Stores the group's absolute screen position, dimensions, slot positions, and clip bounds.
  */
@@ -93,7 +93,7 @@ val LocalSlotClipBounds = compositionLocalOf<SlotClipSource?> { null }
  * Defines a named region of inventory slots within a [ComposeContainerScreen].
  *
  * This composable tracks its absolute on-screen position and populates the enclosing
- * [SlotData] with the group's location and dimensions so that [ComposeContainerMenu] can
+ * [SlotData] with the group's location and dimensions so that [ComposeContainerMenuBase] can
  * register the corresponding vanilla [net.minecraft.world.inventory.Slot]s.
  *
  * @param id      The name that matches the `handler(id, storage)` call in your menu.
@@ -158,7 +158,7 @@ fun Slots(
 /**
  * Renders a single inventory slot graphic and records its absolute screen position.
  *
- * Triggers [ComposeContainerMenu.updateSlotData] once **all** named groups and the player
+ * Triggers [ComposeContainerMenuBase.updateSlotData] once **all** named groups and the player
  * group have reported their positions for this layout pass.
  *
  * @param modifier Additional modifiers applied to the slot layout node.
@@ -205,7 +205,7 @@ fun Slot(texture: String = "slot", modifier: Modifier = Modifier) {
  * Renders the standard 4-row player inventory (3 main rows + hotbar) as [Slot] composables.
  *
  * The 58-pixel gap between the main inventory and the hotbar matches the pixel offset used
- * by [ComposeContainerMenu.addPlayerSlots] so positions reported to the menu are consistent.
+ * by [ComposeContainerMenuBase.addPlayerSlots] so positions reported to the menu are consistent.
  */
 @Composable
 fun PlayerSlots() {
@@ -281,12 +281,12 @@ private fun PlayerSlot(texture: String = "slot", modifier: Modifier = Modifier) 
 }
 
 /**
- * Fires [ComposeContainerMenu.updateSlotData] only when every named slot group AND the
+ * Fires [ComposeContainerMenuBase.updateSlotData] only when every named slot group AND the
  * player group have all reported their slot positions for this layout pass.
  *
  * This prevents partial updates where only some groups are positioned.
  */
-private fun tryUpdateMenu(data: SlotData, menu: ComposeContainerMenu<*, *>) {
+private fun tryUpdateMenu(data: SlotData, menu: ComposeContainerMenuBase<*>) {
     val namedGroupsFull = data.groups.values.all { g -> g.slots.size >= g.size.width * g.size.height }
     val playerGroupFull = data.playerGroup.slots.size >= 36
     if (namedGroupsFull && playerGroupFull) {

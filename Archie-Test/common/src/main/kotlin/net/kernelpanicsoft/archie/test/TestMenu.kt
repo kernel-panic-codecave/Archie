@@ -1,9 +1,9 @@
 package net.kernelpanicsoft.archie.test
 
-import net.kernelpanicsoft.archie.gui.ComposeContainerMenu
+import net.kernelpanicsoft.archie.gui.ComposeBlockContainerMenu
 import net.minecraft.world.entity.player.Inventory
 
-class TestMenu(id: Int, inventory: Inventory, tile: TestTile) : ComposeContainerMenu<TestTile, TestMenu>(GuiRegistry.TestMenu, id, inventory, tile)
+class TestMenu(id: Int, inventory: Inventory, tile: TestTile) : ComposeBlockContainerMenu<TestTile, TestMenu>(GuiRegistry.TestMenu, id, inventory, tile)
 {
 	val rows: Int = tile.items.size() / 9
 

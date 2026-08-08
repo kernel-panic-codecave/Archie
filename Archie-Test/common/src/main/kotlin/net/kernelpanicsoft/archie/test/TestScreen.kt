@@ -43,7 +43,7 @@ import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 
-class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) : ComposeContainerScreen<TestMenu, TestTile>(menu, playerInventory,
+class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) : ComposeContainerScreen<TestMenu>(menu, playerInventory,
 	title
 )
 {

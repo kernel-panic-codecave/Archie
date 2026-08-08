@@ -296,10 +296,10 @@ entity's synced state — hierarchy shape, hover/click/type behavior, render-sta
 scroll offsets, modal stacking.
 
 Slot/menu rendering and block-entity-backed sync genuinely need a world instead:
-`ComposeContainerMenu<T : BlockEntity, SELF>` and
-`ComposeContainerScreen<T : ComposeContainerMenu<B, T>, B : BlockEntity>` are hard-typed to a real
-`BlockEntity`, so there's no probe-screen shortcut for them. Those tests open a real world and
-place a real block:
+`ComposeBlockContainerMenu<T : BlockEntity, SELF>` is hard-typed to a real `BlockEntity` (its
+item-backed sibling, `ComposeItemContainerMenu<SELF>`, needs a real player inventory instead), and
+`ComposeContainerScreen<T : ComposeContainerMenuBase<T>>` works uniformly across both, so there's
+no probe-screen shortcut for either. Those tests open a real world and place a real block:
 
 ```kotlin
 class TestScreenGameTest {

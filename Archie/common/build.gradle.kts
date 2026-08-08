@@ -125,8 +125,16 @@ tasks {
 		dependsOn(verifyGuiSpriteAssets)
 	}
 
+	// Keep stubUnfulfilledExpects()'s generated throwing-actual stubs out of what gets published -
+	// a consumer with both this jar and a real actual on its classpath must only ever see the
+	// real one, or Kotlin's actual-resolution can end up preferring the stub.
 	jar {
 		from(sourceSets.main.get().output)
+		exclude("**/*StubKt.class")
+	}
+
+	sourcesJar {
+		exclude("**/*Stub.kt")
 	}
 
 	test {

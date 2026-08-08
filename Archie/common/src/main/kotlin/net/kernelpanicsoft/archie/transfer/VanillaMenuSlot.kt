@@ -3,7 +3,7 @@ package net.kernelpanicsoft.archie.transfer
 import earth.terrarium.common_storage_lib.item.impl.vanilla.AbstractVanillaContainer
 import earth.terrarium.common_storage_lib.item.impl.vanilla.VanillaDelegatingSlot
 import earth.terrarium.common_storage_lib.storage.base.UpdateManager
-import net.kernelpanicsoft.archie.gui.ComposeContainerMenu
+import net.kernelpanicsoft.archie.gui.ComposeContainerMenuBase
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
@@ -11,8 +11,8 @@ import java.util.function.Predicate
 
 /**
  * The [ArchieItemMenuSlot] equivalent for adapting an existing vanilla-style
- * [AbstractVanillaContainer] (rather than an [ArchieItemStorage]) into a [ComposeContainerMenu].
- * Created by [ComposeContainerMenu] from a `handler(group, storage, filter)` registration; not
+ * [AbstractVanillaContainer] (rather than an [ArchieItemStorage]) into a [ComposeContainerMenuBase].
+ * Created by [ComposeContainerMenuBase] from a `handler(group, storage, filter)` registration; not
  * usually constructed directly.
  *
  * @param filter Restricts which stacks [mayPlace] into this slot.
@@ -21,7 +21,7 @@ class VanillaMenuSlot(
 	private val storage: AbstractVanillaContainer,
 	val filter: Predicate<ItemStack> = Predicate { true },
 	slot: Int, x: Int, y: Int,
-	private val owningMenu: ComposeContainerMenu<*, *>,
+	private val owningMenu: ComposeContainerMenuBase<*>,
 ) : Slot(SimpleContainer(0), slot, x, y)
 {
 	override fun isActive(): Boolean = owningMenu.isSlotVisible(index)

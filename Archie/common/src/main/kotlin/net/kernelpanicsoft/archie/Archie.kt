@@ -21,6 +21,7 @@ import net.kernelpanicsoft.archie.gametest.AGameTestSide
 import net.kernelpanicsoft.archie.gametest.ThreadingImpl
 import net.kernelpanicsoft.archie.gametest.internal.ArchieGameTest
 import net.kernelpanicsoft.archie.gui.blockentity.BlockEntityStateManager
+import net.kernelpanicsoft.archie.gui.item.ItemStateManager
 import net.kernelpanicsoft.archie.gui.theme.ThemeManifestResourceListener
 import net.kernelpanicsoft.archie.gui.theme.ThemeResourceListener
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
@@ -74,6 +75,7 @@ object Archie
 			ArchieNetworkChannel.init()
 		}
 		BlockEntityStateManager.init()
+		ItemStateManager.init()
 
 		ABuiltinIngredients.init()
 		ABuiltinConditions.init()

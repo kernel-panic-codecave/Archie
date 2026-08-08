@@ -1,6 +1,5 @@
 package net.kernelpanicsoft.archie.registries
 
-import dev.architectury.event.events.common.LifecycleEvent
 import dev.architectury.platform.Mod
 import dev.architectury.registry.registries.DeferredRegister
 import dev.architectury.registry.registries.RegistrySupplier
@@ -44,20 +43,22 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 	private val registry: DeferredRegister<T> = DeferredRegister.create(mod.modId, registryKey)
 
 	/**
-	 * Registers the underlying [DeferredRegister], then schedules [initClient] to run on
-	 * [LifecycleEvent.SETUP] when on the client. Must be called once during mod initialization.
+	 * Registers the underlying [DeferredRegister], then schedules [initClient] to run on the
+	 * client, at the earliest point registration APIs that depend on registries already being
+	 * populated (e.g. Architectury's `MenuRegistry.registerScreenFactory`) are safe to call - see
+	 * [scheduleEarlyClientRegistration]. Must be called once during mod initialization.
 	 */
 	fun init()
 	{
 		registry.register()
 		onClient {
-			LifecycleEvent.SETUP.register {
+			scheduleEarlyClientRegistration(mod) {
 				initClient()
 			}
 		}
 	}
 
-	/** Client-only setup run after [init], during [LifecycleEvent.SETUP]. No-op by default. */
+	/** Client-only setup run after [init] - see [scheduleEarlyClientRegistration] for exactly when. No-op by default. */
 	open fun initClient() = Unit
 
 	/** Looks up a registered entry by its unqualified [id] (namespaced under [mod] automatically). */

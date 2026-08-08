@@ -18,6 +18,11 @@ actualizer {
 	actualizes(project(":common"))
 }
 
+// If a `jar { from(project(":common").sourceSets.main.get().output) }` merge (like neoforge's)
+// ever gets added here too, exclude("net/kernelpanicsoft/archie/**") from it - that output is
+// common's own stub-linked classes, and it won the duplicatesStrategy race on NeoForge (crashed
+// at runtime). See neoforge/build.gradle.kts's jar task.
+
 val localProperties = kotlin.runCatching {
 	val localPropsFile = rootDir.resolve("local.properties")
 	val sharedPropsFile = rootDir.resolve("../local.properties")

@@ -27,7 +27,9 @@ class MyScreen : ComposeScreen(Component.literal("My Screen")) {
 
 ### `ComposeContainerScreen`
 
-Base class for screens attached to a container menu (inventory, crafting grid, etc.).
+Base class for screens attached to a container menu (inventory, crafting grid, etc.). Works
+uniformly whether the menu is backed by a block entity or an item stack (see below) - the type
+bound is just `ComposeContainerScreen<T : ComposeContainerMenuBase<T>>`.
 
 ```kotlin
 class MyContainerScreen(
@@ -39,6 +41,47 @@ class MyContainerScreen(
     }
 }
 ```
+
+### `ComposeBlockContainerMenu` / `ComposeItemContainerMenu`
+
+`ComposeContainerMenuBase<SELF>` holds all the holder-agnostic slot layout/registration machinery
+`ComposeContainerScreen` drives (see [transfer.md](transfer.md#wiring-storage-into-a-menu) for the
+`registerSlotHandlers()`/`handler()` mechanism itself). Two concrete subclasses back it with an
+actual data source:
+
+- **`ComposeBlockContainerMenu<T : BlockEntity, SELF>`** - the original, block-entity-backed menu.
+  Exposes `tile: T` and `blockEntityState: ComposeBlockEntityState`, read via `observeProperty`
+  (see [Progress, energy, and fluid indicators](#progress-energy-and-fluid-indicators) below).
+- **`ComposeItemContainerMenu<SELF>`** - backs a menu with an `ItemStack` instead, e.g. a
+  backpack/bag with its own GUI:
+
+  ```kotlin
+  class MyBackpackMenu(
+      id: Int, playerInventory: Inventory, access: ItemContainerAccess,
+  ) : ComposeItemContainerMenu<MyBackpackMenu>(MY_BACKPACK_MENU_TYPE, id, playerInventory, access) {
+      @Sync
+      var progress by holder.intField()
+
+      override fun registerSlotHandlers() {
+          handler("inventory", holder.itemField(27))
+      }
+  }
+  ```
+
+  - `access: ItemContainerAccess` locates the backing stack (`getStack()`, re-resolved fresh on
+    every call - never cache it) and reports whether the menu should stay open (`stillValid`).
+    `PlayerInventoryItemAccess(player, slot, expectedItem)` covers the common case: an item
+    sitting in the opening player's own inventory. Whichever slot it names is automatically
+    frozen against placement/pickup while the menu is open (so shift-clicking a backpack can't
+    move it into itself), and periodically re-checked - a menu whose `access.stillValid` goes
+    false (e.g. the backpack was dropped or consumed while its GUI was passively open) is
+    force-closed within a tick or two, not left dangling until the next player-initiated click.
+  - `holder: NBTHolder` is a view of the backing stack, captured once at construction (the same
+    "stable for this menu's lifetime" trade-off `ComposeBlockContainerMenu`'s `tile` already
+    makes) - declare this menu's own fields against it exactly like you would on an
+    `NBTBlockEntity`'s `nbt`, including `@Sync` for anything that should push live updates to the
+    client, read via `observeItemProperty` (see
+    [Progress, energy, and fluid indicators](#progress-energy-and-fluid-indicators) below).
 
 ---
 
@@ -129,9 +172,18 @@ EnergyBar(storage = myBlockEntity.energy) // or EnergyBar(energy = 400, capacity
 FluidTank(fluid = myBlockEntity.tank[0].getFluid(), capacity = FluidStack.bucketAmount() * 4)
 ```
 
-None of these three animate or poll on their own - drive them from an `observeProperty` read
-(see [serialization.md](serialization.md#sync)) of a `@Sync`-annotated block entity field for a
-live indicator that updates as the block entity changes server-side.
+None of these three animate or poll on their own - drive them from a live-updating property read
+of a `@Sync`-annotated field (see [serialization.md](serialization.md#sync)) for an indicator that
+tracks server-side changes:
+
+- **Block-entity-backed menus**: `observeProperty<T>("name")`, reading through
+  `LocalBlockEntityState` (provided automatically by `ComposeContainerScreen`).
+- **Item-backed menus**: the equivalent `observeItemProperty<T>("name")`, reading through
+  `LocalItemState` instead - same shape, same `@Sync`-on-the-holder-field convention, just backed
+  by `ComposeItemContainerMenu.holder` rather than a block entity's `nbt`.
+
+Both are `null`/absent unless the current screen's menu actually matches that holder kind - a
+`ComposeItemContainerMenu` screen has no `LocalBlockEntityState` to read, and vice versa.
 
 ### `TabContainer`
 
