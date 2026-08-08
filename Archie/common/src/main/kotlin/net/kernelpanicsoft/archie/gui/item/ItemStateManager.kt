@@ -1,7 +1,10 @@
 package net.kernelpanicsoft.archie.gui.item
 
 import dev.architectury.event.events.common.TickEvent
+import org.slf4j.LoggerFactory
 import java.util.concurrent.CopyOnWriteArraySet
+
+private val LOGGER = LoggerFactory.getLogger(ItemStateManager::class.java)
 
 /**
  * Server-side manager for currently-open [ComposeItemContainerMenu]s: drives dirty-property sync
@@ -27,7 +30,14 @@ object ItemStateManager {
 	fun init() {
 		TickEvent.SERVER_POST.register {
 			val currentTick = it.tickCount.toLong()
-			openMenus.forEach { menu -> menu.tickSync(currentTick) }
+			// One menu's tickSync() throwing shouldn't abort the loop for every other open menu.
+			openMenus.forEach { menu ->
+				try {
+					menu.tickSync(currentTick)
+				} catch (e: Exception) {
+					LOGGER.error("Error syncing item container menu $menu", e)
+				}
+			}
 		}
 	}
 

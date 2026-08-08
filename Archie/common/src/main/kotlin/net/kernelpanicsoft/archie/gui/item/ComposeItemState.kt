@@ -87,10 +87,10 @@ class ComposeItemState(
 	 */
 	fun updateProperty(propertyName: String, value: BlockEntityStatePacket.SerializedValue) {
 		val deserializedValue = value.deserialize(propertySerializers[propertyName])
-		val state = propertyStates.computeIfAbsent(propertyName) {
-			mutableStateOf(deserializedValue)
-		}
-		state.value = deserializedValue
+		// Must go through getOrCreateState(), not a separate computeIfAbsent - otherwise a
+		// property whose first appearance is a packet (not observeProperty()) gets stuck with a
+		// bare state that never forwards writes back to the server.
+		getOrCreateState<Any?>(propertyName, deserializedValue).value = deserializedValue
 	}
 
 	/**

@@ -5,6 +5,7 @@ import net.kernelpanicsoft.archie.gui.item.SyncedItemHolder
 import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
 import net.kernelpanicsoft.archie.transfer.ArchieFluidStorage
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
+import earth.terrarium.common_storage_lib.storage.base.UpdateManager
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -80,6 +81,10 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			}
 			if (property.name.toSnakeCase() !in data)
 				delegate.setValue(thisRef, property, default())
+			else if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+				// Value pre-existed on the stack, so setValue() above never ran - announce it now
+				// so a menu opened against pre-existing data doesn't start out unsynced.
+				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), serializer, delegate.getValue(thisRef, property))
 
 			delegate
 		}
@@ -124,6 +129,9 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			}
 			if (property.name.toSnakeCase() !in data)
 				delegate.setValue(thisRef, property, default().toMutableList())
+			else if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+				// See the equivalent branch in field() above - same pre-existing-data gap.
+				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ListSerializer(serializer), delegate.getValue(thisRef, property).toList())
 
 			delegate
 		}
@@ -168,6 +176,9 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			}
 			if (property.name.toSnakeCase() !in data)
 				delegate.setValue(thisRef, property, default().toMutableMap())
+			else if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+				// See the equivalent branch in field() above - same pre-existing-data gap.
+				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), MapSerializer(String.serializer(), serializer), delegate.getValue(thisRef, property).toMap())
 
 			delegate
 		}
@@ -195,6 +206,9 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			// apply it to yet. Apply it now, directly, instead.
 			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
 			itemStorage[property.name.toSnakeCase()] = storage
+			// readSnapshot() above never calls onUpdate, so announce the starting contents now.
+			if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieItemStorage.serializer(), storage)
 			ReadOnlyProperty { _, _ -> itemStorage[property.name.toSnakeCase()]!! }
 		}
 	}
@@ -216,6 +230,9 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			val storage = ArchieFluidStorage(limit, size, onUpdate)
 			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
 			fluidStorage[property.name.toSnakeCase()] = storage
+			// See itemField() above - same "storage's initial contents never announced" gap.
+			if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieFluidStorage.serializer(), storage)
 			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
 		}
 	}
@@ -237,6 +254,9 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			val storage = ArchieEnergyStorage(capacity, onUpdate)
 			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
 			energyStorage[property.name.toSnakeCase()] = storage
+			// See itemField() above - same "storage's initial contents never announced" gap.
+			if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieEnergyStorage.serializer(), storage)
 			ReadOnlyProperty { _, _ -> energyStorage[property.name.toSnakeCase()]!! }
 		}
 	}
@@ -308,6 +328,21 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 
 	override fun <T> updateProperty(propertyName: String, serializer: KSerializer<T>, value: T)
 	{
-		this.data[propertyName] = NBT.encodeToNbtTagRootless(serializer, value)
+		// Storage-backed fields (item/fluid/energy) are canonically the *live* storage object, not
+		// `data` - write through readSnapshot(), or saveToTag() below would just re-derive `data`
+		// from the untouched live storage and clobber this write.
+		val storage: UpdateManager<NbtTag>? = itemStorage[propertyName] ?: fluidStorage[propertyName] ?: energyStorage[propertyName]
+		if (storage != null && value is UpdateManager<*>)
+		{
+			@Suppress("UNCHECKED_CAST")
+			storage.readSnapshot((value as UpdateManager<NbtTag>).createSnapshot())
+		}
+		else
+		{
+			this.data[propertyName] = NBT.encodeToNbtTagRootless(serializer, value)
+		}
+		// Unlike NBTHolderImpl's `data` (a BlockEntity's own persisted state), `data` here is only
+		// a transient copy - must be flushed to the stack explicitly or a remote edit is lost.
+		saveToStack()
 	}
 }
