@@ -13,6 +13,10 @@ internal fun AEvents.ArchieGameTestBuilder.archieTestGameTests()
 	server {
 		register<ComposeItemContainerMenuTests>()
 	}
+	server {
+		register<DataAttachmentTests>()
+		register<CapabilityLookupTests>()
+	}
 }
 
 internal object ArchieTestGameTest : AGameTestEventObject(ArchieTest.MOD)

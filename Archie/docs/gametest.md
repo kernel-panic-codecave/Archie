@@ -78,9 +78,10 @@ class ArchieItemHandlerTests {
 
 (`EMPTY` is `"archie:gametest/empty"`, the empty structure template most tests that don't need
 actual world geometry reference.) `assertEquals`/`assertTrue`/`expectThrows` here are Archie's own
-`GameTestHelper` extension helpers (`gametest/internal/tests/GameTestAssertions.kt`), not part of
-vanilla — they exist purely to make failures read like a normal assertion library instead of
-manually calling `fail(...)`.
+public `GameTestHelper` extension helpers (`net.kernelpanicsoft.archie.gametest.GameTestAssertions.kt`,
+import them like any other Archie API), not part of vanilla — they exist purely to make failures
+read like a normal assertion library instead of manually calling `fail(...)`. Consuming mods can
+(and should) use them too instead of hand-rolling `if (...) fail(...)` checks.
 
 A consuming mod writes the same shape. `Archie-Test`'s own suite exercises a real block-entity-backed
 menu end to end:

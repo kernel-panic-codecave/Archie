@@ -169,3 +169,44 @@ Only `@Sync`-annotated fields are included in `NBTHolder.getSyncTag()`. `NBTBloc
 this to build the tag sent to tracking clients, so annotate exactly the fields a block entity
 needs on the client (e.g. for rendering or GUI display) — everything else stays server-only and
 is only persisted via the normal save/load tag.
+
+---
+
+## Data attachments (`AttachmentRegistry`)
+
+Where `NBTHolder` is per-instance storage you own (a field on your own `BlockEntity`/`ItemStack`
+wrapper), `AttachmentRegistry` wraps Common Storage Lib's `DataManager` to attach data to holders
+you *don't* own the class of — `Entity`, `BlockEntity`, `ItemStack`, and (NeoForge only)
+`ServerLevel` - via a stateless, reusable `ArchieDataAttachment<T>` object rather than a delegate
+that owns its own storage:
+
+```kotlin
+object MyAttachments : AttachmentRegistry(MyMod.MOD_ID) {
+    val mana by intAttachment(sync = true, default = { 0 })
+    val label by stringAttachment(itemComponent = true, default = { "" })
+}
+
+var Entity.mana by MyAttachments.mana
+
+// mod init, after MyAttachments' properties above have already run:
+MyAttachments.init()
+```
+
+`attachment(serializer, sync, copyOnDeath, itemComponent, default)` (plus a reified variant and
+per-primitive-type wrappers - `booleanAttachment`, `intAttachment`, `stringAttachment`, etc. -
+mirroring `NBTHolder`'s field helpers) declares one attachment, keyed by the delegated property's
+snake_case name. `sync` and `itemComponent` are two genuinely different mechanisms: `sync` is a
+reactive push to tracking players on every write (Entity/BlockEntity on both loaders, ServerLevel
+NeoForge-only - Fabric silently never syncs world attachments even if a get/set happens to
+succeed there), while `itemComponent` backs the attachment with a vanilla `DataComponentType`
+instead, riding normal item/component replication rather than a reactive push.
+
+Once declared, an attachment is used two ways - directly via `ArchieDataAttachment`'s
+`get`/`set`/`has`/`remove`/`modify` methods (any holder, e.g. `MyAttachments.mana.get(entity)`),
+or as the delegate for an extension property on a specific holder type, as `mana` is above. Watch
+out for one real platform quirk: on Entity/BlockEntity/ServerLevel holders, `get()` on an unset
+value silently creates *and persists* the default (both Fabric's `getAttachedOrCreate` and
+NeoForge's `getData` write through on a miss) - so `has()` can only tell "never touched" apart
+from "read once" if you call it *before* the first `get()`. `ItemStack`/`itemComponent` holders
+don't have this quirk. See `ArchieDataAttachment`'s KDoc for the full holder-support matrix and
+exception behavior for unsupported holder types.
