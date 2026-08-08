@@ -8,6 +8,7 @@ import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform
 import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.test.gametest.ArchieTestGameTest
+import net.kernelpanicsoft.archie.test.gametest.DataAttachmentTestFixtures
 import net.kernelpanicsoft.archie.test.gametest.CapabilityLookupTestFixtures
 import net.kernelpanicsoft.archie.test.data.ArchieTestDatagen
 import net.kernelpanicsoft.archie.util.onClient
@@ -39,6 +40,8 @@ object ArchieTest
 		ItemRegistry.init()
 		TileRegistry.init()
 		GuiRegistry.init()
+		if (AGameTestPlatform.isGameTest)
+			DataAttachmentTestFixtures.init()
 		// Must come after TileRegistry.init() (needs TestTile to actually exist), but is otherwise
 		// still normal mod-init timing - see CapabilityLookupTestFixtures's KDoc for why this can't
 		// be deferred to inside the @GameTest methods themselves.
