@@ -1,5 +1,6 @@
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+import net.kernelpanicsoft.archie.plugin.runtimeLibrary
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 
@@ -156,6 +157,8 @@ dependencies {
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
+	// dev/test-only, not shipped - see the compileOnly note in common/build.gradle.kts
+	runtimeLibrary(libs.kotlinx.coroutines.test)
 
 	"common"(project(":common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":common", "transformProductionFabric")) { isTransitive = false }
