@@ -5,7 +5,6 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 
 @Mod(ArchieTest.MOD_ID)
 object ArchieTestNeoForge
@@ -20,8 +19,10 @@ object ArchieTestNeoForge
 		MOD_BUS.addListener<FMLCommonSetupEvent> {
 			ArchieTest.initCommon()
 		}
-		MOD_BUS.addListener<RegisterMenuScreensEvent> {
-			it.register(GuiRegistry.TestMenu, ::TestScreen)
-		}
+		// GuiRegistry.initClient() (an ADeferredRegistryHolder override) now registers its own
+		// screen factories at the correct time on its own - see
+		// net.kernelpanicsoft.archie.registries.scheduleEarlyClientRegistration. A manual
+		// RegisterMenuScreensEvent listener duplicating that here would now throw
+		// "Duplicate attempt to register screen" instead of silently doing nothing.
 	}
 }
