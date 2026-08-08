@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie.gametest.internal.tests
 
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
+import net.kernelpanicsoft.archie.gametest.assertEquals
+import net.kernelpanicsoft.archie.gametest.assertTrue
 import net.kernelpanicsoft.archie.gametest.internal.EMPTY
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import net.minecraft.gametest.framework.GameTest

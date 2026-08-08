@@ -9,6 +9,9 @@ internal fun AEvents.ArchieGameTestBuilder.archieTestGameTests()
 	client {
 		register<TestScreenGameTest>()
 	}
+	server {
+		register<CapabilityLookupTests>()
+	}
 }
 
 internal object ArchieTestGameTest : AGameTestEventObject(ArchieTest.MOD)
