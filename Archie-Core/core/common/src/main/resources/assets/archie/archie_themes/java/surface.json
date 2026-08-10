@@ -1,0 +1,20 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/surface",
+      "texture_size": {
+        "width": 16,
+        "height": 16
+      },
+      "width": 16,
+      "height": 16
+    }
+  },
+  "variants": {
+    "inset": {
+      "default": {
+        "texture": "archie:java/surface_inset"
+      }
+    }
+  }
+}

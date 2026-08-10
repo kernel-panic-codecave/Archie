@@ -1,0 +1,30 @@
+package net.kernelpanicsoft.archie.config.builder
+
+import net.kernelpanicsoft.archie.config.DataSpec
+import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
+import me.shedaniel.clothconfig2.gui.entries.MultiElementListEntry
+import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry
+import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
+import net.minecraft.network.chat.Component
+
+/** [ListFieldBuilder] for nested [DataSpec] entries, using [SpecFieldBuilder] per row. */
+class SpecListBuilder<T : DataSpec>(
+	resetButtonKey: Component,
+	fieldNameKey: Component,
+	value: List<T>,
+	private val factory: () -> T
+) : ListFieldBuilder<T, MultiElementListEntry<T>, SpecListBuilder<T>>(
+	resetButtonKey, fieldNameKey, value
+)
+{
+	override fun factory(): T = this.factory.invoke()
+
+	override fun ConfigEntryBuilder.builder(
+		title: Component,
+		value: T,
+		list: NestedListListEntry<T, MultiElementListEntry<T>>
+	): AbstractFieldBuilder<T, MultiElementListEntry<T>, *>
+	{
+		return startSpecField(title, value).also { it.isExpanded = list.isExpanded }
+	}
+}

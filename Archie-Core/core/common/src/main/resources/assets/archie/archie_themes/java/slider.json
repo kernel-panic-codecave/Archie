@@ -1,0 +1,19 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/slider",
+      "texture_size": {
+        "width": 200,
+        "height": 20
+      },
+      "width": 200,
+      "height": 20
+    },
+    "hovered": {
+      "texture": "archie:java/slider_highlighted"
+    },
+    "clicked": {
+      "texture": "archie:java/slider_highlighted"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/tab_menu",
+      "texture_size": {
+        "width": 130,
+        "height": 24
+      },
+      "width": 130,
+      "height": 24
+    },
+    "hovered": {
+      "texture": "archie:java/tab_menu_hovered"
+    },
+    "clicked": {
+      "texture": "archie:java/tab_menu_selected"
+    },
+    "clicked_and_hovered": {
+      "texture": "archie:java/tab_menu_selected_highlighted"
+    },
+    "disabled": {
+      "texture": "archie:java/tab_menu_disabled"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "net.kernelpanicsoft.archie.mixin.fabric",
+  "plugin": "net.kernelpanicsoft.archie.mixin.fabric.ArchieMixinPlugin",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "client": [
+    "threading.MinecraftClientMixin"
+  ],
+  "mixins": [
+    "threading.ServerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

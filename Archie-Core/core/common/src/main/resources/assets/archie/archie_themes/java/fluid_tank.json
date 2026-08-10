@@ -1,0 +1,13 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/fluid_tank",
+      "texture_size": {
+        "width": 18,
+        "height": 54
+      },
+      "width": 18,
+      "height": 54
+    }
+  }
+}
