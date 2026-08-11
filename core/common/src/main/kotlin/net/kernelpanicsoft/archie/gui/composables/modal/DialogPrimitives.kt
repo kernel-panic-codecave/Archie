@@ -16,6 +16,7 @@ import net.kernelpanicsoft.archie.gui.layout.Column
 import net.kernelpanicsoft.archie.gui.layout.Row
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.margin
+import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
@@ -36,8 +37,10 @@ private fun ModalDialogScaffold(
     body: @Composable () -> Unit,
     actions: @Composable () -> Unit,
 ) {
-    Surface(modifier = modifier) {
-        Column(modifier = Modifier.margin(4), verticalArrangement = Arrangement.spacedBy(4)) {
+    // Padding on the Surface itself, not margin on the inner Column, matching ConfirmDialog -
+    // margin only grows the parent, it doesn't shrink what content measures against.
+    Surface(modifier = Modifier.padding(4).then(modifier)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4)) {
             Text(
                 text = title,
                 color = LocalTheme.current.darkTextColor,
