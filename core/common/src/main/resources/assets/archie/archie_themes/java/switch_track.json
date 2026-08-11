@@ -9,14 +9,14 @@
       "width": 34,
       "height": 18
     },
-    "hovered": {
-      "texture": "archie:java/switch_track_hovered"
+    "focused": {
+      "texture": "archie:java/switch_track_focused"
     },
     "clicked": {
       "texture": "archie:java/switch_track_clicked"
     },
-    "clicked_and_hovered": {
-      "texture": "archie:java/switch_track_clicked_and_hovered"
+    "clicked_and_focused": {
+      "texture": "archie:java/switch_track_clicked_and_focused"
     },
     "disabled": {
       "texture": "archie:java/switch_track_disabled"

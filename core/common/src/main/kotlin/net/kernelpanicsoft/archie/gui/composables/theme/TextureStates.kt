@@ -6,7 +6,7 @@ import net.kernelpanicsoft.archie.gui.theme.ThemeState
  * Constant keys used to look up [ThemeState] entries within a [ComposableTheme]'s state map.
  *
  * Composables use these keys to select the correct texture variant based on their current
- * interactive state (e.g. hovered, pressed, disabled).
+ * interactive state (e.g. focused, pressed, disabled).
  */
 object TextureStates {
     /** The default idle state used when no other state applies. */
@@ -21,11 +21,11 @@ object TextureStates {
      * texture state: there's one "this is the thing about to be interacted with" visual,
      * regardless of which input method put it there.
      */
-    const val HOVERED           = "hovered"
+    const val FOCUSED           = "focused"
 
     /** Used when the composable has been activated/checked/clicked (toggle state). */
     const val CLICKED           = "clicked"
 
-    /** Used when the composable is both activated and hovered simultaneously. */
-    const val CLICKED_AND_HOVERED = "clicked_and_hovered"
+    /** Used when the composable is both activated and focused simultaneously. */
+    const val CLICKED_AND_FOCUSED = "clicked_and_focused"
 }

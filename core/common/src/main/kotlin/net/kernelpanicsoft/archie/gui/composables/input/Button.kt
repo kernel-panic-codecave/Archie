@@ -33,7 +33,7 @@ private val BUTTON_ACTIVATION_KEYS = intArrayOf(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_K
 /**
  * A standard themed, clickable button.
  *
- * Renders the themed [texture] state ([TextureStates.DEFAULT]/[TextureStates.HOVERED]/
+ * Renders the themed [texture] state ([TextureStates.DEFAULT]/[TextureStates.FOCUSED]/
  * [TextureStates.CLICKED]/[TextureStates.DISABLED]) behind [content], animating a 1px press
  * offset while held. For fully custom visuals, use [ButtonCore] directly instead.
  *

@@ -126,11 +126,11 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     click()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.CLICKED_AND_HOVERED)
+                    assertRenderState(TextureStates.CLICKED_AND_FOCUSED)
                 }
             }
         }
@@ -250,7 +250,7 @@ node("Slider") {
 
 Stateful renderers (`Checkbox`, `Switch`, `Radio.kt`'s `RadioButton`, and similar theme-driven
 composables) set `UINode.renderState` — a test-only hook — to the `TextureStates` key they most
-recently resolved (e.g. `"hovered"`, `"clicked_and_hovered"`) just before drawing. The framework
+recently resolved (e.g. `"focused"`, `"clicked_and_focused"`) just before drawing. The framework
 never reads it back; it exists purely so a test can assert *which visual state a component
 resolved to* without a pixel comparison:
 

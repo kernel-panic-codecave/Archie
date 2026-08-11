@@ -9,13 +9,13 @@
       "width": 130,
       "height": 24
     },
-    "hovered": {
-      "texture": "archie:java/tab_menu_hovered"
+    "focused": {
+      "texture": "archie:java/tab_menu_focused"
     },
     "clicked": {
       "texture": "archie:java/tab_menu_selected"
     },
-    "clicked_and_hovered": {
+    "clicked_and_focused": {
       "texture": "archie:java/tab_menu_selected_highlighted"
     },
     "disabled": {

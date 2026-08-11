@@ -35,7 +35,7 @@ interface UINode {
 
 	/**
 	 * The [net.kernelpanicsoft.archie.gui.composables.theme.TextureStates] key a stateful
-	 * [Renderer] most recently selected to draw (e.g. `"hovered"`, `"clicked_and_hovered"`),
+	 * [Renderer] most recently selected to draw (e.g. `"focused"`, `"clicked_and_focused"`),
 	 * or `null` for nodes that don't render theme-state-driven visuals.
 	 *
 	 * Set by the [Renderer] itself, purely as a test hook - lets a client GameTest assert which

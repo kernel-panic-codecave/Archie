@@ -9,7 +9,7 @@
       "width": 8,
       "height": 20
     },
-    "hovered": {
+    "focused": {
       "texture": "archie:java/slider_handle_highlighted"
     },
     "clicked": {

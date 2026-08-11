@@ -83,15 +83,15 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     click()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.CLICKED_AND_HOVERED) { "Expected checkbox to be both checked and hovered right after a click at its own center" }
+                    assertRenderState(TextureStates.CLICKED_AND_FOCUSED) { "Expected checkbox to be both checked and hovered right after a click at its own center" }
 
                     click()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED) { "Expected checkbox to be unchecked again after a second click" }
+                    assertRenderState(TextureStates.FOCUSED) { "Expected checkbox to be unchecked again after a second click" }
                 }
             }
         }
@@ -112,7 +112,7 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
                 }
             }
         }
@@ -165,7 +165,7 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     context.getInput().holdMouse(0)
                     waitForComposeIdle()
@@ -173,7 +173,7 @@ class InputComponentsGameTest {
 
                     context.getInput().releaseMouse(0)
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED) { "Expected slider to return to hovered after releasing the drag" }
+                    assertRenderState(TextureStates.FOCUSED) { "Expected slider to return to hovered after releasing the drag" }
                 }
             }
         }
@@ -190,7 +190,7 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     click()
                     waitForComposeIdle()

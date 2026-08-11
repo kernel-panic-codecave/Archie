@@ -155,7 +155,7 @@ data class ComposableTheme(
  *       "width": 64,
  *       "height": 20
  *     },
- *     "hovered": { "texture": "archie:java/button_highlighted" }
+ *     "focused": { "texture": "archie:java/button_highlighted" }
  *   }
  * }
  * ```

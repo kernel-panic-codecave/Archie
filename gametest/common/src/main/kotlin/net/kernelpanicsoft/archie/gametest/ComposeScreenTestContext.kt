@@ -51,7 +51,7 @@ class TestNodeScope(
         context.getInput().click(x, y, button)
     }
 
-    /** Moves the cursor to the center of this node's on-screen bounds, without clicking - e.g. to assert a [TextureStates.HOVERED] visual state. */
+    /** Moves the cursor to the center of this node's on-screen bounds, without clicking - e.g. to assert a [TextureStates.FOCUSED] visual state. */
     fun hover() {
         val (x, y) = centerCoords()
         context.getInput().setCursor(x, y)

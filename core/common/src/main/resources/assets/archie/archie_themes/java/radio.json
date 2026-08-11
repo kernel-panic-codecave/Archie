@@ -9,14 +9,14 @@
       "width": 20,
       "height": 20
     },
-    "hovered": {
-      "texture": "archie:java/radio_hovered"
+    "focused": {
+      "texture": "archie:java/radio_focused"
     },
     "clicked": {
       "texture": "archie:java/radio_clicked"
     },
-    "clicked_and_hovered": {
-      "texture": "archie:java/radio_clicked_and_hovered"
+    "clicked_and_focused": {
+      "texture": "archie:java/radio_clicked_and_focused"
     },
     "disabled": {
       "texture": "archie:java/radio_disabled"

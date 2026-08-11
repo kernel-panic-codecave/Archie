@@ -9,7 +9,7 @@
       "width": 64,
       "height": 20
     },
-    "hovered": {
+    "focused": {
       "texture": "archie:java/button_highlighted"
     },
     "disabled": {
