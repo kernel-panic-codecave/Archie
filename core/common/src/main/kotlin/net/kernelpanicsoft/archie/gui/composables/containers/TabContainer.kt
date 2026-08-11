@@ -344,10 +344,10 @@ fun Tab(
         onClick = { onClick(spec) },
         enabled = enabled,
         modifier = modifier,
-    ) { isHovered, isPressed ->
+    ) { isHovered, isPressed, _ ->
         val stateKey = WidgetState.resolve(
             composableTheme, variant,
-            WidgetState.clicked(selected || isPressed), WidgetState.hovered(isHovered),
+            WidgetState.clicked(selected || isPressed), WidgetState.focused(isHovered),
             enabled = enabled,
         )
         val state = composableTheme.getState(stateKey, variant)

@@ -110,7 +110,7 @@ fun Switch(
                 ) = guiGraphics {
                     val trackStateKey = WidgetState.resolve(
                         trackTheme, variant,
-                        WidgetState.clicked(currentChecked), WidgetState.hovered(hovered),
+                        WidgetState.clicked(currentChecked), WidgetState.focused(hovered),
                         enabled = enabled,
                     )
                     node.renderState = trackStateKey

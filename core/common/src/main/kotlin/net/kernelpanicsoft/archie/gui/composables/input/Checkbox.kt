@@ -74,7 +74,7 @@ fun Checkbox(
                 ) = guiGraphics {
                     val stateKey = WidgetState.resolve(
                         composableTheme, variant,
-                        WidgetState.clicked(checked), WidgetState.hovered(isHovered),
+                        WidgetState.clicked(checked), WidgetState.focused(isHovered),
                     )
                     node.renderState = stateKey
                     val state = composableTheme.getState(stateKey, variant)

@@ -13,6 +13,7 @@ import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
 import net.kernelpanicsoft.archie.gui.blockentity.LocalBlockEntityState
 import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
+import net.kernelpanicsoft.archie.gui.focus.collectFocusableChildren
 import net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu
 import net.kernelpanicsoft.archie.gui.item.LocalItemState
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
@@ -28,6 +29,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
@@ -375,6 +377,14 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     }
 
     private fun getTopNode(): LayoutNode? = layerManager.top?.rootNode
+
+    // See ComposeScreen.children() for why this one override is enough to bridge Compose's
+    // `Modifier.focusable` nodes into vanilla's Tab/Shift-Tab/arrow-key navigation and any
+    // other GuiEventListener-walking consumer (e.g. Controlify).
+    override fun children(): List<GuiEventListener> {
+        val topNode = getTopNode() ?: return super.children()
+        return collectFocusableChildren(topNode)
+    }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val topNode = getTopNode() ?: return super.mouseClicked(mouseX, mouseY, button)

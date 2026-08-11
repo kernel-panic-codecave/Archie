@@ -49,7 +49,7 @@ internal fun resolveSliderThumbX(rawThumbX: Int, sliderX: Int, sliderWidth: Int,
 }
 
 private fun resolveSliderStateName(theme: ComposableTheme, variant: String, enabled: Boolean, hovered: Boolean, dragging: Boolean): String =
-    WidgetState.resolve(theme, variant, WidgetState.clicked(dragging), WidgetState.hovered(hovered), enabled = enabled)
+    WidgetState.resolve(theme, variant, WidgetState.clicked(dragging), WidgetState.focused(hovered), enabled = enabled)
 
 /**
  * Low-level unstyled slider behavior: drag/click-to-position and hover/drag state tracking,

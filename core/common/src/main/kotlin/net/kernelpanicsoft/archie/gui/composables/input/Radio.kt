@@ -106,7 +106,7 @@ fun RadioButton(
                 ) = guiGraphics {
                     val stateKey = WidgetState.resolve(
                         composableTheme, variant,
-                        WidgetState.clicked(currentSelected), WidgetState.hovered(hovered),
+                        WidgetState.clicked(currentSelected), WidgetState.focused(hovered),
                         enabled = enabled,
                     )
                     node.renderState = stateKey

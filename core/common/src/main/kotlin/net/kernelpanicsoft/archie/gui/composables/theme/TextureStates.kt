@@ -15,7 +15,12 @@ object TextureStates {
     /** Used when the composable is disabled and cannot be interacted with. */
     const val DISABLED          = "disabled"
 
-    /** Used when the mouse cursor is hovering over the composable. */
+    /**
+     * Used when the composable is highlighted - the mouse cursor is hovering over it, or (see
+     * [WidgetState.focused]) it holds vanilla keyboard/controller focus. Both count as the same
+     * texture state: there's one "this is the thing about to be interacted with" visual,
+     * regardless of which input method put it there.
+     */
     const val HOVERED           = "hovered"
 
     /** Used when the composable has been activated/checked/clicked (toggle state). */

@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
 import kotlinx.coroutines.*
+import net.kernelpanicsoft.archie.gui.focus.collectFocusableChildren
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.*
@@ -17,6 +18,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
@@ -269,6 +271,18 @@ abstract class ComposeScreen(
     // ── Input ─────────────────────────────────────────────────────────────
 
     private fun topNode() = layerManager.top?.rootNode
+
+    // Bridges Compose's own focus concept (`Modifier.focusable`) into vanilla's built-in
+    // GuiEventListener focus graph. Screen already implements Tab/Shift-Tab/arrow-key
+    // navigation, focus tracking (getFocused/setFocused) and ComponentPath-based dispatch
+    // entirely in terms of `children()` - overriding just this one method is enough to make
+    // all of that (plus anything else that walks GuiEventListener, e.g. Controlify's
+    // controller navigation) reach Compose content. Scoped to the top layer only, matching
+    // topNode()'s modal-aware input dispatch: a modal's focus stays within the modal.
+    override fun children(): List<GuiEventListener> {
+        val top = topNode() ?: return super.children()
+        return collectFocusableChildren(top)
+    }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val top = topNode() ?: return super.mouseClicked(mouseX, mouseY, button)
