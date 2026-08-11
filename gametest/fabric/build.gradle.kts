@@ -71,7 +71,6 @@ dependencies {
 
 	"common"(project(":archie-gametest-common", "namedElements")) { isTransitive = false }
 	api(project(":archie-core-fabric", "namedElements"))
-	runtimeOnly(project(":archie-core-common", "namedElements")) { isTransitive = false }
 }
 
 modResources {

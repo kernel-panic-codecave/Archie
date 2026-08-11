@@ -13,6 +13,14 @@
   },
   "license": "${mod_license}",
   "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "net.kernelpanicsoft.archie.data.ArchieDatagenFabric"
+      }
+    ]
+  },
   "mixins": [
     "${mod_id}_datagen.mixins.json"
   ],

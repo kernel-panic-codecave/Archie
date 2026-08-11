@@ -13,6 +13,14 @@
   },
   "license": "${mod_license}",
   "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "net.kernelpanicsoft.archie.gametest.ArchieGameTestFabric"
+      }
+    ]
+  },
   "mixins": [
     "${mod_id}_gametest.mixins.json"
   ],

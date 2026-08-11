@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie.gametest
 
 import dev.architectury.platform.Mod
+import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
 import net.kernelpanicsoft.archie.gametest.platform.AGameTestModFilter
 import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform
@@ -32,9 +33,10 @@ object AGameTestRegistrationBridge
 
 	/**
 	 * No-ops unless [AGameTestPlatform.isGameTest]. For every mod selected by
-	 * [AGameTestModFilter] from [AGametestEvents.MODS], subscribes to that mod's
-	 * `RegisterGameTestsEvent`; when it fires, fires [AGametestEvents.REGISTER_GAME_TEST] for the
-	 * mod and registers each resulting test class with NeoForge's event.
+	 * [AGameTestModFilter] from [AGametestEvents.MODS] (or just [Archie.MOD] if that's empty),
+	 * subscribes to that mod's `RegisterGameTestsEvent`; when it fires, fires
+	 * [AGametestEvents.REGISTER_GAME_TEST] for the mod and registers each resulting test class
+	 * with NeoForge's event.
 	 *
 	 * Falls back to [NoOpGameTest] for a mod whose registration turns up no classes at all for the
 	 * current [AGameTestPlatform.side] (e.g. a client-only mod's server invocation) - vanilla's
@@ -46,7 +48,7 @@ object AGameTestRegistrationBridge
 	{
 		if (!AGameTestPlatform.isGameTest) return
 
-		for (mod in AGameTestModFilter.selectMods(AGametestEvents.MODS))
+		for (mod in AGameTestModFilter.selectMods(AGametestEvents.MODS.ifEmpty { listOf(Archie.MOD) }))
 		{
 			ModList.get().getModContainerById(mod.modId).ifPresent {
 				it.eventBus?.addListener<RegisterGameTestsEvent> { event ->

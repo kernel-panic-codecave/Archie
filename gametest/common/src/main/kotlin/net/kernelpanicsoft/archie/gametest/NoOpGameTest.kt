@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.gametest
 
+import net.kernelpanicsoft.archie.gametest.internal.EMPTY
 import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
 
@@ -14,7 +15,7 @@ import net.minecraft.gametest.framework.GameTestHelper
  */
 @Suppress("unused")
 class NoOpGameTest {
-	@GameTest(template = "archie:gametest/empty")
+	@GameTest(template = EMPTY)
 	fun GameTestHelper.testNoOpPlaceholder() {
 		succeed()
 	}

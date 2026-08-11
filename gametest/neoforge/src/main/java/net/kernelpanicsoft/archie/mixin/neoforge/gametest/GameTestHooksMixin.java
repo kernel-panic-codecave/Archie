@@ -30,25 +30,30 @@ public abstract class GameTestHooksMixin {
         {
             ResourceLocation template = ResourceLocation.parse(gameTest.template());
             cir.setReturnValue(template.getNamespace());
+            cir.cancel();
             return;
         }
 
-        if (mod != null)
-        {
-            cir.setReturnValue(mod.getModId());
-            return;
-        }
-
+        // NoOpGameTest (the fallback placeholder used when a mod has zero real registered tests
+        // for the current side) never goes through AGameTestPlatform.register, so it's never in
+        // AGameTestRegistrationBridge.getTestClassToMod() - it's always Archie's own infrastructure
+        // regardless of which mod's invocation triggered it, so default to Archie.MOD's id.
+        cir.setReturnValue(mod != null ? mod.getModId() : Archie.MOD_ID);
+        cir.cancel();
     }
 
+    /**
+     * Always suppresses vanilla's own "namespace." infix (see NeoForge's {@code GameTestHooks#
+     * turnMethodIntoTestFunction}) - it unconditionally wraps the result with {@code
+     * getTemplateNamespace(method) + ":"} regardless of this method's return value, so any
+     * additional infixing here would only ever produce a malformed structure id for Archie's own
+     * (bare-path) templates.
+     */
     @Inject(method = "prefixGameTestTemplate(Ljava/lang/reflect/Method;)Z", at = @At("HEAD"), cancellable = true)
     private static void prefixGameTestTemplateMixin(Method method, CallbackInfoReturnable<Boolean> cir)
     {
-        GameTest gameTest = method.getAnnotation(GameTest.class);
-        if (gameTest.template().contains(":"))
-        {
-            cir.setReturnValue(false);
-        }
+        cir.setReturnValue(false);
+        cir.cancel();
     }
 
     @Inject(method = "registerGametests()V", at = @At(value = "INVOKE", target = "Lnet/neoforged/fml/ModLoader;postEvent(Lnet/neoforged/bus/api/Event;)V"))

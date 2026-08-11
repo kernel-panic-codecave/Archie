@@ -13,7 +13,12 @@ import net.kernelpanicsoft.archie.gametest.internal.tests.ModalComponentsGameTes
 
 /**
  * ID of the empty structure template used by every GameTest in this suite; GameTests that don't
- * need a specific structure should reference this via `@GameTest(template = EMPTY)`.
+ * need a specific structure should reference this via `@GameTest(template = EMPTY)`. Explicitly
+ * namespaced - Fabric has no custom template-namespace resolution of its own and relies entirely
+ * on this string being a complete id. NeoForge's `GameTestHooksMixin` mixes `turnMethodIntoTestFunction`
+ * itself (not just its two namespace/prefix helper methods) to use this value verbatim instead of
+ * NeoForge's own unconditional `getTemplateNamespace(method) + ":"` wrap, which would otherwise
+ * double the "archie:" prefix already present here.
  */
 const val EMPTY = "archie:gametest/empty"
 

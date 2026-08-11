@@ -122,6 +122,11 @@ tasks {
 
 	jar.get().archiveClassifier.set("dev")
 
+	jar {
+		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+		from(project(":archie-core-common").sourceSets.main.get().output)
+	}
+
 	sourcesJar {
 		val commonSources = project(":archie-core-common").tasks.sourcesJar
 		dependsOn(commonSources)

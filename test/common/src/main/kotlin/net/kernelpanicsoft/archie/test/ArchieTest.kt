@@ -10,7 +10,6 @@ import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
 import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform
 import net.kernelpanicsoft.archie.test.gametest.ArchieTestGameTest
 import net.kernelpanicsoft.archie.test.gametest.DataAttachmentTestFixtures
-import net.kernelpanicsoft.archie.test.gametest.CapabilityLookupTestFixtures
 import net.kernelpanicsoft.archie.test.data.ArchieTestDatagen
 import net.kernelpanicsoft.archie.util.onClient
 import net.minecraft.resources.ResourceLocation
@@ -44,11 +43,6 @@ object ArchieTest
 		GuiRegistry.init()
 		if (AGameTestPlatform.isGameTest)
 			DataAttachmentTestFixtures.init()
-		// Must come after TileRegistry.init() (needs TestTile to actually exist), but is otherwise
-		// still normal mod-init timing - see CapabilityLookupTestFixtures's KDoc for why this can't
-		// be deferred to inside the @GameTest methods themselves.
-		if (AGameTestPlatform.isGameTest)
-			CapabilityLookupTestFixtures.init()
 	}
 
 	@JvmStatic

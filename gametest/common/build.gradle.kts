@@ -20,8 +20,6 @@ dependencies {
 
 	compileOnly(kotlin("reflect"))
 	implementation(libs.junit.jupiter.api)
-	// Gives ComposeScreen a virtual clock/dispatcher during tests - never on a real player's
-	// classpath (archie-gametest is dev/test-only, never shipped in a production jar).
 	implementation(libs.kotlinx.coroutines.test)
 	testImplementation(libs.junit.jupiter.api)
 	testImplementation(kotlin("reflect"))

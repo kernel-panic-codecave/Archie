@@ -28,8 +28,6 @@ loom {
 dependencies {
 	compileOnly(kotlin("reflect"))
 	implementation(libs.junit.jupiter.api)
-	// Used by the client GameTest harness (archie-gametest) only, to give ComposeScreen a virtual
-	// clock/dispatcher during tests - never on a real player's classpath. compileOnly deliberately.
 	compileOnly(libs.kotlinx.coroutines.test)
 	testImplementation(libs.junit.jupiter.api)
 	testImplementation(kotlin("reflect"))
@@ -46,10 +44,7 @@ dependencies {
 	modImplementation(libs.fabric.loader)
 
 	modApi(libs.rei.common)
-	// catalogue.common deliberately omitted - common source never references it directly.
 	modCompileOnly(libs.clothConfig.common)
-	// yacl.common deliberately omitted too - unused, and it's actually a Fabric-only build (its
-	// version coordinate ends in "-fabric").
 	modApi(libs.architectury.common)
 	modApi(libs.storage.common)
 	modApi(libs.storage.resources.common)
@@ -87,9 +82,6 @@ tasks {
 		dependsOn(verifyGuiSpriteAssets)
 	}
 
-	// Keep stubUnfulfilledExpects()'s generated throwing-actual stubs out of what gets published -
-	// a consumer with both this jar and a real actual on its classpath must only ever see the
-	// real one, or Kotlin's actual-resolution can end up preferring the stub.
 	jar {
 		from(sourceSets.main.get().output)
 		exclude("**/*StubKt.class")

@@ -10,7 +10,6 @@ import net.kernelpanicsoft.archie.config.CategorySpec
 import net.kernelpanicsoft.archie.config.ConfigContainer
 import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.kernelpanicsoft.archie.config.DataSpec
-import net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform
 import net.kernelpanicsoft.archie.data.common.conditions.ABuiltinConditions
 import net.kernelpanicsoft.archie.data.common.crafting.ingredients.ABuiltinIngredients
 import net.kernelpanicsoft.archie.data.common.tags.platform.ACommonTags
@@ -32,7 +31,6 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.entity.BlockEntityType
 import org.slf4j.Logger
-import java.util.ServiceLoader
 
 /**
  * Archie's mod object and library entrypoint.
@@ -56,8 +54,8 @@ object Archie
 	 *
 	 * Wires up networking (skipped only for a server-only gametest run, since Architectury's
 	 * networking registration touches client-only classes), initializes block entity state
-	 * syncing, built-in data providers, and Archie's own config, and activates the datagen/
-	 * gametest code paths when running under those tasks.
+	 * syncing, built-in data providers, and Archie's own config. Datagen/GameTest code paths are
+	 * activated separately, by archie-datagen/archie-gametest's own mod entrypoints.
 	 *
 	 * @throws IllegalStateException if running on LexForge, which is not supported.
 	 */
@@ -79,13 +77,6 @@ object Archie
 		ACommonTags.init()
 		Config.init()
 
-
-		// Datagen and GameTest code paths are only activated in dedicated run configs, and only
-		// exist at all when archie-datagen/archie-gametest are present - see ArchieExtension.
-		if (AGameTestPlatform.isGameTest)
-			ServiceLoader.load(ArchieExtension::class.java).forEach { it.onGameTest() }
-		if (ADataGeneratorPlatform.isDataGen)
-			ServiceLoader.load(ArchieExtension::class.java).forEach { it.onDataGen() }
 		onClient {
 			ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeManifestResourceListener(), Archie % "theme_manifest")
 			ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeResourceListener(), Archie % "theme")

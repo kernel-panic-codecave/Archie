@@ -11,10 +11,6 @@ loom {
 }
 
 dependencies {
-	// Plain api, explicit "namedElements" target - not modApi. mod* on a project(...) reference
-	// makes Loom eagerly read that project's output jar during *configuration*, which can't
-	// possibly exist yet on a from-scratch build (mod* is for real remapping needs; this and
-	// archie-core-common are already namespace-symmetric, nothing to remap).
 	api(project(":archie-core-common", "namedElements"))
 	modApi(libs.architectury.common)
 

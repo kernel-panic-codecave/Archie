@@ -136,14 +136,7 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":archie-core-common").sourceSets.main.get().output) {
-			// That output is common's own independently-compiled (stub-linked) classes - this
-			// module's own sourceSets.main.output already has a correctly-actualized copy of all
-			// of them via actualizes(project(":archie-core-common")) above. Exclude so the
-			// stub-linked copy can't win the duplicatesStrategy race - it did once, and threw at
-			// runtime (see today's Archie/neoforge/build.gradle.kts's matching comment).
-			exclude("net/kernelpanicsoft/archie/**")
-		}
+		from(project(":archie-core-common").sourceSets.main.get().output)
 	}
 
 	sourcesJar {
