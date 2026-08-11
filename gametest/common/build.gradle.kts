@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 architectury {
 	common("fabric", "neoforge")
 }
@@ -36,5 +38,23 @@ tasks {
 
 	sourcesJar {
 		exclude("**/*Stub.kt")
+	}
+
+	test {
+		testClassesDirs = sourceSets.test.get().output.classesDirs
+		classpath = sourceSets.test.get().runtimeClasspath
+		useJUnitPlatform()
+		systemProperty("archie.junit.gametest", "true")
+		// Overridable via -Darchie.junit.gametest.matrix=... (a plain JVM system property, not a
+		// Gradle project property, so a CI job matrix reaches every product's :test at once).
+		systemProperty(
+			"archie.junit.gametest.matrix",
+			System.getProperty("archie.junit.gametest.matrix") ?: "fabric:server,fabric:client,neoforge:server,neoforge:client",
+		)
+		systemProperty("archie.junit.gametest.timeoutMinutes", "20")
+		systemProperty("archie.junit.gametest.root", rootProject.rootDir.absolutePath)
+		testLogging {
+			exceptionFormat = TestExceptionFormat.FULL
+		}
 	}
 }

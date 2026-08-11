@@ -98,4 +98,8 @@ tasks {
 	sourcesJar {
 		exclude("**/*Stub.kt")
 	}
+
+	test {
+		useJUnitPlatform()
+	}
 }

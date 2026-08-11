@@ -1,8 +1,8 @@
-package net.kernelpanicsoft.archie.test.testing
+package net.kernelpanicsoft.archie.testing
 
 import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.gametest.internal.archieGameTests
 import net.kernelpanicsoft.archie.gametest.junit.GameTestRunner
-import net.kernelpanicsoft.archie.test.gametest.archieTestGameTests
 import org.junit.jupiter.api.DynamicContainer
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.parallel.Execution
@@ -12,5 +12,5 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 class GameTests
 {
 	@TestFactory
-	fun tests(): Collection<DynamicContainer> = GameTestRunner.tests("archie_test", AGametestEvents.ArchieGameTestBuilder::archieTestGameTests)
+	fun tests(): Collection<DynamicContainer> = GameTestRunner.tests("archie", AGametestEvents.ArchieGameTestBuilder::archieGameTests)
 }
