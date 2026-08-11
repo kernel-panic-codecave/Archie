@@ -31,7 +31,7 @@ val LocalScreen: ProvidableCompositionLocal<ComposeScreen> =
  * poll for a settled frame (no pending or in-flight recomposition) before asserting on rendered
  * output - e.g. before taking a screenshot right after simulating a click.
  */
-internal interface ComposeIdleAware {
+interface ComposeIdleAware {
     /** `true` when there is no snapshot-write notification, frame request, or recompose job pending. */
     fun isComposeIdle(): Boolean
 }
@@ -63,7 +63,7 @@ interface LayerManagerProvider
  * `AGameTestPlatform.isGameTest`) construct the actual `StandardTestDispatcher`/
  * `TestCoroutineScheduler` instances installed here.
  */
-internal object ComposeTestClockOverride {
+object ComposeTestClockOverride {
     /** The dispatcher to back new [ComposeScreen]s' coroutine scope with, in place of [kotlinx.coroutines.Dispatchers.Default]. */
     @Volatile
     var dispatcher: CoroutineDispatcher? = null

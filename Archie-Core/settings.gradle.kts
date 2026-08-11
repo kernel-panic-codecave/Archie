@@ -39,6 +39,14 @@ includeCorePlatform("common")
 includeCorePlatform("fabric")
 includeCorePlatform("neoforge")
 
+includeModule("datagen", "common")
+includeModule("datagen", "fabric")
+includeModule("datagen", "neoforge")
+
+includeModule("gametest", "common")
+includeModule("gametest", "fabric")
+includeModule("gametest", "neoforge")
+
 fun includeModule(name: String, platform: String) {
 	include("$name/$platform")
 	project(":$name/$platform").name = "archie-$name-$platform"

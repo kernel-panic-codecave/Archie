@@ -1,0 +1,38 @@
+modLoader = "klf"
+loaderVersion = "[${versions.kotlin_neoforge_range},)"
+issueTrackerURL = ""
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}_datagen"
+version = "${mod_version}"
+displayName = "${mod_display_name} Datagen"
+authors = "${mod_authors}"
+description = '''
+${mod_display_name}'s datagen DSL - dev-time only, never shipped in a production jar.
+'''
+displayURL = "${mod_url}"
+
+[[mixins]]
+config = "${mod_id}_datagen.mixins.json"
+
+[[dependencies."${mod_id}_datagen"]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${versions.neoforge_range},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}_datagen"]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${versions.minecraft}]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}_datagen"]]
+modId = "archie"
+type = "required"
+versionRange = "[${mod_version},)"
+ordering = "AFTER"
+side = "BOTH"

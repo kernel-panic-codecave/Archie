@@ -1,35 +1,29 @@
 package net.kernelpanicsoft.archie.events
 
-import net.kernelpanicsoft.archie.data.ADataGenerator
-import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import dev.architectury.event.Event
 import dev.architectury.event.EventFactory
 import dev.architectury.event.EventResult
 import dev.architectury.platform.Mod
-import dev.architectury.platform.Platform
-import dev.architectury.utils.Env
+import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.gametest.AGameTestSide
 
 /**
- * Archie's central, mod-scoped event registry, built on top of Architectury's event system.
+ * `archie-gametest`'s central, mod-scoped event registry, built on top of Architectury's event
+ * system - the gametest half of what used to be `archie-core`'s combined `AEvents`.
  *
- * A downstream mod opts in with `AEvents += MOD` (its own [Mod] descriptor), then listens for
- * [GATHER_DATA] and/or [REGISTER_GAME_TEST] via the corresponding handler's
- * [HandlerConstructor.create]. Handlers are mod-scoped: [GatherDataHandler] and
- * [RegisterGameTestHandler] both check the invoking [Mod] and no-op (via
- * [EventResult.pass]) for any mod other than the one they were created for.
+ * A downstream mod opts in with `AGametestEvents += MOD` (its own [Mod] descriptor), then listens
+ * for [REGISTER_GAME_TEST] via [RegisterGameTestHandler.Companion.create]. Handlers are
+ * mod-scoped: they check the invoking [Mod] and no-op (via [EventResult.pass]) for any mod other
+ * than the one they were created for.
  */
-object AEvents
+object AGametestEvents
 {
-	/** Fired during datagen runs; handlers should gate by owning [Mod]. */
-	val GATHER_DATA: Event<GatherDataHandler> = EventFactory.createEventResult()
-
 	/** Fired during gametest registration runs; handlers should register test classes per [Mod]. */
 	val REGISTER_GAME_TEST: Event<RegisterGameTestHandler> = EventFactory.createEventResult()
 
 	private val mods: MutableList<Mod> = mutableListOf()
 
-	/** Mods that opted into Archie event plumbing via `AEvents += MOD`. */
+	/** Mods that opted into `archie-gametest`'s event plumbing via `AGametestEvents += MOD`. */
 	val MODS: List<Mod>
 		get() = mods
 
@@ -39,49 +33,6 @@ object AEvents
 	}
 
 	operator fun plusAssign(mod: Mod) = register(mod)
-
-	/** Marker for a mod-scoped Architectury event listener created by a [HandlerConstructor]. */
-	interface Handler<T>
-
-	/** Builds a mod-scoped [H] whose body invokes `block` on the event's [T] payload. */
-	fun interface HandlerConstructor<T, H : Handler<T>>
-	{
-		/** Creates an [H] for [mod] that runs [block] against the [T] payload when invoked. */
-		fun create(mod: Mod, block: T.() -> Unit): H
-	}
-
-	/**
-	 * Handler for [GATHER_DATA]. Implementations are produced via [HandlerConstructor.create]
-	 * and forward to the registered `block` only when the firing [ADataGenerator.mod] matches
-	 * the [Mod] the handler was created for.
-	 */
-	interface GatherDataHandler : Handler<ADataGenerator>
-	{
-		operator fun invoke(dataGenerator: ADataGenerator): EventResult
-
-		companion object : HandlerConstructor<ADataGenerator, GatherDataHandler>
-		{
-			override fun create(mod: Mod, block: ADataGenerator.() -> Unit): GatherDataHandler
-			{
-				return GatherDataHandlerImpl(mod, block)
-			}
-
-			class GatherDataHandlerImpl internal constructor(
-				private val mod: Mod,
-				private val gatherData: ADataGenerator.() -> Unit
-			) :
-				GatherDataHandler
-			{
-				override operator fun invoke(dataGenerator: ADataGenerator): EventResult
-				{
-					if (this.mod != dataGenerator.mod)
-						return EventResult.pass()
-					dataGenerator.gatherData()
-					return EventResult.interruptDefault()
-				}
-			}
-		}
-	}
 
 	/**
 	 * DSL receiver passed to [REGISTER_GAME_TEST] listeners for declaring gametest classes.
@@ -175,11 +126,7 @@ object AEvents
 					}
 					return EventResult.interruptDefault()
 				}
-
-
 			}
 		}
 	}
-
-
 }

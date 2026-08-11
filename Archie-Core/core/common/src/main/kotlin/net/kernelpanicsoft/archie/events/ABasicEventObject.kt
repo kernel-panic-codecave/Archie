@@ -5,7 +5,7 @@ import dev.architectury.event.Event
 /**
  * A simpler alternative to [AEventObject] for wrapping an Architectury [event] that isn't
  * scoped to a particular [dev.architectury.platform.Mod] and doesn't need a
- * [AEvents.HandlerConstructor].
+ * [HandlerConstructor].
  *
  * @param T The Architectury handler/listener type expected by [event].
  */

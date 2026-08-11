@@ -32,19 +32,20 @@ expect object AGameTestPlatform
 }
 
 /**
- * Restricts which [AEvents.REGISTER_GAME_TEST]-registered mods a single `runGametest`/
+ * Restricts which `AGametestEvents.REGISTER_GAME_TEST`-registered mods a single `runGametest`/
  * `runGametestClient` invocation actually runs, via the [GAMETEST_MOD_ID_FILTER_PROPERTY]
  * system property (a comma-separated list of mod ids).
  *
- * Every mod that has called `AEvents += MOD` shares one JVM-wide [AEvents.MODS] list - which
- * matters because a composite build's included builds can *both* end up in that list within
- * the same process. Archie-Test's Loom `runs{}` blocks `includeBuild("../Archie")`, and both
- * `Archie` and `ArchieTest`'s mod init call `AEvents += MOD`, so launching Archie-Test's own
- * `runGametestClient`/`runGametest` previously ran Archie's *entire* GameTest suite a second
- * time in the same process, without Archie-Test's own suite being any bigger - only
- * distinguishable by the test count not matching the log's actual line count. Every loader's
- * `AGameTestPlatformInternal`/`AClientGameTestHarness` server- and client-side test collection
- * should call [selectMods] on [AEvents.MODS] before iterating, instead of iterating it directly.
+ * Every mod that has called `AGametestEvents += MOD` (in `archie-gametest`) shares one JVM-wide
+ * `MODS` list - which matters because a composite build's included builds can *both* end up in
+ * that list within the same process. Archie-Test's Loom `runs{}` blocks
+ * `includeBuild("../Archie")`, and both `Archie` and `ArchieTest`'s mod init call
+ * `AGametestEvents += MOD`, so launching Archie-Test's own `runGametestClient`/`runGametest`
+ * previously ran Archie's *entire* GameTest suite a second time in the same process, without
+ * Archie-Test's own suite being any bigger - only distinguishable by the test count not matching
+ * the log's actual line count. Every loader's `AGameTestRegistrationBridge`/
+ * `AClientGameTestHarness` server- and client-side test collection should call [selectMods] on
+ * `AGametestEvents.MODS` before iterating, instead of iterating it directly.
  */
 object AGameTestModFilter {
 	private const val GAMETEST_MOD_ID_FILTER_PROPERTY = "archie.gametest.modid"

@@ -8,9 +8,8 @@ import net.minecraft.resources.ResourceLocation
  * Cross-loader hooks that plug [IACondition] into each loader's native datapack condition
  * system, since Fabric and NeoForge each have their own recipe/tag condition machinery.
  *
- * Trimmed to the runtime-needed half (backs [IACondition.register]/[IACondition.CODEC], evaluated
- * whenever a datapack loads a condition) - `withCondition`/`fabricRecipeProvider` (used only by the
- * recipe-datagen DSL) live in `archie-datagen` instead.
+ * Datagen-only condition plumbing (attaching a condition to a generated recipe) lives separately
+ * in archie-datagen's `ADatagenConditionsPlatform`, since it needs no runtime presence.
  */
 expect object AConditionsPlatform
 {

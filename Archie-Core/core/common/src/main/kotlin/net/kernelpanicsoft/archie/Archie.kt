@@ -14,7 +14,6 @@ import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform
 import net.kernelpanicsoft.archie.data.common.conditions.ABuiltinConditions
 import net.kernelpanicsoft.archie.data.common.crafting.ingredients.ABuiltinIngredients
 import net.kernelpanicsoft.archie.data.common.tags.ACommonTags
-import net.kernelpanicsoft.archie.events.AEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
 import net.kernelpanicsoft.archie.gametest.AGameTestSide
 import net.kernelpanicsoft.archie.gametest.ThreadingImpl
@@ -55,10 +54,10 @@ object Archie
 	/**
 	 * Initializes Archie's shared (loader-independent) systems.
 	 *
-	 * Registers Archie with [AEvents], wires up networking (skipped only for a server-only
-	 * gametest run, since Architectury's networking registration touches client-only classes),
-	 * initializes block entity state syncing, built-in data providers, and Archie's own config,
-	 * and activates the datagen/gametest code paths when running under those tasks.
+	 * Wires up networking (skipped only for a server-only gametest run, since Architectury's
+	 * networking registration touches client-only classes), initializes block entity state
+	 * syncing, built-in data providers, and Archie's own config, and activates the datagen/
+	 * gametest code paths when running under those tasks.
 	 *
 	 * @throws IllegalStateException if running on LexForge, which is not supported.
 	 */
@@ -68,7 +67,6 @@ object Archie
 
 		if (Platform.isMinecraftForge())
 			error("LexForge is not supported. Switch to NeoForge, or don't use my mods.")
-		AEvents += MOD
 		if (!AGameTestPlatform.isGameTest || AGameTestPlatform.side == AGameTestSide.CLIENT)
 		{
 			ArchieNetworkChannel.init()

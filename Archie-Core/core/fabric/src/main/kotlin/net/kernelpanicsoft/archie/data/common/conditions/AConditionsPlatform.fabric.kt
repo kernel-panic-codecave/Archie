@@ -22,8 +22,8 @@ import net.minecraft.resources.ResourceLocation
  */
 actual object AConditionsPlatform
 {
-	/** Fabric condition types registered via [register], keyed by their [IACondition.identifier]. */
-	private val registry: MutableMap<ResourceLocation, ResourceConditionType<FabricCondition>> = mutableMapOf()
+	/** Fabric condition types registered via [register], keyed by their [IACondition.identifier]. Public so archie-datagen's `ADatagenConditionsPlatform` can wrap conditions too. */
+	val registry: MutableMap<ResourceLocation, ResourceConditionType<FabricCondition>> = mutableMapOf()
 
 	/** Registers [identifier] as a Fabric [ResourceConditionType], backed by [codec] via the [FabricCondition] wrapper. */
 	actual fun register(identifier: ResourceLocation, codec: MapCodec<out IACondition>)
@@ -48,46 +48,46 @@ actual object AConditionsPlatform
 			}
 		)
 	}
+}
 
-	/** Wraps this condition as a Fabric [ResourceCondition]. */
-	val IACondition.fabric
-		get() = FabricCondition(this)
+/** Wraps this condition as a Fabric [ResourceCondition]. Public so archie-datagen can attach conditions to generated recipes. */
+val IACondition.fabric: FabricCondition
+	get() = FabricCondition(this)
 
-	/** Unwraps a Fabric [ResourceCondition] back to its originating [IACondition]. Throws if it wasn't created via [fabric]. */
-	val ResourceCondition.archie
-		get() = ((this as? FabricCondition) ?: throw AssertionError()).condition
+/** Unwraps a Fabric [ResourceCondition] back to its originating [IACondition]. Throws if it wasn't created via [fabric]. */
+val ResourceCondition.archie: IACondition
+	get() = ((this as? FabricCondition) ?: throw AssertionError()).condition
 
-	/** Adapts an [IACondition] to Fabric's [ResourceCondition] interface, delegating [getType] and [test] to it. */
-	class FabricCondition(
-		val condition: IACondition
-	) : ResourceCondition
+/** Adapts an [IACondition] to Fabric's [ResourceCondition] interface, delegating [getType] and [test] to it. */
+class FabricCondition(
+	val condition: IACondition
+) : ResourceCondition
+{
+	override fun getType(): ResourceConditionType<*>
 	{
-		override fun getType(): ResourceConditionType<*>
-		{
-			return registry[condition.identifier]!!
-		}
-
-		override fun test(registryLookup: HolderLookup.Provider?): Boolean
-		{
-			return registryLookup?.let {
-				condition.test(ConditionContext(it))
-			} ?: false
-		}
+		return AConditionsPlatform.registry[condition.identifier]!!
 	}
 
-	/** [IACondition.IContext] backed directly by a Fabric registry lookup, used when Fabric evaluates a condition. */
-	class ConditionContext(private val registryLookup: HolderLookup.Provider) :
-		IACondition.IContext
+	override fun test(registryLookup: HolderLookup.Provider?): Boolean
 	{
-		override fun <T> getAllTags(registry: ResourceKey<out Registry<T>>): Map<ResourceLocation, Collection<Holder<T>>>
-		{
-			return registryLookup.lookupOrThrow(registry).listTags().toList()
-				.associateBy({ it.key().location }, { it.toList() })
-		}
+		return registryLookup?.let {
+			condition.test(ConditionContext(it))
+		} ?: false
+	}
+}
 
-		override fun <T> getRegistry(registry: ResourceKey<out Registry<T>>): Registry<T>
-		{
-			return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registry)
-		}
+/** [IACondition.IContext] backed directly by a Fabric registry lookup, used when Fabric evaluates a condition. */
+class ConditionContext(private val registryLookup: HolderLookup.Provider) :
+	IACondition.IContext
+{
+	override fun <T> getAllTags(registry: ResourceKey<out Registry<T>>): Map<ResourceLocation, Collection<Holder<T>>>
+	{
+		return registryLookup.lookupOrThrow(registry).listTags().toList()
+			.associateBy({ it.key().location }, { it.toList() })
+	}
+
+	override fun <T> getRegistry(registry: ResourceKey<out Registry<T>>): Registry<T>
+	{
+		return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registry)
 	}
 }
