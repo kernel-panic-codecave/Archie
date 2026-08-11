@@ -83,10 +83,14 @@ jobs:
         with:
           name: test-reports-${{ matrix.loader }}
           path: |
-            Archie/**/build/reports/tests/**
-            Archie/**/build/tmp/junit-gametest-runner/**
-            Archie-Test/**/build/reports/tests/**
-            Archie-Test/**/build/tmp/junit-gametest-runner/**
+            core/**/build/reports/tests/**
+            core/**/build/tmp/junit-gametest-runner/**
+            datagen/**/build/reports/tests/**
+            datagen/**/build/tmp/junit-gametest-runner/**
+            gametest/**/build/reports/tests/**
+            gametest/**/build/tmp/junit-gametest-runner/**
+            test/**/build/reports/tests/**
+            test/**/build/tmp/junit-gametest-runner/**
             build/reports/problems/**
           if-no-files-found: ignore
           retention-days: 7

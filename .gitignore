@@ -24,6 +24,7 @@ local.properties
 docs/api
 site
 .architectury-transformer
+.kotlin
 */.kotlin
 __pycache__/
 *.pyc

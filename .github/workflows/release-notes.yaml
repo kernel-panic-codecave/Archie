@@ -1,6 +1,6 @@
 name: release-notes
 
-# Generates Archie/CHANGELOG.md and a dated Archie/docs/news/posts/ blog entry for a tagged
+# Generates CHANGELOG.md and a dated docs/news/posts/ blog entry for a tagged
 # release, then opens a PR with both. See .github/scripts/generate_release_notes.py for how
 # entries are sourced (merged PR titles, parsed for a Conventional Commits prefix) and
 # .github/workflows/pr-title-lint.yml for how those titles are kept in that shape.
@@ -54,14 +54,14 @@ jobs:
           python .github/scripts/generate_release_notes.py \
             --repo "${{ github.repository }}" \
             --new-tag "${{ github.ref_name }}" \
-            --changelog-path Archie/CHANGELOG.md \
-            --posts-dir Archie/docs/news/posts
+            --changelog-path CHANGELOG.md \
+            --posts-dir docs/news/posts
 
       - name: Open pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git diff --quiet -- Archie/CHANGELOG.md Archie/docs/news/posts; then
+          if git diff --quiet -- CHANGELOG.md docs/news/posts; then
             echo "Nothing new to record since the previous tag - skipping PR."
             exit 0
           fi
@@ -71,7 +71,7 @@ jobs:
 
           BRANCH_NAME="release-notes/${{ github.ref_name }}"
           git checkout -b "$BRANCH_NAME"
-          git add Archie/CHANGELOG.md Archie/docs/news/posts
+          git add CHANGELOG.md docs/news/posts
           git commit -m "docs: release notes for ${{ github.ref_name }}"
           git push origin "$BRANCH_NAME"
 

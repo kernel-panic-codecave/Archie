@@ -1,75 +1,93 @@
 # AGENTS Guide for Archie
 
 ## Repository shape
-- The repo root is a Gradle **composite build** (`settings.gradle.kts`) that includes two independent
-  builds: `Archie/` (the library — this is what's published) and `Archie-Test/` (a playground mod that
-  substitutes in `Archie`'s project sources, used to exercise the library during development). Run all
-  Gradle commands from inside `Archie/` or `Archie-Test/`, not the repo root.
-- Inside `Archie/`: multi-module Architectury mod: `common` (shared API/logic), `fabric`, `neoforge`
-  (`Archie/settings.gradle.kts`).
+- The repo root is a single Gradle build (`settings.gradle.kts`) on Architectury Loom, with four
+  products, each nested `<product>/<platform>` and flattened to a single-level project name
+  (e.g. `core/fabric` -> `archie-core-fabric`): `core` (the library, published), `datagen`
+  (Archie's datagen DSL, own separate mod `archie_datagen`, dev-time only), `gametest` (Archie's
+  GameTest framework/harness, own separate mod `archie_gametest`, dev/test-time only), `test` (a
+  playground mod `archie_test` that depends on the other three via plain project references, used
+  to exercise the library during development). Run all Gradle commands from the repo root.
+- Each product's own layout: `common` (shared API/logic), `fabric`, `neoforge`
+  (`settings.gradle.kts`'s `includeCorePlatform`/`includeModule` helpers).
 - `common` is the source of truth; loader modules mostly provide bootstrapping, loader deps, and `actual` implementations.
-- Main entrypoint flow is `Archie.init()` -> register events/network/config/datagen/gametest gates (`Archie/common/src/main/kotlin/net/kernelpanicsoft/archie/Archie.kt`).
+- Main entrypoint flow is `Archie.init()` -> register events/network/config, then activate
+  datagen/gametest via a `ServiceLoader`-based `ArchieExtension` hook (`net.kernelpanicsoft.archie.
+  ArchieExtension`, `core/common/.../ArchieExtension.kt`) if `archie-datagen`/`archie-gametest` are
+  present on the classpath - `core` never has a compile-time dependency on either
+  (`core/common/src/main/kotlin/net/kernelpanicsoft/archie/Archie.kt`).
+- `core` never depends on `datagen`/`gametest`, even for things the datagen DSL also touches:
+  condition/ingredient registration and common tags run at runtime (`Archie.kt` calls
+  `ABuiltinConditions.init()`/`ABuiltinIngredients.init()`/`ACommonTags.init()` directly), so they
+  live in `core`; only the datagen-only half of each (e.g. `ADatagenConditionsPlatform`'s
+  `withCondition`/`fabricRecipeProvider`, which reference the datagen-only `ARecipeProvider` type)
+  lives in `datagen`.
 
 ## Architecture patterns to preserve
 - Cross-loader abstractions use Kotlin `expect/actual` files named `*.common.kt`, `*.fabric.kt`, `*.neoforge.kt` (example: `APlatform`, `ADataGeneratorPlatform`, `AGameTestPlatform`).
 - Loader entrypoints must only delegate into common init methods:
-  - Fabric: `ArchieFabric.onInitialize*` (`Archie/fabric/src/main/kotlin/net/kernelpanicsoft/archie/ArchieFabric.kt`)
-  - NeoForge: bus listeners in `ArchieNeoForge` (`Archie/neoforge/src/main/kotlin/net/kernelpanicsoft/archie/ArchieNeoForge.kt`)
-- Networking is centralized via `NetworkChannel`; packets must be `@Serializable data class` and registered before `register()` (`Archie/common/src/main/kotlin/net/kernelpanicsoft/archie/networking/NetworkChannel.kt`).
+  - Fabric: `ArchieFabric.onInitialize*` (`core/fabric/src/main/kotlin/net/kernelpanicsoft/archie/ArchieFabric.kt`)
+  - NeoForge: bus listeners in `ArchieNeoForge` (`core/neoforge/src/main/kotlin/net/kernelpanicsoft/archie/ArchieNeoForge.kt`)
+- Networking is centralized via `NetworkChannel`; packets must be `@Serializable data class` and registered before `register()` (`core/common/src/main/kotlin/net/kernelpanicsoft/archie/networking/NetworkChannel.kt`).
 - `ArchieNetworkChannel.init()` is the canonical registration order example (register packet producers/consumers, then call `register()`).
 
 ## Build and run workflows
-All commands below are run from inside `Archie/` (`cd Archie` first).
-- Build all modules + merged artifact: `./gradlew build` (`build`/`assemble` finalize with `fusejars` in `Archie/build.gradle.kts`).
-- Loader-specific dev runs: `./gradlew fabric:runClient`, `./gradlew neoforge:runClient`.
-- Datagen runs are explicit tasks: `./gradlew fabric:runDatagen` / `./gradlew neoforge:runDatagen`.
-- GameTest runs: `./gradlew fabric:runGametest` / `./gradlew neoforge:runGametest` (server-side suite),
-  `./gradlew fabric:runGametestClient` / `./gradlew neoforge:runGametestClient` (client GUI harness suite).
-- Docs pipeline: `embedDokkaIntoMkDocs` then `publishDocs` (calls `mike deploy ...`); `Archie/mkdocs.yml`
+All commands below are run from the repo root.
+- Build everything: `./gradlew build`.
+- Loader-specific dev runs: `./gradlew archie-core-fabric:runClient`, `./gradlew archie-core-neoforge:runClient`.
+- Datagen runs are explicit tasks: `./gradlew archie-datagen-fabric:runDatagen` / `./gradlew archie-datagen-neoforge:runDatagen`.
+- GameTest runs: `./gradlew archie-gametest-fabric:runGametest` / `./gradlew archie-gametest-neoforge:runGametest` (server-side suite),
+  `./gradlew archie-gametest-fabric:runGametestClient` / `./gradlew archie-gametest-neoforge:runGametestClient` (client GUI harness suite).
+- Docs pipeline: `embedDokkaIntoMkDocs` then `publishDocs` (calls `mike deploy ...`); root `mkdocs.yml`
   contains `# !!! EMBEDDED DOKKA ... DO NOT COMMIT !!!` markers. CI (`.github/workflows/docs.yaml`) runs
-  `./gradlew publishDocs` with `working-directory: Archie`.
+  `./gradlew publishDocs` from the repo root.
+- **Not currently wired** (a known gap from the single-repo migration, not yet ported):
+  `modfusioner` (`fusejars`, merged Fabric+NeoForge artifact) and `modpublisher`
+  (CurseForge/Modrinth/GitHub publishing) - see "Dependency and integration touchpoints" below.
 
 ## Project-specific conventions
-- Keep resource/manifests tokenized using Gradle properties (`${mod_id}`, `${versions.*}`) in `fabric.mod.json` and `neoforge.mods.toml`.
+- Keep resource/manifests tokenized using Gradle properties (`${mod_id}`, `${versions.*}`) in `fabric.mod.json` and `neoforge.mods.toml`. `datagen`/`gametest`/`test` each ship as their own mod, so their own modId is `${mod_id}_datagen`/`${mod_id}_gametest`/`${mod_id}_test`, not the bare `${mod_id}`.
 - Shared assets are merged from `common` into loader modules via `processResources`; do not duplicate `assets/archie/**` directly in loader modules unless loader-specific.
-- `common/build.gradle.kts` intentionally uses `modImplementation(libs.fabric.loader)` only for annotations/mixin deps; avoid importing random Fabric-only classes in common code.
+- `core/common/build.gradle.kts` intentionally uses `modImplementation(libs.fabric.loader)` only for annotations/mixin deps; avoid importing random Fabric-only classes in common code.
 - Utility operators are used pervasively for IDs (`Archie % "main"`, `mod % "path"`, `"namespace" % "path"`)
-  from `Archie/common/src/main/kotlin/net/kernelpanicsoft/archie/util/ResourceLocation.kt`.
+  from `core/common/src/main/kotlin/net/kernelpanicsoft/archie/util/ResourceLocation.kt`.
 - PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
   `docs:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`, `chore:`, `style:`, `revert:`, optionally
   scoped `type(scope):`) - enforced by `.github/workflows/pr-title-lint.yml`. Individual commits within a
   PR don't need to conform, but a direct push to a release branch (no PR) does, since it's read the same
   way. This isn't just style: cutting a release (`git tag vX.Y.Z`) triggers
   `.github/workflows/release-notes.yaml`, which walks merged PR titles since the last tag to generate
-  `Archie/CHANGELOG.md` and a `Archie/docs/news/posts/` entry, grouped by this prefix - an unparsed title
+  `CHANGELOG.md` and a `docs/news/posts/` entry, grouped by this prefix - an unparsed title
   doesn't break anything, it just lands in the catch-all "Other Changes" section instead of a real one.
 
 ## Dependency and integration touchpoints
 - Versions and plugin IDs are centralized in `gradle/libs.versions.toml` (repo root); update there first.
-- Packaging/publishing is configured at the `Archie/` build root via `modfusioner` (`fusejars`) and
-  `modpublisher` (CurseForge/Modrinth/GitHub IDs and required deps, tasks `publishCurseforge`/
-  `publishModrinth`/`publishGitHub`/`publishMod`) in `Archie/build.gradle.kts` - `modpublisher` reads its
-  changelog text straight off disk from `Archie/CHANGELOG.md` when a publish task runs, so those four
-  tasks `dependsOn` a `generateChangelog` task (same file, same script, same `Archie/build.gradle.kts`)
-  that regenerates it synchronously first. This is deliberately *not* left to the reactive, tag-triggered
-  `release-notes.yaml` workflow: if `modpublisher` auto-tags as part of the same `./gradlew publish*`
-  invocation, that workflow can't possibly have generated this release's entry yet by the time
-  `changelog` is read, and if that invocation runs in CI under the default `GITHUB_TOKEN`, the tag it
-  creates won't even fire the workflow (GitHub's anti-recursion rule for that token). `release-notes.yaml`
-  still owns the `Archie/docs/news/posts/` blog entry, which has no such ordering requirement.
-- Mixins are split by scope: loader mixins in `Archie/fabric/src/main/resources/archie.mixins.json` and
-  `Archie/neoforge/src/main/resources/archie.mixins.json`, common mixin config in
-  `Archie/common/src/main/resources/archie-common.mixins.json`.
+- `generateChangelog` (root `build.gradle.kts`) regenerates `CHANGELOG.md` synchronously from
+  `.github/scripts/generate_release_notes.py` - kept separate from the reactive, tag-triggered
+  `release-notes.yaml` workflow for the same reasons as before the migration (see the task's own
+  comment in `build.gradle.kts`). Packaging/publishing itself (`modfusioner`/`modpublisher`, the
+  tasks that used to `dependsOn` `generateChangelog`) isn't wired into the new build yet - port
+  from git history if reviving it.
+- Mixins are split by scope: loader mixins in `core/fabric/src/main/resources/archie.mixins.json` and
+  `core/neoforge/src/main/resources/archie.mixins.json`, common mixin config in
+  `core/common/src/main/resources/archie-common.mixins.json`. `datagen`/`gametest` each have their
+  own small per-loader mixins.json too (`archie_datagen.mixins.json`/`archie_gametest.mixins.json`),
+  since they're separate mods.
 
 ## Safe edit boundaries
-- For new gameplay/library logic: start in `Archie/common/src/main/kotlin/...`, then add loader `actual`/bootstrap only when APIs differ.
-- When adding packets/events/config sections, mirror existing object-singleton style (`Archie`, `AEvents`, `ArchieNetworkChannel`) rather than introducing DI/service containers.
+- For new gameplay/library logic: start in `core/common/src/main/kotlin/...`, then add loader `actual`/bootstrap only when APIs differ.
+- When adding packets/config sections, mirror existing object-singleton style (`Archie`, `ArchieNetworkChannel`) rather than introducing DI/service containers. For datagen/gametest event wiring specifically, mirror `ADatagenEvents`/`AGametestEvents` (in `datagen`/`gametest` respectively - the generic `AEventObject`/`Handler`/`HandlerConstructor` base plumbing lives in `core`).
 - If adding new runtime libraries to shipped jars, use `bundleRuntimeLibrary(...)` / `bundleMod(...)` in loader `build.gradle.kts` files (not plain `implementation` only).
 
 ## GameTest structure and conventions
-GameTests are located in `Archie/common/src/main/gametest/` (a separate Gradle source set from
-`src/main/kotlin`) and organized by scope (`common`, `client`, `server`). Test infrastructure and
-registration live in `ArchieGameTest.kt` (`.../gametest/internal/ArchieGameTest.kt`).
+Archie's own self-test GameTest suite lives in `gametest/common/src/main/kotlin/net/kernelpanicsoft/
+archie/gametest/internal/tests/` (a normal source dir - the old `Archie/common/src/main/gametest/`
+separate-Gradle-source-set trick is gone now that `gametest` is its own module/mod entirely,
+`archie_gametest`), organized by scope (`common`, `client`, `server`). Test infrastructure and
+registration live in `ArchieGameTest.kt` (`gametest/common/.../gametest/internal/ArchieGameTest.kt`).
+The GameTest *framework itself* (harness, assertions, junit runner) is `gametest/common/.../gametest/`
+(one level up from `internal/`) - this is what `archie-test`'s own GameTests, and any consuming mod's,
+build on.
 
 ### Test file organization
 - **Test discovery**: Each test class must be registered in `ArchieGameTest.kt`'s `archieGameTests()`
@@ -145,13 +163,17 @@ every subsequent test in that run then failed too, since the client's main-threa
 never got a chance to run again (`client.screen` frozen at whatever it was when the hang started).
 
 `kotlinx-coroutines-test` (the dependency this needs) is dev/test-only - `compileOnly` in
-`common/build.gradle.kts`, `runtimeLibrary(...)` (present for local runs like
-`runGametestClient`, never bundled into the shipped jar) in the loader modules. `ComposeScreen`
-itself never references `kotlinx.coroutines.test.*` symbols directly (only `AClientGameTestHarness`'s
-method bodies do, and those only run under `AGameTestPlatform.isGameTest`) - it only holds a plain
-`CoroutineDispatcher?` and a `(() -> Unit)?` pump callback, both already-bundled core/stdlib types,
-specifically so a real player's game (which never has the test dependency on its classpath) never
-needs to resolve it.
+`core/common/build.gradle.kts` (since `ComposeScreen.kt` itself lives in `core`, which ships to
+every real player, and must never resolve the symbol), plain `implementation` in
+`gametest/common/build.gradle.kts` (`gametest` is dev/test-only already, no need for `compileOnly`
+there) and `runtimeLibrary(...)` (present for local runs like `runGametestClient`, never bundled
+into the shipped jar) in the loader modules. `ComposeScreen` itself never references
+`kotlinx.coroutines.test.*` symbols directly (only `AClientGameTestHarness`'s method bodies do, and
+those only run under `AGameTestPlatform.isGameTest`, and live in `gametest` not `core`) - `core`'s
+`ComposeScreen` only holds a plain `CoroutineDispatcher?` and a `(() -> Unit)?` pump callback (both
+already-bundled core/stdlib types) on its public `ComposeTestClockOverride` object, specifically so
+a real player's game never needs to resolve the coroutines-test symbol, while `gametest` (a
+different module) can still reach in and set it.
 
 ### Current test coverage
 - `ArchieItemHandlerTests` (`server`) – item storage/handler behavior
@@ -160,15 +182,15 @@ needs to resolve it.
 - `ComposeRenderingTests` (`client`) – GUI framework layout/rendering via the client harness
 
 ### Adding new tests
-1. Create a new test class in `Archie/common/src/main/gametest/net/kernelpanicsoft/archie/gametest/internal/tests/`.
+1. Create a new test class in `gametest/common/src/main/kotlin/net/kernelpanicsoft/archie/gametest/internal/tests/`.
 2. Name it `XyzTests.kt` (following existing convention).
 3. For server/common tests: methods as `fun GameTestHelper.testFeatureName()` with `@GameTest(template = EMPTY)`.
    For client tests: methods as `fun ClientGameTestContext.testFeatureName()` with `@ClientGameTest`.
 4. Use assertion helpers from `GameTestAssertions.kt` (server/common) or `ClientGameTestContext`'s own
    assertion methods (client).
 5. Register the class in `ArchieGameTest.kt`'s `archieGameTests()` under the appropriate scope block.
-6. Run tests locally with `./gradlew fabric:runGametest` / `neoforge:runGametest` (server/common), or
-   `./gradlew fabric:runGametestClient` / `neoforge:runGametestClient` (client).
+6. Run tests locally with `./gradlew archie-gametest-fabric:runGametest` / `archie-gametest-neoforge:runGametest` (server/common), or
+   `./gradlew archie-gametest-fabric:runGametestClient` / `archie-gametest-neoforge:runGametestClient` (client).
 
 IMPORTANT: When applicable, prefer using intellij-index MCP tools for code navigation and refactoring.
 IMPORTANT: When debugging, prefer using intellij-debugger MCP tools to interact with the IDE debugger.

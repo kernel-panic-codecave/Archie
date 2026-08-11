@@ -13,7 +13,7 @@ Two call shapes:
   - Post-tag (.github/workflows/release-notes.yaml): --new-tag is a real, already-pushed tag; used
     as both the git ref to end the walk at and the version display string. Writes both the
     changelog section and a news post.
-  - Pre-publish (Archie/build.gradle.kts's `generateChangelog` task): the tag doesn't exist yet at
+  - Pre-publish (build.gradle.kts's `generateChangelog` task): the tag doesn't exist yet at
     this point, so pass --new-tag as the *intended* version (e.g. `v1.2.0`, not yet a real ref)
     together with --range-end HEAD (or another real ref) to walk up to. Only pass --changelog-path,
     not --posts-dir, in this mode - modpublisher's `changelog = file(...)` needs CHANGELOG.md

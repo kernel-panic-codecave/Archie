@@ -1,6 +1,6 @@
 ---
 name: sync-docs-after-overhaul
-description: Bring KDoc comments and the markdown guides under Archie/docs/ back in sync after a significant refactor or architecture overhaul in this repo (renamed classes, restructured hierarchies, new/removed APIs, changed method signatures). Use this whenever the user says they "overhauled", "refactored", "restructured", or "rewrote" a system and asks to update docs, or whenever you notice staged/unstaged changes that rename or gut core classes in an area that has a doc guide (config, events, gui, networking, registries, resource-packs, serialization, transfer). Don't reach for this for a small fix or single-file change — it's for the case where the shape of a system changed enough that existing docs now describe something that no longer exists.
+description: Bring KDoc comments and the markdown guides under docs/ back in sync after a significant refactor or architecture overhaul in this repo (renamed classes, restructured hierarchies, new/removed APIs, changed method signatures). Use this whenever the user says they "overhauled", "refactored", "restructured", or "rewrote" a system and asks to update docs, or whenever you notice staged/unstaged changes that rename or gut core classes in an area that has a doc guide (config, events, gui, networking, registries, resource-packs, serialization, transfer). Don't reach for this for a small fix or single-file change — it's for the case where the shape of a system changed enough that existing docs now describe something that no longer exists.
 ---
 
 # Sync docs after an overhaul
@@ -35,19 +35,19 @@ critically, the same as an external markdown guide.
 
 Check all of these, not just the obvious one:
 
-- **The dedicated markdown guide**, if this feature area has one — `Archie/docs/config.md`,
+- **The dedicated markdown guide**, if this feature area has one — `docs/config.md`,
   `events.md`, `gui.md`, `networking.md`, `registries.md`, `resource-packs.md`,
-  `serialization.md`, `transfer.md`. Find it with `ls Archie/docs/`; don't guess a name.
-- **`Archie/docs/index.md`**, which has a one-line feature-overview table entry per area — usually
+  `serialization.md`, `transfer.md`. Find it with `ls docs/`; don't guess a name.
+- **`docs/index.md`**, which has a one-line feature-overview table entry per area — usually
   just needs a phrase added/adjusted, rarely a rewrite.
 - **Class- and member-level KDoc** in the overhauled files themselves, *and* in any other file that
   references the overhauled types (grep for the old and new type names across
-  `Archie/common/src/main/kotlin` and the loader modules to catch call sites whose doc comments
-  now describe stale behavior).
+  `core/common/src/main/kotlin` and the loader/datagen/gametest/test modules to catch call sites
+  whose doc comments now describe stale behavior).
 - **Grep the whole repo for old names** (`grep -rn OldClassName`) to catch stragglers a targeted
   read would miss — renames especially leave orphaned references in comments that don't affect
   compilation and so never surface as errors.
-- **README.md / AGENTS.md** — usually just point at `Archie/docs/`, so low priority, but check if
+- **README.md / AGENTS.md** — usually just point at `docs/`, so low priority, but check if
   either names a specific API that changed.
 - **Archie-Test** — the dev-playground module sometimes demonstrates a feature area directly; check
   whether it does before ruling it out.
@@ -82,7 +82,7 @@ rest of the file, mismatched brackets in a code fence, etc. After editing source
 for markdown-only edits), run the relevant compile task, e.g.:
 
 ```
-./gradlew :Archie:common:compileKotlin -q
+./gradlew :archie-core-common:compileKotlin -q
 ```
 
 Treat a clean compile as confirmation the edits are syntactically sound — it says nothing about
