@@ -98,6 +98,31 @@ class LayoutComponentsGameTest {
     }
 
     @ClientGameTest
+    fun ClientGameTestContext.testScrollDoesNotCorruptContentX() {
+        // Regression test for IntCoordinates' packed-Long constructor: a negative y sign-extends
+        // across the bits x is packed into, so any negatively-offset content (exactly what
+        // Scrollable produces once scrolled - placeAt(0, -scrollPos)) previously decoded with
+        // x forced to -1 no matter its real value.
+        val scrollState = ScrollableState()
+        setScreen { ScrollableProbeScreen(scrollState) }
+        waitForScreen<ScrollableProbeScreen> {
+            waitForLayer(0) {
+                node("Scrollable") {
+                    val xBefore = computeOnClient { node.children.first().x }
+                    assertEquals(0, xBefore)
+
+                    scroll(y = -10.0)
+                    waitForComposeIdle()
+
+                    val (scrollOffset, xAfter) = computeOnClient { scrollState.scrollOffset to node.children.first().x }
+                    assertTrue(scrollOffset > 0.0) { "Expected scrolling over the Scrollable node to move scrollOffset, got $scrollOffset" }
+                    assertEquals(0, xAfter) { "Expected the scrolled content's x to stay 0 (only y should move), got $xAfter" }
+                }
+            }
+        }
+    }
+
+    @ClientGameTest
     fun ClientGameTestContext.testTabPanelSwitchesActiveTabOnClick() {
         setScreen { TabPanelProbeScreen() }
         waitForScreen<TabPanelProbeScreen> {

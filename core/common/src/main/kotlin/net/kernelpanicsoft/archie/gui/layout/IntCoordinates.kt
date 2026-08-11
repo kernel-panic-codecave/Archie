@@ -16,7 +16,11 @@ value class IntCoordinates(val pair: Long) {
 	operator fun component1() = x
 	operator fun component2() = y
 
-	constructor(x: Int, y: Int) : this((x.toLong() shl 32) or y.toLong())
+	// y.toLong() alone sign-extends a negative y across the upper 32 bits - the ones this OR
+	// packs x into - clobbering x to -1 regardless of its real value. Masking to the low 32
+	// bits keeps y's packed bit pattern (still decoded correctly by pair.toInt(), which only
+	// ever reads those same low bits) without corrupting x's half.
+	constructor(x: Int, y: Int) : this((x.toLong() shl 32) or (y.toLong() and 0xFFFFFFFFL))
 
 	override fun toString(): String = "($x, $y)"
 
@@ -40,7 +44,8 @@ value class IntSize(val pair: Long) {
 	operator fun component1() = width
 	operator fun component2() = height
 
-	constructor(width: Int, height: Int) : this((width.toLong() shl 32) or height.toLong())
+	// See IntCoordinates' identically-shaped constructor for why height must be masked here too.
+	constructor(width: Int, height: Int) : this((width.toLong() shl 32) or (height.toLong() and 0xFFFFFFFFL))
 
 	override fun toString(): String = "($width, $height)"
 }
