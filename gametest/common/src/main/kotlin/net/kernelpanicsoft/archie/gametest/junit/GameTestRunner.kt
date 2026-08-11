@@ -39,9 +39,10 @@ object GameTestRunner
 	 * in the configured matrix, each running the loader's GameTest Gradle task once and then
 	 * reporting one [DynamicTest] per test method declared via [tests] (an
 	 * [AGametestEvents.ArchieGameTestBuilder] receiver, same DSL as [AGametestEvents.REGISTER_GAME_TEST]) whose
-	 * side matches that invocation.
+	 * side matches that invocation. [projectPrefix] is which product's Gradle projects the launched
+	 * task targets (e.g. `"archie-gametest"`, `"archie-test"`) - see [GameTestGradleInvocation].
 	 */
-	fun tests(modID: String, tests: AGametestEvents.ArchieGameTestBuilder.() -> Unit): Collection<DynamicContainer>
+	fun tests(modID: String, projectPrefix: String, tests: AGametestEvents.ArchieGameTestBuilder.() -> Unit): Collection<DynamicContainer>
 	{
 		val enabled = System.getProperty(PROP_ENABLED)?.toBooleanStrictOrNull() == true
 		if (!enabled) {
@@ -55,7 +56,7 @@ object GameTestRunner
 		}
 
 		val matrixValue = System.getProperty(PROP_MATRIX) ?: DEFAULT_MATRIX
-		val invocations = GameTestGradleInvocation.parseMatrix(matrixValue)
+		val invocations = GameTestGradleInvocation.parseMatrix(matrixValue, projectPrefix)
 		require(invocations.isNotEmpty()) {
 			"No GameTest invocations configured. Set -D$PROP_MATRIX with at least one loader:side pair."
 		}

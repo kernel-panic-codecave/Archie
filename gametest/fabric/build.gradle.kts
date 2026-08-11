@@ -45,7 +45,7 @@ loom {
 			property("fabric-api.gametest")
 			property("archie.gametest", "true")
 			property("archie.gametest.side", "server")
-			property("archie.gametest.modid", "archie_gametest")
+			property("archie.gametest.modid", "archie")
 		}
 		create("gametestClient") {
 			client()
@@ -53,7 +53,7 @@ loom {
 			property("fabric-api.gametest")
 			property("archie.gametest", "true")
 			property("archie.gametest.side", "client")
-			property("archie.gametest.modid", "archie_gametest")
+			property("archie.gametest.modid", "archie")
 		}
 	}
 }
@@ -63,6 +63,11 @@ dependencies {
 	modApi(libs.fabric.api)
 	modImplementation(libs.kotlin.fabric)
 	compileOnly(libs.kotlinx.serialization)
+	// archie-core-fabric's config/serialization code touches cloth-config's Color class
+	// unconditionally at class-init time even though the dependency itself is compileOnly in the
+	// shipped jar - dev-only runs (this module's own runGametest/runGametestClient, which load
+	// archie-core as a mod dependency) need it on the runtime classpath or that class-init crashes.
+	modLocalRuntime(libs.clothConfig.fabric)
 
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)

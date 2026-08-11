@@ -12,5 +12,5 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 class GameTests
 {
 	@TestFactory
-	fun tests(): Collection<DynamicContainer> = GameTestRunner.tests("archie", AGametestEvents.ArchieGameTestBuilder::archieGameTests)
+	fun tests(): Collection<DynamicContainer> = GameTestRunner.tests("archie", "archie-gametest", AGametestEvents.ArchieGameTestBuilder::archieGameTests)
 }

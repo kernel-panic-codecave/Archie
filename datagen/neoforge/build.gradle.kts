@@ -62,6 +62,8 @@ dependencies {
 	"neoForge"(libs.neoforge)
 	implementation(libs.kotlin.neoforge)
 	compileOnly(libs.kotlinx.serialization)
+	// See the matching comment in gametest/fabric/build.gradle.kts.
+	modRuntimeOnly(libs.clothConfig.neoforge)
 
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)

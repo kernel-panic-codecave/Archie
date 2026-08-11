@@ -51,7 +51,7 @@ loom {
 			property("neoforge.enableGameTest", "true")
 			property("neoforge.gameTestServer", "true")
 			property("archie.gametest", "true")
-			property("archie.gametest.modid", "archie_gametest")
+			property("archie.gametest.modid", "archie")
 			property("kotlinx.coroutines.debug", "off")
 		}
 		create("gametestClient") {
@@ -60,7 +60,7 @@ loom {
 			property("neoforge.enableGameTest", "true")
 			property("archie.gametest.side", "client")
 			property("archie.gametest", "true")
-			property("archie.gametest.modid", "archie_gametest")
+			property("archie.gametest.modid", "archie")
 			property("kotlinx.coroutines.debug", "off")
 		}
 	}
@@ -70,6 +70,8 @@ dependencies {
 	"neoForge"(libs.neoforge)
 	implementation(libs.kotlin.neoforge)
 	compileOnly(libs.kotlinx.serialization)
+	// See the matching comment in gametest/fabric/build.gradle.kts.
+	modRuntimeOnly(libs.clothConfig.neoforge)
 
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)

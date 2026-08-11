@@ -65,6 +65,8 @@ dependencies {
 	modApi(libs.fabric.api)
 	modImplementation(libs.kotlin.fabric)
 	compileOnly(libs.kotlinx.serialization)
+	// See the matching comment in gametest/fabric/build.gradle.kts.
+	modLocalRuntime(libs.clothConfig.fabric)
 
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)

@@ -66,26 +66,22 @@ internal object GameTestGradleExecutor {
 	}
 
 	/**
-	 * Every invocation is a separate --no-daemon Gradle process, and (at least for Archie-Test)
-	 * they all depend on the same upstream composite-build artifact (e.g. Archie:common's
-	 * remapped jar) - starting all of them at once races multiple processes rebuilding/rewriting
-	 * that shared output concurrently, corrupting it (observed: `:Archie:common:remapJar FAILED
-	 * ... ZipException: invalid stored block lengths`). Whichever invocation calls [start] first
-	 * claims [primingClaimed] and runs a single, fast `assemble` build to force those shared
-	 * outputs to exist once; everyone else blocks on [primingComplete] until that finishes. Once
-	 * it's done, Gradle's up-to-date checks mean every invocation's own process only reads the
-	 * already-built artifact, so all of them - including the priming one - start their real
-	 * (long-running) invocation concurrently right after, instead of one invocation blocking
-	 * every other one on its entire run.
+	 * Every invocation is a separate --no-daemon Gradle process, and several products' invocations
+	 * (`archie-gametest`'s own suite, `archie-test`'s own suite) depend on the same shared upstream
+	 * build outputs (e.g. `archie-core-fabric`'s remapped jar) - starting all of them at once races
+	 * multiple processes rebuilding/rewriting that shared output concurrently, corrupting it.
+	 * Whichever invocation calls [start] first claims [primingClaimed] and runs a single, fast
+	 * `assemble` build to force those shared outputs to exist once; everyone else blocks on
+	 * [primingComplete] until that finishes. Once it's done, Gradle's up-to-date checks mean every
+	 * invocation's own process only reads the already-built artifact, so all of them - including
+	 * the priming one - start their real (long-running) invocation concurrently right after,
+	 * instead of one invocation blocking every other one on its entire run.
 	 *
-	 * This alone only serializes invocations launched from the same JVM. `Archie`'s and
-	 * `Archie-Test`'s own `:*:test` tasks each run in a *separate* Gradle test JVM, but
-	 * Archie-Test composite-includes `../Archie` (see its settings.gradle.kts), so both JVMs'
-	 * priming runs `assemble` against the very same `Archie:common` build output concurrently -
-	 * this in-process guard does nothing across that boundary (observed:
-	 * `:common:remapJar FAILED ... NoSuchFileException: archie-common-1.0.0.jar.tmp`, one
-	 * process's remap temp file vanishing out from under the other). [withCrossProcessPrimingLock]
-	 * closes that gap with an OS-level file lock shared by both JVMs.
+	 * This alone only serializes invocations launched from the same JVM. `archie-gametest-common`'s
+	 * and `archie-test-common`'s own `:*:test` tasks each run in a *separate* Gradle test JVM, and
+	 * both JVMs' priming runs `assemble` against the very same shared build outputs concurrently -
+	 * this in-process guard does nothing across that boundary. [withCrossProcessPrimingLock] closes
+	 * that gap with an OS-level file lock shared by both JVMs.
 	 */
 	private val primingClaimed = AtomicBoolean(false)
 	private val primingComplete = CompletableFuture<Void>()
@@ -191,18 +187,18 @@ internal object GameTestGradleExecutor {
 	 * it's acquired.
 	 *
 	 * Every invocation for one workspaceRoot is spawned as a child --no-daemon Gradle process from
-	 * the same `:common:test` JVM, so a plain in-JVM lock is enough here - unlike
-	 * [withCrossProcessPrimingLock], which guards a race between *separate* JVMs (Archie's and
-	 * Archie-Test's own `:*:test` tasks) and needs an OS-level file lock. (A `FileChannel` lock
-	 * would be wrong here for a different reason too: `java.nio.channels.FileLock` throws
-	 * `OverlappingFileLockException` rather than blocking when a *second* lock on the same file
-	 * is requested from within the same JVM - it's designed to guard against other processes, not
-	 * queue other threads in this one.)
+	 * the same `:*-common:test` JVM, so a plain in-JVM lock is enough here - unlike
+	 * [withCrossProcessPrimingLock], which guards a race between *separate* JVMs
+	 * (`archie-gametest-common`'s and `archie-test-common`'s own `:*:test` tasks) and needs an
+	 * OS-level file lock. (A `FileChannel` lock would be wrong here for a different reason too:
+	 * `java.nio.channels.FileLock` throws `OverlappingFileLockException` rather than blocking when
+	 * a *second* lock on the same file is requested from within the same JVM - it's designed to
+	 * guard against other processes, not queue other threads in this one.)
 	 *
 	 * Unlike [withCrossProcessPrimingLock]'s one-time shared-artifact priming, this serializes
 	 * the *actual* invocation runs for the same loader (e.g. fabric:server and fabric:client),
-	 * which both depend on and mutate that loader subproject's own build outputs
-	 * (`:fabric:processResources` etc.) via their own separate, concurrently-launched
+	 * which both depend on and mutate that loader project's own build outputs
+	 * (`processResources` etc.) via their own separate, concurrently-launched
 	 * --no-daemon Gradle processes. Without this, one invocation's spawned Minecraft process can
 	 * read e.g. `fabric.mod.json` straight off disk at the exact moment the other invocation's
 	 * own build is mid-rewrite of that same file - observed as a `ParseMetadataException:
