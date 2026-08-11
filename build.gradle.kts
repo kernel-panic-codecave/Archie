@@ -1,4 +1,6 @@
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
@@ -11,6 +13,8 @@ plugins {
 	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.compose)
 	alias(libs.plugins.dokka.mkdocs)
+	alias(libs.plugins.modfusioner)
+	alias(libs.plugins.modpublisher)
 }
 
 architectury.minecraft = libs.versions.minecraft.get()
@@ -23,6 +27,13 @@ val sharedProperties = kotlin.runCatching {
 		sharedPropsFile.exists() -> loadProperties(sharedPropsFile.path)
 		else -> null
 	}
+}.getOrNull()
+
+// Not committed - local.properties (repo root) holds reposilite.username/reposilite.password for
+// developer machines; CI supplies REPOSILITE_USERNAME/REPOSILITE_PASSWORD env vars instead.
+val localProperties = kotlin.runCatching {
+	val localPropsFile = rootDir.resolve("local.properties")
+	if (localPropsFile.exists()) loadProperties(localPropsFile.path) else null
 }.getOrNull()
 
 val String.prop: String?
@@ -99,6 +110,45 @@ subprojects {
 
 		compileOnly("org.jetbrains:annotations:24.1.0")
 	}
+
+	// One MavenPublication per module, published to kernelpanicsoft.net's Reposilite - archie-core/
+	// -datagen/-gametest are real consumable libraries; archie-test is a dev playground, never
+	// published (matches fusioner/dokka's own product/test split above).
+	if (!project.name.startsWith("archie-test-")) {
+		// allprojects{} (below) is what normally applies these, but it's declared after this
+		// subprojects{} block and hasn't run for this project yet - apply is idempotent, so
+		// re-applying here just guarantees ordering for the components["java"]/publishing{} access
+		// immediately below.
+		apply(plugin = "java")
+		apply(plugin = "maven-publish")
+
+		extensions.configure<PublishingExtension>("publishing") {
+			publications {
+				create<MavenPublication>("maven") {
+					artifactId = base.archivesName.get()
+					from(components["java"])
+				}
+			}
+
+			repositories {
+				mavenLocal()
+				maven {
+					name = "Reposilite"
+					val releasesUrl = "https://maven.kernelpanicsoft.net/releases"
+					val snapshotsUrl = "https://maven.kernelpanicsoft.net/snapshots"
+
+					url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl)
+
+					credentials {
+						username = localProperties?.getProperty("reposilite.username")
+							?: System.getenv("REPOSILITE_USERNAME")
+						password = localProperties?.getProperty("reposilite.password")
+							?: System.getenv("REPOSILITE_PASSWORD")
+					}
+				}
+			}
+		}
+	}
 }
 
 allprojects {
@@ -109,6 +159,7 @@ allprojects {
 	apply(plugin = "org.jetbrains.compose")
 	apply(plugin = "dev.opensavvy.dokka-mkdocs")
 	apply(plugin = "architectury-plugin")
+	apply(plugin = "maven-publish")
 
 	version = "mod_version".prop ?: "0.0.1-SNAPSHOT"
 	group = "mod_group".prop ?: "net.kernelpanicsoft"
@@ -136,6 +187,57 @@ allprojects {
 	java.withSourcesJar()
 }
 
+// Merges only archie-core's fabric+neoforge jars into one artifact - datagen/gametest/test each
+// ship as their own separate mod and are never fused/published.
+fusioner {
+	packageGroup = project.group.toString()
+	mergedJarName = "${project.base.archivesName.get()}-merged-${libs.versions.minecraft.get()}"
+	jarVersion = project.version.toString()
+	outputDirectory = "build/artifacts"
+
+	fabric {
+		projectName = "archie-core-fabric"
+		inputTaskName = "remapJar"
+	}
+
+	neoforge {
+		projectName = "archie-core-neoforge"
+		inputTaskName = "remapJar"
+	}
+}
+
+publisher {
+	apiKeys {
+		curseforge("curseforge_api_key".localOrEnv)
+		modrinth("modrinth_api_key".localOrEnv)
+	}
+
+	debug = true
+
+	curseID = "1029738"
+	modrinthID = "archie"
+	githubRepo = "https://github.com/kernel-panic-codecave/Archie"
+
+	projectVersion = "${libs.versions.minecraft.get()}-${project.version}"
+	displayName = "Archie-Merged-${projectVersion.get()}"
+	gameVersions = listOf("1.21.1")
+	loaders = listOf("neoforge", "fabric")
+	curseEnvironment = "both"
+	versionType = "alpha"
+	artifact = tasks.fusejars.get()
+	javaVersions = listOf(JavaVersion.VERSION_21)
+
+	changelog = file("CHANGELOG.md")
+
+	curseDepends {
+		required = listOf("fabric-api", "fabric-language-kotlin", "kotlinlangforge", "architectury-api", "cloth-config")
+	}
+
+	modrinthDepends {
+		required = listOf("fabric-api", "fabric-language-kotlin", "kotlin-lang-forge", "architectury-api", "cloth-config")
+	}
+}
+
 dependencies {
 	dokka(project(":archie-core-common")) { isTransitive = false }
 	dokka(project(":archie-core-fabric")) { isTransitive = false }
@@ -149,6 +251,15 @@ dependencies {
 }
 
 tasks {
+	build {
+		finalizedBy(fusejars)
+	}
+	assemble {
+		finalizedBy(fusejars)
+	}
+	named("publish") {
+		dependsOn(publishMod)
+	}
 	register<Exec>("publishDocs") {
 		dependsOn(getByName("embedDokkaIntoMkDocs"))
 		group = "publishing"
@@ -172,5 +283,8 @@ tasks {
 			"--range-end", "HEAD",
 			"--changelog-path", "CHANGELOG.md",
 		)
+	}
+	listOf("publishCurseforge", "publishModrinth", "publishGitHub", "publishMod").forEach {
+		named(it) { dependsOn(getByName("generateChangelog")) }
 	}
 }

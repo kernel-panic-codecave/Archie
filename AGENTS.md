@@ -41,9 +41,22 @@ All commands below are run from the repo root.
 - Docs pipeline: `embedDokkaIntoMkDocs` then `publishDocs` (calls `mike deploy ...`); root `mkdocs.yml`
   contains `# !!! EMBEDDED DOKKA ... DO NOT COMMIT !!!` markers. CI (`.github/workflows/docs.yaml`) runs
   `./gradlew publishDocs` from the repo root.
-- **Not currently wired** (a known gap from the single-repo migration, not yet ported):
-  `modfusioner` (`fusejars`, merged Fabric+NeoForge artifact) and `modpublisher`
-  (CurseForge/Modrinth/GitHub publishing) - see "Dependency and integration touchpoints" below.
+- `./gradlew build`/`assemble` are `finalizedBy(fusejars)`, which merges only `archie-core-fabric`'s
+  and `archie-core-neoforge`'s `remapJar` outputs (`fusioner { fabric { projectName =
+  "archie-core-fabric" }; neoforge { projectName = "archie-core-neoforge" } }` in root
+  `build.gradle.kts`) into one artifact under `build/artifacts/` - `datagen`/`gametest`/`test` each
+  ship as their own separate mod and are never fused. `./gradlew publishCurseforge`/
+  `publishModrinth`/`publishGitHub`/`publishMod` publish that merged jar (`publisher{}` block, same
+  file).
+- Every `archie-core`/`archie-datagen`/`archie-gametest` module (not `archie-test` - dev playground,
+  never published) gets its own `MavenPublication` to kernelpanicsoft.net's Reposilite
+  (`./gradlew publishToMavenLocal`/`publish`), wired via `extensions.configure<PublishingExtension>
+  ("publishing") { ... }` inside root `build.gradle.kts`'s `subprojects{}` (not the bare `publishing
+  { }` DSL accessor - that's only type-safe when the plugin is applied via a `plugins{}` block, and
+  `maven-publish` here is applied imperatively). Release vs. snapshot repo URL is chosen by whether
+  `version` ends in `SNAPSHOT`; credentials come from `local.properties` (`reposilite.username`/
+  `reposilite.password`, gitignored, developer machines) or `REPOSILITE_USERNAME`/
+  `REPOSILITE_PASSWORD` env vars (CI).
 
 ## Project-specific conventions
 - Keep resource/manifests tokenized using Gradle properties (`${mod_id}`, `${versions.*}`) in `fabric.mod.json` and `neoforge.mods.toml`. `datagen`/`gametest`/`test` each ship as their own mod, so their own modId is `${mod_id}_datagen`/`${mod_id}_gametest`/`${mod_id}_test`, not the bare `${mod_id}`.
@@ -65,9 +78,9 @@ All commands below are run from the repo root.
 - `generateChangelog` (root `build.gradle.kts`) regenerates `CHANGELOG.md` synchronously from
   `.github/scripts/generate_release_notes.py` - kept separate from the reactive, tag-triggered
   `release-notes.yaml` workflow for the same reasons as before the migration (see the task's own
-  comment in `build.gradle.kts`). Packaging/publishing itself (`modfusioner`/`modpublisher`, the
-  tasks that used to `dependsOn` `generateChangelog`) isn't wired into the new build yet - port
-  from git history if reviving it.
+  comment in `build.gradle.kts`). `publishCurseforge`/`publishModrinth`/`publishGitHub`/`publishMod`
+  each `dependsOn(generateChangelog)` so `modpublisher`'s changelog (read straight off disk) is
+  always fresh when a publish task runs.
 - Mixins are split by scope: loader mixins in `core/fabric/src/main/resources/archie.mixins.json` and
   `core/neoforge/src/main/resources/archie.mixins.json`, common mixin config in
   `core/common/src/main/resources/archie-common.mixins.json`. `datagen`/`gametest` each have their
