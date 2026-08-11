@@ -1,0 +1,38 @@
+modLoader = "klf"
+loaderVersion = "[${versions.kotlin_neoforge_range},)"
+issueTrackerURL = ""
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}_gametest"
+version = "${mod_version}"
+displayName = "${mod_display_name} GameTest"
+authors = "${mod_authors}"
+description = '''
+${mod_display_name}'s GameTest framework/harness - dev/test-time only, never shipped in a production jar.
+'''
+displayURL = "${mod_url}"
+
+[[mixins]]
+config = "${mod_id}_gametest.mixins.json"
+
+[[dependencies."${mod_id}_gametest"]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${versions.neoforge_range},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}_gametest"]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${versions.minecraft}]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}_gametest"]]
+modId = "archie"
+type = "required"
+versionRange = "[${mod_version},)"
+ordering = "AFTER"
+side = "BOTH"

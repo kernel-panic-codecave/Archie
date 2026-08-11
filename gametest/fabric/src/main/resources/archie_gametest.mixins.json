@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "net.kernelpanicsoft.archie.mixin.fabric",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "client": [
+    "lifecycle.MinecraftClientMixin"
+  ],
+  "mixins": [
+    "FabricGameTestHelperMixin",
+    "FabricGameTestModInitializerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
