@@ -68,7 +68,7 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
 	"common"(project(":archie-datagen-common", "namedElements")) { isTransitive = false }
-	modApi(project(":archie-core-neoforge"))
+	api(project(":archie-core-neoforge", "namedElements"))
 }
 
 modResources {

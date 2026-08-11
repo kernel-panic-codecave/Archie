@@ -98,9 +98,9 @@ dependencies {
 
 	"common"(project(":archie-test-common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":archie-test-common", "transformProductionFabric")) { isTransitive = false }
-	modApi(project(":archie-core-fabric"))
-	modApi(project(":archie-datagen-fabric"))
-	modApi(project(":archie-gametest-fabric"))
+	api(project(":archie-core-fabric", "namedElements"))
+	api(project(":archie-datagen-fabric", "namedElements"))
+	api(project(":archie-gametest-fabric", "namedElements"))
 }
 
 modResources {

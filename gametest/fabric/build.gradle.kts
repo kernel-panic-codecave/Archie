@@ -69,7 +69,7 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
 	"common"(project(":archie-gametest-common", "namedElements")) { isTransitive = false }
-	modApi(project(":archie-core-fabric"))
+	api(project(":archie-core-fabric", "namedElements"))
 }
 
 modResources {

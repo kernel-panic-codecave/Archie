@@ -13,9 +13,9 @@ loom {
 }
 
 dependencies {
-	modApi(project(":archie-core-common"))
-	modApi(project(":archie-datagen-common"))
-	modApi(project(":archie-gametest-common"))
+	api(project(":archie-core-common", "namedElements"))
+	api(project(":archie-datagen-common", "namedElements"))
+	api(project(":archie-gametest-common", "namedElements"))
 
 	testImplementation(libs.junit.jupiter.api)
 	testImplementation(kotlin("reflect"))

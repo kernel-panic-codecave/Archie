@@ -34,6 +34,23 @@
 ## Build and run workflows
 All commands below are run from the repo root.
 - Build everything: `./gradlew build`.
+- **Never use `mod*` configurations (`modApi`/`modImplementation`/`modCompileOnly`/etc.) on a
+  `project(...)` reference between archie-core/-datagen/-gametest/-test** - `mod*` marks a
+  dependency as needing Loom's intermediary<->named *remapping*, and for a project reference that
+  makes Loom eagerly read that project's own output jar during *configuration* (before any task
+  has run), which reliably breaks the very first build on a clean checkout with "Failed to setup
+  Minecraft ... NoSuchFileException: .../build/libs/archie-x-*.jar". None of these cross-product
+  dependencies need remapping at all - every product's fabric target is already namespace-symmetric
+  with every other product's fabric target (same for neoforge, same for common). Use plain
+  `api(project(":archie-x-y", "namedElements"))` instead (the explicit `"namedElements"` target
+  matters - it's what makes the Architectury Transformer's own classpath resolve the target
+  project's classes correctly; a bare `api(project(":archie-x-y"))` with no target reintroduces the
+  `transformProductionFabric`/`transformProductionNeoForge` "Type ... not present" failure this was
+  chosen to avoid). Do **not** add `{ isTransitive = false }` to these `api(...)` calls either - that
+  strips the target project's own `api`-declared dependencies (e.g. `archie-core-common`'s
+  `compose.runtime`/`kotlinx-serialization`) from flowing through to whichever module declared the
+  dependency, breaking compilation with "Unresolved reference" on types that module never
+  redeclares itself.
 - Loader-specific dev runs: `./gradlew archie-core-fabric:runClient`, `./gradlew archie-core-neoforge:runClient`.
 - Datagen runs are explicit tasks: `./gradlew archie-datagen-fabric:runDatagen` / `./gradlew archie-datagen-neoforge:runDatagen`.
 - GameTest runs: `./gradlew archie-gametest-fabric:runGametest` / `./gradlew archie-gametest-neoforge:runGametest` (server-side suite),

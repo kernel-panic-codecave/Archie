@@ -11,7 +11,7 @@ loom {
 }
 
 dependencies {
-	modApi(project(":archie-core-common"))
+	api(project(":archie-core-common", "namedElements"))
 	modApi(libs.architectury.common)
 	modApi(libs.storage.common)
 	modApi(libs.storage.resources.common)

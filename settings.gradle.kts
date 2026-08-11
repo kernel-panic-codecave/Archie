@@ -22,38 +22,21 @@ pluginManagement {
 	}
 }
 
-// libs.versions.toml sits at the conventional gradle/libs.versions.toml location now (it used to
-// live one level up, outside archie-core's own project dir, hence the old explicit
-// dependencyResolutionManagement { versionCatalogs { create("libs") { from(...) } } } block - Gradle
-// auto-registers it from here, so that block is gone; adding it back double-registers "libs".
+includeModule("core")
 
-// Matches terrarium-earth/Common-Storage-Lib's settings.gradle.kts layout: one nested
-// <module>/<platform> directory per platform, flattened into a single-level Gradle project name
-// (e.g. core/fabric -> archie-core-fabric). archie-core is the library; archie-datagen and
-// archie-gametest are its dev-time-only sibling modules; archie-test is the dev-playground mod
-// that exercises all three.
-includeCorePlatform("common")
-includeCorePlatform("fabric")
-includeCorePlatform("neoforge")
+includeModule("datagen")
 
-includeModule("datagen", "common")
-includeModule("datagen", "fabric")
-includeModule("datagen", "neoforge")
+includeModule("gametest")
 
-includeModule("gametest", "common")
-includeModule("gametest", "fabric")
-includeModule("gametest", "neoforge")
+includeModule("test")
 
-includeModule("test", "common")
-includeModule("test", "fabric")
-includeModule("test", "neoforge")
-
-fun includeModule(name: String, platform: String) {
+fun includeModulePlatform(name: String, platform: String) {
 	include("$name/$platform")
 	project(":$name/$platform").name = "archie-$name-$platform"
 }
 
-fun includeCorePlatform(platform: String) {
-	include("core/$platform")
-	project(":core/$platform").name = "archie-core-$platform"
+fun includeModule(name: String) {
+	includeModulePlatform(name, "common")
+	includeModulePlatform(name, "fabric")
+	includeModulePlatform(name, "neoforge")
 }

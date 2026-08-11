@@ -109,9 +109,9 @@ dependencies {
 
 	"common"(project(":archie-test-common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":archie-test-common", "transformProductionNeoForge")) { isTransitive = false }
-	modApi(project(":archie-core-neoforge"))
-	modApi(project(":archie-datagen-neoforge"))
-	modApi(project(":archie-gametest-neoforge"))
+	api(project(":archie-core-neoforge", "namedElements"))
+	api(project(":archie-datagen-neoforge", "namedElements"))
+	api(project(":archie-gametest-neoforge", "namedElements"))
 }
 
 modResources {
