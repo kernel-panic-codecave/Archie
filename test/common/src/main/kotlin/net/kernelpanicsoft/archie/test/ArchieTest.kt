@@ -4,10 +4,10 @@ import com.mojang.logging.LogUtils
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import net.kernelpanicsoft.archie.Archie
-import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform
-import net.kernelpanicsoft.archie.events.ADatagenEvents
-import net.kernelpanicsoft.archie.events.AGametestEvents
-import net.kernelpanicsoft.archie.gametest.AGameTestPlatform
+import net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform
+import net.kernelpanicsoft.archie.events.datagen.ADatagenEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform
 import net.kernelpanicsoft.archie.test.gametest.ArchieTestGameTest
 import net.kernelpanicsoft.archie.test.gametest.DataAttachmentTestFixtures
 import net.kernelpanicsoft.archie.test.gametest.CapabilityLookupTestFixtures

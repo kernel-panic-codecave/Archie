@@ -1,4 +1,5 @@
 import net.kernelpanicsoft.archie.plugin.bundleMod
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 
 plugins {
 	alias(libs.plugins.shadow)
@@ -13,6 +14,16 @@ architectury {
 actualizer {
 	actualizes(project(":archie-test-common"))
 }
+
+// See the dependencies{} block below - project(...) inside dependencies{} resolves to
+// DependencyHandler.project(...) (a ProjectDependency), not the real Project, so it can't be
+// chased for .tasks there; look these up here instead, where project(...) is still the real
+// Project. Each of these products' own "namedElements" dev jar is production-shaped but not
+// production-complete (their shadowJar-merged classes are missing until a real build), so this
+// project depends on their real remapJar output for its own runtime classpath instead.
+val coreNeoForgeRemapJar = project(":archie-core-neoforge").tasks.named("remapJar", AbstractArchiveTask::class).flatMap { it.archiveFile }
+val datagenNeoForgeRemapJar = project(":archie-datagen-neoforge").tasks.named("remapJar", AbstractArchiveTask::class).flatMap { it.archiveFile }
+val gametestNeoForgeRemapJar = project(":archie-gametest-neoforge").tasks.named("remapJar", AbstractArchiveTask::class).flatMap { it.archiveFile }
 
 configurations {
 	create("common")
@@ -109,9 +120,17 @@ dependencies {
 
 	"common"(project(":archie-test-common", "namedElements")) { isTransitive = false }
 	"shadowCommon"(project(":archie-test-common", "transformProductionNeoForge")) { isTransitive = false }
-	api(project(":archie-core-neoforge", "namedElements"))
-	api(project(":archie-datagen-neoforge", "namedElements"))
-	api(project(":archie-gametest-neoforge", "namedElements"))
+	// Compile-only: real classes to compile against, kept off the runtime classpath - see the
+	// matching comment in gametest/neoforge/build.gradle.kts for why (each of these products' own
+	// dev jar is production-shaped but not production-complete, and duplicate registration under
+	// two different FML-recognized mods breaks NeoForge's per-mod module layer).
+	compileOnly(project(":archie-core-common", "namedElements")) { isTransitive = false }
+	compileOnly(project(":archie-core-neoforge", "namedElements"))
+	compileOnly(project(":archie-datagen-neoforge", "namedElements"))
+	compileOnly(project(":archie-gametest-neoforge", "namedElements"))
+	modRuntimeOnly(files(coreNeoForgeRemapJar))
+	modRuntimeOnly(files(datagenNeoForgeRemapJar))
+	modRuntimeOnly(files(gametestNeoForgeRemapJar))
 }
 
 modResources {

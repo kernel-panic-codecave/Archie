@@ -3,7 +3,7 @@ package net.kernelpanicsoft.archie.mixin.fabric;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import net.kernelpanicsoft.archie.Archie;
-import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform;
+import net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.impl.datagen.FabricDataGenHelper;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;

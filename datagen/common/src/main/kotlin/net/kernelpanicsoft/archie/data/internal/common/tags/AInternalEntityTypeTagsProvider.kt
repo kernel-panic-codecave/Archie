@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie.data.internal.common.tags
 
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.common.tags.ATagsProvider
-import net.kernelpanicsoft.archie.data.common.tags.ACommonTags
+import net.kernelpanicsoft.archie.data.common.tags.platform.ACommonTags
 import net.minecraft.core.HolderLookup
 import net.minecraft.data.PackOutput
 import net.minecraft.world.entity.EntityType

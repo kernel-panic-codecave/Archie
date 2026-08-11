@@ -6,8 +6,8 @@ import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer
-import net.kernelpanicsoft.archie.data.ADataGeneratorPlatform.isDataGen
-import net.kernelpanicsoft.archie.events.ADatagenEvents
+import net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform.isDataGen
+import net.kernelpanicsoft.archie.events.datagen.ADatagenEvents
 import net.minecraft.core.RegistrySetBuilder
 
 /**

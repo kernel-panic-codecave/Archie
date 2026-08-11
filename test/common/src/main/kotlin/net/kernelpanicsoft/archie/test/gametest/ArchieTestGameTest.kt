@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.test.gametest
 
-import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestEventObject
 import net.kernelpanicsoft.archie.test.ArchieTest
 

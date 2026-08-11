@@ -16,7 +16,7 @@ import net.minecraft.tags.TagKey
  *
  * Built-in implementations live alongside this file (e.g. [AAndCondition], [AOrCondition],
  * [ANotCondition], [ATrueCondition], [AModLoadedCondition], [ARegistryCondition]); see
- * [ABuiltinConditions] for the full set and [AConditionBuilder] for a DSL to combine them.
+ * [ABuiltinConditions] for the full set and `archie-datagen`'s `AConditionBuilder` for a DSL to combine them.
  * Register custom conditions with [register].
  */
 interface IACondition

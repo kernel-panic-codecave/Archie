@@ -3,9 +3,9 @@ package net.kernelpanicsoft.archie.data.internal
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.ADataGenerator
 import net.kernelpanicsoft.archie.data.ADatagenEventObject
-import net.kernelpanicsoft.archie.data.common.conditions.withCondition
+import net.kernelpanicsoft.archie.data.common.conditions.gen.withCondition
 import net.kernelpanicsoft.archie.data.common.crafting.ingredients.AComponentsIngredient
-import net.kernelpanicsoft.archie.data.common.tags.ACommonTags
+import net.kernelpanicsoft.archie.data.common.tags.platform.ACommonTags
 import net.kernelpanicsoft.archie.data.internal.common.tags.*
 import net.minecraft.core.component.DataComponents
 import net.minecraft.data.recipes.RecipeCategory

@@ -9,12 +9,12 @@ package net.kernelpanicsoft.archie
  */
 interface ArchieExtension
 {
-	/** Called from [Archie.init] when running under a datagen task ([net.kernelpanicsoft.archie.data.ADataGeneratorPlatform.isDataGen]). */
+	/** Called from [Archie.init] when running under a datagen task ([net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform.isDataGen]). */
 	fun onDataGen()
 	{
 	}
 
-	/** Called from [Archie.init] when running under a GameTest task ([net.kernelpanicsoft.archie.gametest.AGameTestPlatform.isGameTest]). */
+	/** Called from [Archie.init] when running under a GameTest task ([net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform.isGameTest]). */
 	fun onGameTest()
 	{
 	}

@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.mixin.neoforge.threading;
 
-import net.kernelpanicsoft.archie.gametest.ThreadingImpl;
+import net.kernelpanicsoft.archie.gametest.platform.ThreadingImpl;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

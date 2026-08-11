@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.test.testing
 
-import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
 import net.kernelpanicsoft.archie.gametest.junit.GameTestRunner
 import net.kernelpanicsoft.archie.test.gametest.archieTestGameTests
 import org.junit.jupiter.api.DynamicContainer

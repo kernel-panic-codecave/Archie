@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.gametest.junit
 
-import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
 import net.kernelpanicsoft.archie.gametest.ClientGameTest
 import net.minecraft.gametest.framework.GameTest
 import org.junit.jupiter.api.Assumptions.assumeTrue

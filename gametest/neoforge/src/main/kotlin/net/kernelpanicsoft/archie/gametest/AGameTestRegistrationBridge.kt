@@ -1,7 +1,9 @@
 package net.kernelpanicsoft.archie.gametest
 
 import dev.architectury.platform.Mod
-import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestModFilter
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform
 import net.neoforged.fml.ModList
 import net.neoforged.neoforge.event.RegisterGameTestsEvent
 

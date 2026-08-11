@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
-    "threading.MinecraftClientMixin"
+    "threading.MinecraftClientMixin",
+    "client.gui.AbstractContainerScreenItemRenderMixin",
+    "client.gui.AbstractContainerScreenSlotHighlightMixin"
   ],
   "mixins": [
     "threading.ServerMixin"

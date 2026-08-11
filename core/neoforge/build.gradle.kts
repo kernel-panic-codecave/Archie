@@ -36,6 +36,11 @@ loom {
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(sourceSets.main.get())
+			// actualizer only merges Kotlin expect/actual source into this project's own
+			// compilation - plain Java files in archie-core-common (e.g. mixin classes with no
+			// actual/expect involvement) never get copied in, so they're invisible to FML's
+			// dev-mode module layer unless their sourceSet is also registered here directly.
+			sourceSet(project(":archie-core-common").sourceSets.main.get())
 		}
 	}
 

@@ -1,6 +1,8 @@
 package net.kernelpanicsoft.archie.data
 
-import net.kernelpanicsoft.archie.events.ADatagenEvents
+import net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform
+
+import net.kernelpanicsoft.archie.events.datagen.ADatagenEvents
 import net.neoforged.fml.ModList
 import net.neoforged.neoforge.data.event.GatherDataEvent
 

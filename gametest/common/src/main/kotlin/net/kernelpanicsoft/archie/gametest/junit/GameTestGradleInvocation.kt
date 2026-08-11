@@ -6,7 +6,7 @@ enum class Loader {
 	NEOFORGE,
 }
 
-/** The GameTest side (matches [net.kernelpanicsoft.archie.gametest.AGameTestSide]) to launch. */
+/** The GameTest side (matches [net.kernelpanicsoft.archie.gametest.platform.AGameTestSide]) to launch. */
 enum class Side {
 	SERVER,
 	CLIENT,

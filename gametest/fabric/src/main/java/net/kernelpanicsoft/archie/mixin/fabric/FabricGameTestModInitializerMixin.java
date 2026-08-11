@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie.mixin.fabric;
 
 import net.fabricmc.fabric.impl.gametest.FabricGameTestModInitializer;
 import net.kernelpanicsoft.archie.Archie;
-import net.kernelpanicsoft.archie.gametest.AGameTestPlatform;
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform;
 import net.kernelpanicsoft.archie.gametest.VerboseTestReporter;
 import net.minecraft.gametest.framework.GlobalTestReporter;
 import org.spongepowered.asm.mixin.Mixin;

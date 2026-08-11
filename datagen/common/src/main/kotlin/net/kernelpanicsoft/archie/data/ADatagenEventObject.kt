@@ -1,8 +1,8 @@
 package net.kernelpanicsoft.archie.data
 
-import net.kernelpanicsoft.archie.events.ADatagenEvents
-import net.kernelpanicsoft.archie.events.ADatagenEvents.GatherDataHandler
-import net.kernelpanicsoft.archie.events.AEventObject
+import net.kernelpanicsoft.archie.events.datagen.ADatagenEvents
+import net.kernelpanicsoft.archie.events.datagen.ADatagenEvents.GatherDataHandler
+import net.kernelpanicsoft.archie.events.base.AEventObject
 import dev.architectury.event.Event
 import dev.architectury.platform.Mod
 

@@ -1,8 +1,8 @@
 package net.kernelpanicsoft.archie.data.common.crafting.recipies
 
-import net.kernelpanicsoft.archie.data.common.conditions.AConditionBuilder
 import net.kernelpanicsoft.archie.data.common.conditions.IACondition
-import net.kernelpanicsoft.archie.data.common.conditions.withCondition
+import net.kernelpanicsoft.archie.data.common.conditions.gen.AConditionBuilder
+import net.kernelpanicsoft.archie.data.common.conditions.gen.withCondition
 import net.minecraft.data.recipes.RecipeBuilder
 import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.resources.ResourceLocation

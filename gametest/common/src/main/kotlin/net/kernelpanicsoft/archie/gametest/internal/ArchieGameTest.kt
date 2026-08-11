@@ -1,7 +1,7 @@
 package net.kernelpanicsoft.archie.gametest.internal
 
 import net.kernelpanicsoft.archie.Archie
-import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
 import net.kernelpanicsoft.archie.gametest.AGameTestEventObject
 import net.kernelpanicsoft.archie.gametest.internal.tests.ArchieItemHandlerTests
 import net.kernelpanicsoft.archie.gametest.internal.tests.BlockEntityNBTHolderTests

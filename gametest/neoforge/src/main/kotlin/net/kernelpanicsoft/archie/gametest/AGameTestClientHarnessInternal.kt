@@ -2,7 +2,10 @@ package net.kernelpanicsoft.archie.gametest
 
 import dev.architectury.platform.Mod
 import net.kernelpanicsoft.archie.Archie
-import net.kernelpanicsoft.archie.events.AGametestEvents
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestSide
+import net.kernelpanicsoft.archie.gametest.platform.ThreadingImpl
 import net.minecraft.client.Minecraft
 import java.util.concurrent.atomic.AtomicBoolean
 

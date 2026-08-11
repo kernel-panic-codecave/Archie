@@ -1,3 +1,5 @@
+import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+
 plugins {
 	alias(libs.plugins.archie)
 }
@@ -67,6 +69,18 @@ dependencies {
 	compileOnly(libs.kotlinx.serialization)
 	// See the matching comment in gametest/fabric/build.gradle.kts.
 	modLocalRuntime(libs.clothConfig.fabric)
+	// Archie's own mod init (ArchieFabric -> Archie.init -> ConfigContainer) touches these at
+	// class-load time regardless of what this product actually needs - archie-core-fabric's own
+	// bundleRuntimeLibrary calls only cover ITS OWN dev-mode run, which doesn't carry over to a
+	// project consuming it as a dependency, so this needs its own copies (matching
+	// core/fabric/build.gradle.kts's set exactly).
+	bundleRuntimeLibrary(libs.kotlinx.serialization)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.json)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.nbt)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.toml)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
+	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
+	bundleRuntimeLibrary(compose.runtime)
 
 	implementation(libs.junit.jupiter.api)
 	testImplementation(libs.junit.jupiter.api)
@@ -74,6 +88,8 @@ dependencies {
 
 	"common"(project(":archie-datagen-common", "namedElements")) { isTransitive = false }
 	api(project(":archie-core-fabric", "namedElements"))
+	// See the matching comment in gametest/fabric/build.gradle.kts.
+	runtimeOnly(project(":archie-core-common", "namedElements")) { isTransitive = false }
 }
 
 modResources {

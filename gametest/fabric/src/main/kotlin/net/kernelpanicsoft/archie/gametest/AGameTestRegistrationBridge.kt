@@ -1,8 +1,10 @@
 package net.kernelpanicsoft.archie.gametest
 
 import net.kernelpanicsoft.archie.Archie
-import net.kernelpanicsoft.archie.events.AGametestEvents
-import net.kernelpanicsoft.archie.gametest.AGameTestPlatform.isGameTest
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestModFilter
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform
+import net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform.isGameTest
 import net.kernelpanicsoft.archie.mixin.fabric.FabricGameTestModInitializerMixin
 import net.minecraft.gametest.framework.GameTestRegistry
 import net.minecraft.gametest.framework.GlobalTestReporter
@@ -12,8 +14,9 @@ import net.minecraft.gametest.framework.GlobalTestReporter
  * `FabricGameTestHelper.runHeadlessServer` - the flush step that drives Fabric's own GameTest
  * registry. Named distinctly from `archie-core`'s own (internal, `testClasses`-only)
  * `AGameTestPlatformInternal` to avoid a same-package class name collision on the runtime
- * classpath - this reaches `archie-core`'s test class map via [AGameTestPlatform.testClasses]
- * instead of touching that internal object directly.
+ * classpath - this reaches `archie-core`'s test class map via
+ * [net.kernelpanicsoft.archie.gametest.platform.AGameTestPlatform.testClasses] instead of
+ * touching that internal object directly.
  */
 object AGameTestRegistrationBridge
 {

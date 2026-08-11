@@ -1,7 +1,7 @@
 package net.kernelpanicsoft.archie.gametest
 
-import net.kernelpanicsoft.archie.events.AGametestEvents
-import net.kernelpanicsoft.archie.events.AEventObject
+import net.kernelpanicsoft.archie.events.gametest.AGametestEvents
+import net.kernelpanicsoft.archie.events.base.AEventObject
 import dev.architectury.event.Event
 import dev.architectury.platform.Mod
 

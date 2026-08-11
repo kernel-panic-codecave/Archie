@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie.data.common.crafting
 
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.data.IADataProvider
-import net.kernelpanicsoft.archie.data.common.conditions.ADatagenConditionsPlatform
+import net.kernelpanicsoft.archie.data.common.conditions.gen.ADatagenConditionsPlatform
 import net.kernelpanicsoft.archie.data.common.crafting.recipies.ArchieCookingRecipeBuilder
 import net.kernelpanicsoft.archie.data.common.crafting.recipies.ArchieShapedRecipeBuilder
 import net.kernelpanicsoft.archie.data.common.crafting.recipies.ArchieShapelessRecipeBuilder

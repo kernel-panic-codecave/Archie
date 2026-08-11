@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie
 
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.ModInitializer
-import net.kernelpanicsoft.archie.gametest.ThreadingImpl
+import net.kernelpanicsoft.archie.gametest.platform.ThreadingImpl
 
 /**
  * Fabric entrypoint for the mod (`fabric.mod.json` `main`/`client` entrypoints).

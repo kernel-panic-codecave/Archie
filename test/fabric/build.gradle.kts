@@ -101,6 +101,8 @@ dependencies {
 	api(project(":archie-core-fabric", "namedElements"))
 	api(project(":archie-datagen-fabric", "namedElements"))
 	api(project(":archie-gametest-fabric", "namedElements"))
+	// See the matching comment in gametest/fabric/build.gradle.kts.
+	runtimeOnly(project(":archie-core-common", "namedElements")) { isTransitive = false }
 }
 
 modResources {

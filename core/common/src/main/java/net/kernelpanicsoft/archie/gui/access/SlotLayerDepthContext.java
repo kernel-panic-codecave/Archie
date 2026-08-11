@@ -11,9 +11,29 @@ import net.kernelpanicsoft.archie.Archie;
 public final class SlotLayerDepthContext
 {
     private static final ThreadLocal<Deque<Float>> DEPTHS = ThreadLocal.withInitial(ArrayDeque::new);
+    private static final ThreadLocal<Float> PENDING_OVERRIDE = new ThreadLocal<>();
 
     private SlotLayerDepthContext()
     {
+    }
+
+    /**
+     * Hands off a depth override computed while still inside {@code renderSlot} (see
+     * AbstractContainerScreenMixin) to the loader-specific mixin that wraps the actual
+     * {@code GuiGraphics#renderItem} call - NeoForge moved that call out of {@code renderSlot}
+     * into its own {@code renderSlotContents} method, so the two can no longer share a
+     * {@code @Unique} field on one mixin class.
+     */
+    public static void setPendingOverride(Float depth)
+    {
+        PENDING_OVERRIDE.set(depth);
+    }
+
+    public static Float takePendingOverride()
+    {
+        Float depth = PENDING_OVERRIDE.get();
+        PENDING_OVERRIDE.remove();
+        return depth;
     }
 
     public static void push(float depth)
