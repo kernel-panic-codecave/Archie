@@ -12,7 +12,6 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
-import net.kernelpanicsoft.archie.gui.modifiers.appearance.focusRing
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.input.focusable
 import net.kernelpanicsoft.archie.gui.modifiers.input.onKeyEvent
@@ -116,8 +115,8 @@ fun Button(
  * lifecycle, and vanilla keyboard/controller focus navigation - Tab/Shift-Tab and arrow keys
  * (via `Screen.children()`/`nextFocusPath`) can reach and activate it (Enter/Space) exactly
  * like a plain `AbstractWidget`, including through controller-navigation mods such as
- * Controlify. It applies no visual styling of its own beyond a default focus-ring overlay -
- * everything else is left entirely to [content].
+ * Controlify. It applies no visual styling of its own - `isFocused` is exposed to [content]
+ * so callers can render their own focus indicator (see [Button]'s themed `focused` state).
  *
  * Use [ButtonCore] when you need custom button visuals. For a standard themed button, use
  * [Button] instead.
@@ -163,7 +162,6 @@ fun ButtonCore(
                     event.consume(bypassSuperCall = true)
                 }
             }
-            .focusRing(focused)
     } else {
         focused.value = false
         Modifier
