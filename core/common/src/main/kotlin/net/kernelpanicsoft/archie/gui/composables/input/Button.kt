@@ -16,6 +16,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.contentPaddingModifier
 import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
@@ -85,7 +86,10 @@ fun Button(
                     drawThemeState(state, x, y, node.width, node.height)
                 }
             },
-            modifier = modifier.then(composableTheme.intrinsicSizeModifier()).offset(x = 0, y = pressOffset)
+            modifier = modifier
+                .then(composableTheme.intrinsicSizeModifier())
+                .then(composableTheme.contentPaddingModifier())
+                .offset(x = 0, y = pressOffset)
         )
     }
 }

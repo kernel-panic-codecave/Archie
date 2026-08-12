@@ -40,7 +40,7 @@ private fun ModalDialogScaffold(
     // Padding on the Surface itself, not margin on the inner Column, matching ConfirmDialog -
     // margin only grows the parent, it doesn't shrink what content measures against.
     Surface(modifier = Modifier.padding(4).then(modifier)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = title,
                 color = LocalTheme.current.darkTextColor,
@@ -54,6 +54,50 @@ private fun ModalDialogScaffold(
             ) { actions() }
         }
     }
+}
+
+/**
+ * Generic confirm/cancel modal with fully custom [content], rather than a fixed message layout
+ * like [AlertDialog]/[PromptDialog]/[ChoiceDialog].
+ *
+ * @param title       The dialog's header text.
+ * @param confirmText Label for the confirm button.
+ * @param cancelText  Label for the cancel button.
+ * @param onConfirm   Called when the confirm button is pressed, just before the modal dismisses itself.
+ * @param onCancel    Called when the cancel button is pressed, just before the modal dismisses itself.
+ * @param content     The dialog body, shown above the action row.
+ */
+@Composable
+fun ModalScope.ConfirmDialog(
+    title: Component = Component.literal("Confirm Dialog"),
+    confirmText: Component = Component.literal("Confirm"),
+    cancelText: Component = Component.literal("Cancel"),
+    onConfirm: () -> Unit = {},
+    onCancel: () -> Unit = {},
+    content: @Composable () -> Unit,
+) {
+    ModalDialogScaffold(
+        title = title,
+        body = content,
+        actions = {
+            Button(
+                onClick = {
+                    onConfirm()
+                    dismiss()
+                },
+            ) {
+                Text(confirmText, dropShadow = false)
+            }
+            Button(
+                onClick = {
+                    onCancel()
+                    dismiss()
+                },
+            ) {
+                Text(cancelText, dropShadow = false)
+            }
+        },
+    )
 }
 
 /**

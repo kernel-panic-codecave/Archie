@@ -7,10 +7,13 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.resourcepacks.SerializationReloadListener
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
+import net.kernelpanicsoft.archie.util.div
+import net.kernelpanicsoft.archie.util.plus
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.PreparableReloadListener
 import net.minecraft.server.packs.resources.ResourceManager
@@ -55,12 +58,27 @@ data class SimpleThemeState(
 @Serializable
 data class StatefulTheme(val states: Map<String, ThemeState>)
 
+/**
+ * Inner spacing a composable using a theme should reserve around its own [content], so e.g. a
+ * button's label never renders flush against the button's edges once it grows past
+ * [ComposableTheme.minSize] to fit a longer label.
+ *
+ * @property horizontal Padding applied to both the left and right sides.
+ * @property vertical   Padding applied to both the top and bottom sides.
+ */
+@Serializable
+data class ThemePadding(
+    val horizontal: Int = 0,
+    val vertical: Int = 0,
+)
+
 /** Raw JSON shape of a theme file, deserialized as-is and resolved by [ThemeResourceListener] into a [ComposableTheme]. */
 @Serializable
 data class RawComposableTheme(
     val states: Map<String, RawThemeState> = emptyMap(),
     val variants: Map<String, Map<String, RawThemeState>> = emptyMap(),
     @SerialName("min_size") val minSize: Size? = null,
+    @SerialName("content_padding") val contentPadding: ThemePadding? = null,
 )
 
 /** Raw JSON shape of a single theme state; fields left `null` inherit from the state's `"default"` entry. */
@@ -108,6 +126,8 @@ private data class GuiScalingMetadata(
  *   enforce, regardless of [isNineslice] - e.g. a nine-slice button texture still wants a
  *   sensible minimum clickable area even though its sprite can stretch to any size. Takes
  *   priority over the sprite-size fallback described under [isNineslice] when set.
+ * @property contentPadding Inner spacing composables using this theme should reserve around
+ *   their own content, so content grown past [minSize] doesn't render flush against the edges.
  */
 @Serializable
 data class ComposableTheme(
@@ -115,6 +135,7 @@ data class ComposableTheme(
     val states: Map<String, ThemeState>,
     val variants: Map<String, StatefulTheme> = emptyMap(),
     val minSize: Size? = null,
+    val contentPadding: ThemePadding? = null,
 ) {
     companion object {
         /**
@@ -159,6 +180,13 @@ fun ComposableTheme.intrinsicSizeModifier(): Modifier {
     return Modifier.sizeIn(minWidth = default.width, minHeight = default.height)
 }
 
+/**
+ * The [Modifier.padding] a composable using this theme should reserve around its own content,
+ * per [ComposableTheme.contentPadding] - a no-op [Modifier] when the theme doesn't declare one.
+ */
+fun ComposableTheme.contentPaddingModifier(): Modifier =
+    contentPadding?.let { Modifier.padding(horizontal = it.horizontal, vertical = it.vertical) } ?: Modifier
+
 /* ─────────────────────── Reload listener ─────────────────────── */
 
 /**
@@ -180,7 +208,8 @@ fun ComposableTheme.intrinsicSizeModifier(): Modifier {
  *     },
  *     "focused": { "texture": "archie:java/button_highlighted" }
  *   },
- *   "min_size": { "width": 50, "height": 20 }
+ *   "min_size": { "width": 50, "height": 20 },
+ *   "content_padding": { "horizontal": 4, "vertical": 2 }
  * }
  * ```
  */
@@ -235,7 +264,7 @@ class ThemeResourceListener :
                 }
 
                 val isNineslice = resourceManager.isNineSliceTexture(defaultState.texture)
-                COMPOSABLES[location] = ComposableTheme(isNineslice, states, variants, root.minSize)
+                COMPOSABLES[location] = ComposableTheme(isNineslice, states, variants, root.minSize, root.contentPadding)
                 Archie.LOGGER.info(
                     "Theme \"{}\" loaded ({} states, {} variants, nineslice={}, minSize={})",
                     location, states.size, variants.size, isNineslice, root.minSize,
@@ -286,11 +315,11 @@ class ThemeResourceListener :
 
     private fun ResourceManager.isNineSliceTexture(texture: ResourceLocation): Boolean {
         val candidates = if (texture.path.startsWith("textures/") && texture.path.endsWith(".png")) {
-            listOf(ResourceLocation.fromNamespaceAndPath(texture.namespace, "${texture.path}.mcmeta"))
+            listOf(texture + ".mcmeta")
         } else {
             listOf(
-                ResourceLocation.fromNamespaceAndPath(texture.namespace, "textures/gui/sprites/${texture.path}.png.mcmeta"),
-                ResourceLocation.fromNamespaceAndPath(texture.namespace, "textures/${texture.path}.png.mcmeta"),
+                "textures" / ("gui" / ("sprites" / texture)) + ".png.mcmeta",
+                "textures" / texture + ".png.mcmeta",
             )
         }
 
