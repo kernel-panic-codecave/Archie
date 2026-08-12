@@ -5,6 +5,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
 import kotlinx.coroutines.*
 import net.kernelpanicsoft.archie.gui.focus.collectFocusableChildren
+import net.kernelpanicsoft.archie.gui.layer.Layer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.*
@@ -143,6 +144,9 @@ abstract class ComposeScreen(
     private var lastMouseX = Double.NEGATIVE_INFINITY
     private var lastMouseY = Double.NEGATIVE_INFINITY
 
+    /** The layer [renderNodes] last ran [setInitialFocus] for - see its use there. */
+    private var lastTopLayer: Layer? = null
+
     // `Recomposer.hasPendingWork` is Compose's own atomically-maintained "is there recomposition,
     // apply-changes, or effect work outstanding" signal - the same one Compose's own test tooling
     // (ComposeTestRule.waitForIdle()) uses. Reimplementing this by hand via applyScheduled/
@@ -223,7 +227,19 @@ abstract class ComposeScreen(
             hasFrameWaiters = false
             recomposeJob = composeScope.launch { clock.sendFrame(System.nanoTime()) }
         }
-        setInitialFocus()
+
+        // setInitialFocus() re-runs vanilla's own Tab-navigation search (nextFocusPath) to find
+        // something to focus, which visits whatever's already focused first - calling it every
+        // frame while nothing changed would auto-advance focus to the next candidate each frame
+        // (indistinguishable, to vanilla, from a real Tab press) whenever the keyboard was the
+        // last input type. Only re-run it when the top layer actually changed - a modal opening
+        // or closing - and clear the old focus first, since a modal opening on top otherwise
+        // leaves the base screen's element (now hidden behind it) marked focused indefinitely.
+        if (layerManager.top !== lastTopLayer) {
+            lastTopLayer = layerManager.top
+            clearFocus()
+            setInitialFocus()
+        }
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {

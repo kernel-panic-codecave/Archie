@@ -12,6 +12,7 @@ import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.Column
 import net.minecraft.network.chat.Component
+import org.lwjgl.glfw.GLFW
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -150,6 +151,33 @@ class ModalComponentsGameTest {
             }
             waitFor { _ -> layerCount == 1 }
             assertTrue(cancelled.get()) { "Expected ConfirmDialog's onCancel to fire" }
+        }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testModalOpenResetsBaseScreenFocus() {
+        setScreen { ModalComponentsProbeScreen() }
+        waitForScreen<ModalComponentsProbeScreen> {
+            getInput().pressKey(GLFW.GLFW_KEY_TAB)
+            waitForComposeIdle()
+
+            val triggers = baseLayer.rootNode { nodes("Button") }
+            triggers[0] {
+                assertRenderState(TextureStates.FOCUSED) { "Expected Tab to vanilla-focus the first base-screen button" }
+            }
+
+            // Opening the modal is a mouse click, not Tab, so the base screen's vanilla focus
+            // reference is still pointing at triggers[0] the instant the modal appears - exactly
+            // the stale-focus scenario the reset needs to clear.
+            triggers[3] { click() } // "Open Confirm"
+            waitFor { _ -> layerCount == 2 }
+            waitForComposeIdle()
+
+            triggers[0] {
+                assertTrue(renderState != TextureStates.FOCUSED) {
+                    "Expected the base screen's button to lose vanilla focus once a modal opened on top of it"
+                }
+            }
         }
     }
 }

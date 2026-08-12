@@ -16,6 +16,7 @@ import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
 import net.kernelpanicsoft.archie.gui.focus.collectFocusableChildren
 import net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu
 import net.kernelpanicsoft.archie.gui.item.LocalItemState
+import net.kernelpanicsoft.archie.gui.layer.Layer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
@@ -114,6 +115,9 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     private var lastMouseX = 0.0
     private var lastMouseY = 0.0
+
+    /** The layer [render] last ran [setInitialFocus] for - see its use there. */
+    private var lastTopLayer: Layer? = null
 
     override fun isComposeIdle(): Boolean =
         !applyScheduled && !hasFrameWaiters && recomposeJob?.isActive != true
@@ -248,6 +252,14 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
         if (layerManager.layers.size > 1)
         {
             renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
+        }
+
+        // See ComposeScreen.renderNodes for why this only runs when the top layer actually
+        // changed (a modal opening or closing), not every frame.
+        if (layerManager.top !== lastTopLayer) {
+            lastTopLayer = layerManager.top
+            clearFocus()
+            setInitialFocus()
         }
     }
 
