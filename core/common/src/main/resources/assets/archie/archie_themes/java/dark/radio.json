@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/radio_dark",
+      "texture_size": {
+        "width": 20,
+        "height": 20
+      },
+      "width": 20,
+      "height": 20
+    },
+    "focused": {
+      "texture": "archie:java/radio_focused_dark"
+    },
+    "clicked": {
+      "texture": "archie:java/radio_clicked_dark"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:java/radio_clicked_and_focused_dark"
+    },
+    "disabled": {
+      "texture": "archie:java/radio_disabled_dark"
+    }
+  }
+}

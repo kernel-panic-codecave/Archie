@@ -3,6 +3,9 @@ package net.kernelpanicsoft.archie.gui.composables.input
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.Easings
+import net.kernelpanicsoft.archie.gui.animation.animatePulse
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
@@ -26,6 +29,8 @@ import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
+import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Low-level unstyled radio-button behavior, built on [Modifier.selectable].
@@ -88,6 +93,13 @@ fun RadioButton(
     val composableTheme = theme.getComposableTheme(texture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.Center) }
     val sizeModifier = composableTheme.intrinsicSizeModifier()
+    // A brief overshoot-then-settle pop whenever `selected` flips, rather than the dot
+    // snapping in/out instantly - purely cosmetic, so it's scaled around the node's own
+    // center instead of touching layout size.
+    val pop = animatePulse(
+        key = selected,
+        spec = AnimationSpec(durationMillis = 160.milliseconds, easing = Easings.OutBack),
+    )
 
     RadioButtonCore(
         selected = selected,
@@ -116,7 +128,15 @@ fun RadioButton(
                     node.renderState = stateKey
                     val state = composableTheme.getState(stateKey, variant)
 
-                    drawThemeState(state, x, y, node.width, node.height)
+                    val drawWidth = (node.width * pop).roundToInt()
+                    val drawHeight = (node.height * pop).roundToInt()
+                    drawThemeState(
+                        state,
+                        x + (node.width - drawWidth) / 2,
+                        y + (node.height - drawHeight) / 2,
+                        drawWidth,
+                        drawHeight,
+                    )
                 }
             },
         )

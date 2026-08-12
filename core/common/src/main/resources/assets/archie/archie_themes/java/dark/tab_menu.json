@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/tab_menu_dark",
+      "texture_size": {
+        "width": 130,
+        "height": 24
+      },
+      "width": 130,
+      "height": 24
+    },
+    "focused": {
+      "texture": "archie:java/tab_menu_focused_dark"
+    },
+    "clicked": {
+      "texture": "archie:java/tab_menu_selected_dark"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:java/tab_menu_selected_highlighted_dark"
+    },
+    "disabled": {
+      "texture": "archie:java/tab_menu_disabled_dark"
+    }
+  }
+}

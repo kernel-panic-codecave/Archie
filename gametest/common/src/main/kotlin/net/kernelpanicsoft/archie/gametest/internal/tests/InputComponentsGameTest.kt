@@ -25,6 +25,8 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.theme.Theme
+import net.kernelpanicsoft.archie.gui.theme.ThemeData
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.HsvColor
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.network.chat.Component
@@ -197,6 +199,23 @@ class InputComponentsGameTest {
                 }
             }
         }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testDarkThemeResolvesRecoloredButtonTexture() {
+        // Regression check for the generated archie_themes/java/dark/*.json + *_dark.png
+        // assets: ThemeData.getComposableTheme looks up "java/dark/button" first when mode is
+        // ThemeVariants.DARK - a missing/misnamed dark file would silently fall back to the
+        // light "java/button" theme instead of failing loudly, so this asserts the resolved
+        // default-state texture is actually the recolored one.
+        val texture = computeOnClient {
+            ThemeData(ThemeVariants.DARK, "java", KColor.DARK_GRAY, KColor.WHITE)
+                .getComposableTheme("button")
+                .states[TextureStates.DEFAULT]!!
+                .texture
+                .toString()
+        }
+        assertEquals("archie:java/button_dark", texture)
     }
 
     @ClientGameTest

@@ -1,6 +1,9 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.*
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.Easings
+import net.kernelpanicsoft.archie.gui.animation.animatePulse
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
 import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
@@ -18,6 +21,8 @@ import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
+import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * A standard themed checkbox.
@@ -46,6 +51,13 @@ fun Checkbox(
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
     val sizeModifier = composableTheme.intrinsicSizeModifier()
+    // A brief overshoot-then-settle pop whenever `checked` flips, rather than the check mark
+    // snapping in/out instantly - purely cosmetic, so it's scaled around the node's own center
+    // instead of touching layout size.
+    val pop = animatePulse(
+        key = checked,
+        spec = AnimationSpec(durationMillis = 160.milliseconds, easing = Easings.OutBack),
+    )
 
     CheckboxCore(
         checked = checked,
@@ -74,7 +86,15 @@ fun Checkbox(
                     node.renderState = stateKey
                     val state = composableTheme.getState(stateKey, variant)
 
-                    drawThemeState(state, x, y, node.width, node.height)
+                    val drawWidth = (node.width * pop).roundToInt()
+                    val drawHeight = (node.height * pop).roundToInt()
+                    drawThemeState(
+                        state,
+                        x + (node.width - drawWidth) / 2,
+                        y + (node.height - drawHeight) / 2,
+                        drawWidth,
+                        drawHeight,
+                    )
                 }
             },
             modifier = checkboxModifier.then(sizeModifier).then(modifier)

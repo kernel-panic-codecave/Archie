@@ -1,0 +1,27 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/button_dark",
+      "texture_size": {
+        "width": 64,
+        "height": 64
+      },
+      "width": 64,
+      "height": 20
+    },
+    "focused": {
+      "texture": "archie:java/button_highlighted_dark"
+    },
+    "disabled": {
+      "texture": "archie:java/button_disabled_dark"
+    }
+  },
+  "min_size": {
+    "width": 50,
+    "height": 20
+  },
+  "content_padding": {
+    "horizontal": 4,
+    "vertical": 2
+  }
+}

@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.animateFloat
 import net.kernelpanicsoft.archie.gui.interaction.DragInteraction
 import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
 import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
@@ -31,6 +33,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import org.lwjgl.glfw.GLFW
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val SLIDER_MIN_WIDTH = 96
 private const val SLIDER_MIN_HEIGHT = 20
@@ -187,6 +190,12 @@ fun Slider(
         onValueChangeFinished = onValueChangeFinished,
         modifier = sizeModifier.then(modifier),
     ) { hovered, dragging, focused, normalizedValue ->
+        // Grows the thumb slightly on hover/drag instead of it staying a fixed size regardless
+        // of interaction, matching common slider affordance conventions.
+        val thumbScale = animateFloat(
+            targetValue = if (enabled && (hovered || dragging)) 1.25f else 1f,
+            spec = AnimationSpec(durationMillis = 120.milliseconds),
+        )
         Layout(
             name = "Slider",
             measurePolicy = measurePolicy,
@@ -223,7 +232,16 @@ fun Slider(
 
                     drawThemeState(trackState, x, y, node.width, node.height)
                     fill(trackStart, trackY, fillEnd, trackY + SLIDER_TRACK_HEIGHT, fillColor)
-                    drawThemeState(thumbState, thumbX, thumbY, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT)
+
+                    val drawThumbWidth = (SLIDER_THUMB_WIDTH * thumbScale).roundToInt()
+                    val drawThumbHeight = (SLIDER_THUMB_HEIGHT * thumbScale).roundToInt()
+                    drawThemeState(
+                        thumbState,
+                        thumbX + (SLIDER_THUMB_WIDTH - drawThumbWidth) / 2,
+                        thumbY + (SLIDER_THUMB_HEIGHT - drawThumbHeight) / 2,
+                        drawThumbWidth,
+                        drawThumbHeight,
+                    )
                 }
             },
         )

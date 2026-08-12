@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.basic.Texture
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
@@ -36,6 +38,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.client.gui.GuiGraphics
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Built-in themed texture keys for [Tab]/[TabContainer], matching vanilla tab styles. */
 object TabTextures
@@ -361,9 +364,15 @@ fun Tab(
         enabled = enabled,
     )
     val state = composableTheme.getState(stateKey, variant)
+    // Eases into/out of the selected elevation instead of snapping, matching Button's own
+    // press-offset animation.
+    val elevationOffset = animateInt(
+        targetValue = if (selected && !elevateSelected) -SELECTED_ELEVATION_PX else 0,
+        spec = AnimationSpec(durationMillis = 120.milliseconds),
+    )
     val offsetModifier = Modifier
         .zIndex(if (selected && elevateSelected) 1f else 0f)
-        .offset(x = 0, y = if (selected && !elevateSelected) -SELECTED_ELEVATION_PX else 0)
+        .offset(x = 0, y = elevationOffset)
         .padding(horizontal = 10, vertical = 6)
     val sizeModifier = composableTheme.intrinsicSizeModifier()
 
