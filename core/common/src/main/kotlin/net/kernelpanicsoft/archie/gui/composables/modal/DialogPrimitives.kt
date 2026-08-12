@@ -78,10 +78,13 @@ fun ModalScope.AlertDialog(
             Text(text = message, dropShadow = false, color = LocalTheme.current.darkTextColor)
         },
         actions = {
-            Button(onClick = {
-                onConfirm()
-                dismiss()
-            }) {
+            Button(
+                onClick = {
+                    onConfirm()
+                    dismiss()
+                },
+                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
+            ) {
                 Text(confirmText, dropShadow = false)
             }
         },
@@ -128,10 +131,13 @@ fun ModalScope.PromptDialog(
             }
         },
         actions = {
-            Button(onClick = {
-                onCancel()
-                dismiss()
-            }) {
+            Button(
+                onClick = {
+                    onCancel()
+                    dismiss()
+                },
+                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
+            ) {
                 Text(cancelText, dropShadow = false)
             }
             Button(
@@ -140,6 +146,7 @@ fun ModalScope.PromptDialog(
                     onConfirm(value)
                     dismiss()
                 },
+                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
             ) {
                 Text(confirmText, dropShadow = false)
             }
@@ -179,7 +186,7 @@ fun <T> ModalScope.ChoiceDialog(
                     choices.forEach { choice ->
                         Button(
                             enabled = choice.enabled,
-                            modifier = Modifier.width(150),
+                            modifier = Modifier.sizeIn(minWidth = 150, maxWidth = 150, minHeight = 20),
                             onClick = {
                                 onSelected(choice.value)
                                 dismiss()
@@ -192,10 +199,13 @@ fun <T> ModalScope.ChoiceDialog(
             }
         },
         actions = {
-            Button(onClick = {
-                onCancel()
-                dismiss()
-            }) {
+            Button(
+                onClick = {
+                    onCancel()
+                    dismiss()
+                },
+                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
+            ) {
                 Text(cancelText, dropShadow = false)
             }
         },

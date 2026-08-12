@@ -86,16 +86,11 @@ fun Button(
                     drawThemeState(state, x, y, node.width, node.height)
                 }
             },
-            modifier = modifier.apply {
-                if (!composableTheme.isNineslice) {
-                    with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-                        sizeIn(
-                            minWidth = width,
-                            minHeight = height
-                        )
-                    }
+            modifier = (if (!composableTheme.isNineslice) {
+                with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
+                    modifier.sizeIn(minWidth = width, minHeight = height)
                 }
-            }.offset(x = 0, y = pressOffset)
+            } else modifier).offset(x = 0, y = pressOffset)
         )
     }
 }

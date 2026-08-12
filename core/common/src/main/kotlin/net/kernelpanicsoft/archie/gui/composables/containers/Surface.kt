@@ -62,15 +62,12 @@ fun Surface(
 				drawThemeState(state, x, y, node.width, node.height)
 			}
 		},
-		modifier = Modifier.debug(state.texture.toString()).apply {
+		modifier = Modifier.debug(state.texture.toString()).let { base ->
 			if (!composableTheme.isNineslice) {
 				with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-					sizeIn(
-						minWidth = width,
-						minHeight = height
-					)
+					base.sizeIn(minWidth = width, minHeight = height)
 				}
-			}
+			} else base
 		} then modifier,
 		content = content
 	)
