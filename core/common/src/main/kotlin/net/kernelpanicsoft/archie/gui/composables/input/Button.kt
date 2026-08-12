@@ -13,8 +13,6 @@ import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
-import net.kernelpanicsoft.archie.gui.modifiers.input.focusable
-import net.kernelpanicsoft.archie.gui.modifiers.input.onKeyEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
@@ -23,11 +21,7 @@ import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
-import org.lwjgl.glfw.GLFW
 import kotlin.time.Duration.Companion.milliseconds
-
-/** GLFW key codes that activate a focused button, mirroring vanilla `AbstractWidget` activation. */
-private val BUTTON_ACTIVATION_KEYS = intArrayOf(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER, GLFW.GLFW_KEY_SPACE)
 
 /**
  * A standard themed, clickable button.
@@ -148,33 +142,12 @@ fun ButtonCore(
 	enabled: Boolean = true,
 	content: @Composable (isHovered: Boolean, isPressed: Boolean, isFocused: Boolean) -> Unit,
 ) {
-    val focused = remember { mutableStateOf(false) }
-
-    // Only a participating widget shows up in ComposeScreen.children() (see
-    // collectFocusableChildren) at all - mirrors AbstractWidget.nextFocusPath returning null
-    // while `!active`, which keeps a disabled vanilla widget out of Tab order the same way.
-    val focusModifier = if (enabled) {
-        Modifier
-            .focusable(focused)
-            .onKeyEvent { node, event ->
-                if (focused.value && event.keyCode in BUTTON_ACTIVATION_KEYS) {
-                    onClick(node)
-                    event.consume(bypassSuperCall = true)
-                }
-            }
-    } else {
-        focused.value = false
-        Modifier
-    }
-
     Clickable(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier
             .then(DebugModifier(strs = listOf("Enabled: $enabled")))
-            .then(focusModifier)
             .then(modifier),
-    ) { isHovered, isPressed ->
-        content(isHovered, isPressed, focused.value)
-    }
+        content = content,
+    )
 }

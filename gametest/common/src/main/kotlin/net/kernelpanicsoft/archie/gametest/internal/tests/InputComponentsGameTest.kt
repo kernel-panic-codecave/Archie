@@ -59,12 +59,10 @@ class InputComponentsGameTest {
                     assertHasDescendant("ColorPicker")
                     assertHasDescendant("Button")
 
-                    // Every RadioGroup option's Row wraps exactly one RadioButton (itself inside
-                    // the Box every Clickable-based composable renders its content in) plus its
-                    // label, in order.
+                    // Every RadioGroup option's Row wraps exactly one RadioButton (applying
+                    // Modifier.selectable directly - no wrapping Box) plus its label, in order.
                     node("Row") {
-                        assertChildNames("Box", "Text")
-                        node("Box") { assertHasDescendant("RadioButton") }
+                        assertChildNames("RadioButton", "Text")
                     }
 
                     assertAllDescendantsSized()

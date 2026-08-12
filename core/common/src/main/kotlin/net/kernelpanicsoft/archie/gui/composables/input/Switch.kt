@@ -1,17 +1,22 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
+import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
+import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
+import net.kernelpanicsoft.archie.gui.interaction.collectIsHoveredAsState
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.input.toggleable
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
@@ -34,23 +39,29 @@ internal fun resolveSwitchThumbOffset(thumbOffset: Int, trackWidth: Int): Int {
 }
 
 /**
- * Low-level switch primitive exposing hover/press state and checked state to custom visuals.
+ * Low-level switch primitive exposing hover/focus state and checked state to custom visuals.
+ * Built on [Modifier.toggleable], so it's a vanilla keyboard/controller focus-navigation stop
+ * that toggles on Enter/Space while focused, the same as a mouse click.
  */
 @Composable
 fun SwitchCore(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    content: @Composable (isHovered: Boolean, isPressed: Boolean, checked: Boolean) -> Unit,
+    content: @Composable (modifier: Modifier, isHovered: Boolean, isFocused: Boolean, checked: Boolean) -> Unit,
 ) {
-    Clickable(
-        onClick = { onCheckedChange(!checked) },
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val toggleableModifier = Modifier.toggleable(
+        value = checked,
         enabled = enabled,
-        modifier = modifier,
-    ) { hovered, pressed ->
-        content(hovered, pressed, checked)
-    }
+        interactionSource = interactionSource,
+        onValueChange = onCheckedChange,
+    )
+
+    content(toggleableModifier, isHovered, isFocused, checked)
 }
 
 /**
@@ -92,12 +103,11 @@ fun Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         enabled = enabled,
-        modifier = sizeModifier.then(modifier),
-    ) { hovered, _, currentChecked ->
+    ) { switchModifier, hovered, focused, currentChecked ->
         Layout(
             name = "Switch",
             measurePolicy = measurePolicy,
-            modifier = sizeModifier,
+            modifier = switchModifier.then(sizeModifier).then(modifier),
             renderer = object : Renderer {
                 override fun render(
 	                node: UINode,
@@ -110,7 +120,7 @@ fun Switch(
                 ) = guiGraphics {
                     val trackStateKey = WidgetState.resolve(
                         trackTheme, variant,
-                        WidgetState.clicked(currentChecked), WidgetState.focused(hovered),
+                        WidgetState.clicked(currentChecked), WidgetState.focused(hovered || focused),
                         enabled = enabled,
                     )
                     node.renderState = trackStateKey

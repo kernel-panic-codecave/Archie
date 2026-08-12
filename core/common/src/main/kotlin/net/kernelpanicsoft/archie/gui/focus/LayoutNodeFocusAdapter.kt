@@ -42,7 +42,7 @@ class LayoutNodeFocusAdapter(val node: LayoutNode) : GuiEventListener {
     override fun isFocused(): Boolean = focusable?.focused?.value == true
 
     override fun setFocused(focused: Boolean) {
-        focusable?.focused?.value = focused
+        focusable?.setFocused(focused)
     }
 
     // The GuiEventListener default always returns null - AbstractWidget overrides it the same

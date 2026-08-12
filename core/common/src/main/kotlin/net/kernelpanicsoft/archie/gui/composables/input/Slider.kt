@@ -5,13 +5,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import net.kernelpanicsoft.archie.gui.interaction.DragInteraction
+import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
+import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
+import net.kernelpanicsoft.archie.gui.interaction.collectIsHoveredAsState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
+import net.kernelpanicsoft.archie.gui.modifiers.input.focusable
+import net.kernelpanicsoft.archie.gui.modifiers.input.hoverable
 import net.kernelpanicsoft.archie.gui.modifiers.input.onDrag
+import net.kernelpanicsoft.archie.gui.modifiers.input.onKeyEvent
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
@@ -22,6 +29,7 @@ import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
+import org.lwjgl.glfw.GLFW
 import kotlin.math.roundToInt
 
 private const val SLIDER_MIN_WIDTH = 96
@@ -29,6 +37,9 @@ private const val SLIDER_MIN_HEIGHT = 20
 private const val SLIDER_THUMB_WIDTH = 8
 private const val SLIDER_THUMB_HEIGHT = 20
 private const val SLIDER_TRACK_HEIGHT = 2
+
+/** Fraction of the full 0f..1f range one arrow-key press moves, for a continuous (steps == 0) slider. */
+private const val KEYBOARD_STEP_FALLBACK = 0.05f
 
 /** Clamps a slider value into the normalized `0f..1f` range. */
 internal fun normalizeSliderValue(value: Float): Float = value.coerceIn(0f, 1f)
@@ -48,20 +59,26 @@ internal fun resolveSliderThumbX(rawThumbX: Int, sliderX: Int, sliderWidth: Int,
     return rawThumbX.coerceIn(minThumbX, maxThumbX)
 }
 
-private fun resolveSliderStateName(theme: ComposableTheme, variant: String, enabled: Boolean, hovered: Boolean, dragging: Boolean): String =
-    WidgetState.resolve(theme, variant, WidgetState.clicked(dragging), WidgetState.focused(hovered), enabled = enabled)
+private fun resolveSliderStateName(theme: ComposableTheme, variant: String, enabled: Boolean, hovered: Boolean, dragging: Boolean, focused: Boolean): String =
+    WidgetState.resolve(theme, variant, WidgetState.clicked(dragging), WidgetState.focused(hovered || focused), enabled = enabled)
 
 /**
- * Low-level unstyled slider behavior: drag/click-to-position and hover/drag state tracking,
+ * Low-level unstyled slider behavior: drag/click-to-position, hover/drag/focus state tracking,
  * with no visuals of its own.
  *
+ * A vanilla keyboard/controller focus-navigation stop - unlike the simple toggle inputs
+ * ([Checkbox], [Switch], [RadioButton]), a slider has no single "activate" action, so instead
+ * of [Clickable]'s Enter/Space it responds to Left/Right arrow keys while focused, nudging the
+ * value by one [steps] increment (or [KEYBOARD_STEP_FALLBACK] when continuous).
+ *
  * @param value                 The current value, normalized/snapped via [snapSliderValue].
- * @param onValueChange         Called with the new normalized value on every drag/click update.
+ * @param onValueChange         Called with the new normalized value on every drag/click/arrow-key update.
  * @param modifier              Additional modifiers applied to the outer container.
- * @param enabled               When `false`, pointer events are ignored.
+ * @param enabled               When `false`, pointer and arrow-key events are ignored and this
+ *   drops out of the vanilla focus graph entirely.
  * @param steps                 Number of discrete increments to snap to; `0` means continuous.
- * @param onValueChangeFinished Called once when a drag interaction ends (on release).
- * @param content               The visual content; receives hover/drag state and the
+ * @param onValueChangeFinished Called once when a drag or arrow-key interaction ends.
+ * @param content               The visual content; receives hover/drag/focus state and the
  *   normalized, snapped value to render.
  */
 @Composable
@@ -72,12 +89,17 @@ fun SliderCore(
     enabled: Boolean = true,
     steps: Int = 0,
     onValueChangeFinished: () -> Unit = {},
-    content: @Composable (isHovered: Boolean, isDragging: Boolean, normalizedValue: Float) -> Unit,
+    content: @Composable (isHovered: Boolean, isDragging: Boolean, isFocused: Boolean, normalizedValue: Float) -> Unit,
 ) {
     val normalizedValue = snapSliderValue(value, steps)
 
-    var hovered by remember { mutableStateOf(false) }
+    // `dragging` stays a plain local var (rather than collectIsDraggedAsState()) since onDrag
+    // below needs to synchronously tell "a drag that started on this slider" apart from a
+    // stray onDrag call, not just report state for rendering.
     var dragging by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val isFocused by interactionSource.collectIsFocusedAsState()
 
     fun updateFromPointer(node: UINode, mouseX: Double) {
         val localX = (mouseX - node.x).toFloat()
@@ -89,19 +111,27 @@ fun SliderCore(
         name = "SliderCore",
         measurePolicy = remember { BoxMeasurePolicy(Alignment.CenterStart) },
         modifier = Modifier
-            .onPointerEvent<UINode>(PointerEventType.ENTER) { _, event ->
-                if (!enabled) return@onPointerEvent
-                hovered = true
-                event.consume()
+            .focusable(enabled = enabled, interactionSource = interactionSource)
+            .onKeyEvent { _, event ->
+                if (!enabled || !isFocused) return@onKeyEvent
+                val step = if (steps > 0) 1f / steps else KEYBOARD_STEP_FALLBACK
+                val delta = when (event.keyCode) {
+                    GLFW.GLFW_KEY_LEFT -> -step
+                    GLFW.GLFW_KEY_RIGHT -> step
+                    else -> return@onKeyEvent
+                }
+                onValueChange(snapSliderValue(normalizedValue + delta, steps))
+                onValueChangeFinished()
+                event.consume(bypassSuperCall = true)
             }
-            .onPointerEvent<UINode>(PointerEventType.EXIT) { _, event ->
-                hovered = false
-                dragging = false
-                if (enabled) event.consume()
-            }
+            .hoverable(interactionSource, enabled = enabled)
+            // Not Modifier.draggable(): that reports only a delta per movement, but pressing
+            // anywhere on the track needs to jump straight to that absolute position - the same
+            // reason Compose Foundation's own Slider doesn't build on plain draggable either.
             .onPointerEvent<UINode>(PointerEventType.PRESS) { node, event ->
                 if (!enabled) return@onPointerEvent
                 dragging = true
+                interactionSource.tryEmit(DragInteraction.Start)
                 updateFromPointer(node, event.mouseX)
                 event.consume(true)
             }
@@ -113,11 +143,12 @@ fun SliderCore(
             .onPointerEvent<UINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
                 if (!enabled || !dragging) return@onPointerEvent
                 dragging = false
+                interactionSource.tryEmit(DragInteraction.Stop)
                 onValueChangeFinished()
             }
             .then(modifier),
     ) {
-        content(hovered, dragging, normalizedValue)
+        content(hovered, dragging, isFocused, normalizedValue)
     }
 }
 
@@ -155,7 +186,7 @@ fun Slider(
         steps = steps,
         onValueChangeFinished = onValueChangeFinished,
         modifier = sizeModifier.then(modifier),
-    ) { hovered, dragging, normalizedValue ->
+    ) { hovered, dragging, focused, normalizedValue ->
         Layout(
             name = "Slider",
             measurePolicy = measurePolicy,
@@ -183,7 +214,7 @@ fun Slider(
                     )
                     val thumbY = y + (node.height - SLIDER_THUMB_HEIGHT) / 2
 
-                    val stateName = resolveSliderStateName(trackTheme, variant, enabled, hovered, dragging)
+                    val stateName = resolveSliderStateName(trackTheme, variant, enabled, hovered, dragging, focused)
                     node.renderState = stateName
                     val trackState = trackTheme.getState(stateName, variant)
                     val thumbState = thumbTheme.getState(stateName, variant)

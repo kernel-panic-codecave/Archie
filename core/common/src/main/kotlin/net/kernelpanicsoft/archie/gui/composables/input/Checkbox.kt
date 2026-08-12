@@ -3,15 +3,15 @@ package net.kernelpanicsoft.archie.gui.composables.input
 import androidx.compose.runtime.*
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
+import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
+import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
+import net.kernelpanicsoft.archie.gui.interaction.collectIsHoveredAsState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
-import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.debug
-import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
-import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
+import net.kernelpanicsoft.archie.gui.modifiers.input.toggleable
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
@@ -30,6 +30,8 @@ import net.minecraft.client.gui.GuiGraphics
  *
  * @param checked         The current checked state.
  * @param modifier        Additional modifiers applied to the outer container.
+ * @param enabled         When `false`, the disabled state is drawn, pointer/activation-key
+ *   events are ignored, and this drops out of the vanilla focus graph entirely.
  * @param texture         The themed texture key to look up via [LocalTheme].
  * @param variant         The theme variant of [texture] to use. See [ThemeVariants].
  * @param onCheckedChange Called with the new checked value when the user clicks.
@@ -38,6 +40,7 @@ import net.minecraft.client.gui.GuiGraphics
 fun Checkbox(
     checked: Boolean = false,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     texture: String = "checkbox",
     variant: String = ThemeVariants.DEFAULT,
     onCheckedChange: (Boolean) -> Unit,
@@ -54,10 +57,10 @@ fun Checkbox(
     } else Modifier
 
     CheckboxCore(
-        checked,
-        sizeModifier.then(modifier),
-        onCheckedChange
-    ) { isHovered ->
+        checked = checked,
+        enabled = enabled,
+        onCheckedChange = onCheckedChange,
+    ) { checkboxModifier, isHovered, isFocused ->
         Layout(
             name = "Checkbox",
             measurePolicy = BoxMeasurePolicy(Alignment.Center),
@@ -74,7 +77,8 @@ fun Checkbox(
                 ) = guiGraphics {
                     val stateKey = WidgetState.resolve(
                         composableTheme, variant,
-                        WidgetState.clicked(checked), WidgetState.focused(isHovered),
+                        WidgetState.clicked(checked), WidgetState.focused(isHovered || isFocused),
+                        enabled = enabled,
                     )
                     node.renderState = stateKey
                     val state = composableTheme.getState(stateKey, variant)
@@ -82,48 +86,53 @@ fun Checkbox(
                     drawThemeState(state, x, y, node.width, node.height)
                 }
             },
-            modifier = sizeModifier
+            modifier = checkboxModifier.then(sizeModifier).then(modifier)
         )
     }
 }
 
 /**
- * A stateless, unstyled toggle composable.
+ * A stateless, unstyled toggle composable, built on [Modifier.toggleable].
  *
- * `CheckboxCore` manages hover state internally and exposes it to [content]. All visual
- * styling (textures, colours, checked indicator) is the responsibility of [content]. Use
- * this as the base for custom or theme-driven checkbox implementations.
+ * `CheckboxCore` manages hover/focus state internally and hands [content] the [Modifier] it
+ * needs to apply to its own node to participate in pointer/focus input - it's a vanilla
+ * keyboard/controller focus-navigation stop that toggles on Enter/Space while focused, the
+ * same as a mouse click. All visual styling (textures, colours, checked indicator) is the
+ * responsibility of [content]. Use this as the base for custom or theme-driven checkbox
+ * implementations.
  *
  * ### Example
  * ```kotlin
  * var checked by remember { mutableStateOf(false) }
- * CheckboxCore(checked = checked, onCheckedChange = { checked = it }) { isHovered ->
- *     Box(modifier = Modifier.size(16, 16).background(if (checked) KColor.GREEN else KColor.GRAY))
+ * CheckboxCore(checked = checked, onCheckedChange = { checked = it }) { modifier, isHovered, isFocused ->
+ *     Box(modifier = modifier.size(16, 16).background(if (checked) KColor.GREEN else KColor.GRAY))
  * }
  * ```
  *
  * @param checked         The current checked state.
- * @param modifier        Additional modifiers applied to the outer [Box].
+ * @param enabled         When `false`, pointer and activation-key events are ignored and this
+ *   drops out of the vanilla focus graph entirely.
  * @param onCheckedChange Called with the new checked value when the user clicks.
- * @param content         The visual content; receives `isHovered` for styling.
+ * @param content         The visual content; receives the [Modifier] to apply to its own node,
+ *   plus `isHovered`/`isFocused` for styling.
  */
 @Composable
 fun CheckboxCore(
     checked: Boolean = false,
-    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
-    content: @Composable (isHovered: Boolean) -> Unit,
+    content: @Composable (modifier: Modifier, isHovered: Boolean, isFocused: Boolean) -> Unit,
 ) {
-    var hovered by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    val isFocused by interactionSource.collectIsFocusedAsState()
 
-    Box(
-        modifier = Modifier
-            .debug("Hovered: $hovered")
-            .onPointerEvent<UINode>(PointerEventType.ENTER) { _, e -> hovered = true;  e.consume() }
-            .onPointerEvent<UINode>(PointerEventType.EXIT)  { _, e -> hovered = false; e.consume() }
-            .onPointerEvent<UINode>(PointerEventType.PRESS) { _, e -> onCheckedChange(!checked); e.consume() }
-            .then(modifier),
-    ) {
-        content(hovered)
-    }
+    val toggleableModifier = Modifier.toggleable(
+        value = checked,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        onValueChange = onCheckedChange,
+    )
+
+    content(toggleableModifier, isHovered, isFocused)
 }
