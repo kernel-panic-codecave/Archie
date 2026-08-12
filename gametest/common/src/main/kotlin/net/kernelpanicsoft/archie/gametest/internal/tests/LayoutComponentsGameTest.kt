@@ -64,10 +64,19 @@ class LayoutComponentsGameTest {
 
                     node("Row") { click() }
                     waitForComposeIdle()
+                    waitTicks(10) // let the expand animation (220ms) finish settling
 
                     assertTrue(toggled.get()) { "Expected onToggled to fire on header click" }
                     assertHasDescendant("CollapsibleContent")
                     assertAllDescendantsSized()
+
+                    // Regression check: the separator Spacer's fillMaxHeight() previously filled
+                    // CollapsibleContent's own deliberately-unbounded measure constraint instead
+                    // of matching its sibling content, ballooning this to ~Int.MAX_VALUE.
+                    val contentHeight = node("CollapsibleContent") { context.computeOnClient { node.height } }
+                    assertTrue(contentHeight in 1..30) {
+                        "Expected CollapsibleContent's height to roughly match a single line of text, got $contentHeight"
+                    }
 
                     node("Row") { click() }
                     waitForComposeIdle()
