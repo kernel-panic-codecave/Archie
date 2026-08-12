@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/checkbox",
+      "texture_size": {
+        "width": 16,
+        "height": 13
+      },
+      "width": 16,
+      "height": 13
+    },
+    "focused": {
+      "texture": "archie:bedrock/checkbox_focused"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/checkbox_clicked"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:bedrock/checkbox_clicked_and_focused"
+    },
+    "disabled": {
+      "texture": "archie:bedrock/checkbox_disabled"
+    }
+  }
+}

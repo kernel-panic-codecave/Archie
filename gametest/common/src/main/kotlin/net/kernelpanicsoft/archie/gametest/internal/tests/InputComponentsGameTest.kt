@@ -219,6 +219,25 @@ class InputComponentsGameTest {
     }
 
     @ClientGameTest
+    fun ClientGameTestContext.testBedrockThemeResolvesOriginalTextures() {
+        // Regression check for the generated archie_themes/bedrock/*.json + bedrock/dark/*.json
+        // assets (an original theme, not copied from any third-party pack - see commit history):
+        // the light variant's button should resolve to the bedrock texture set, and the dark
+        // variant's surface (the one component whose art actually differs between light/dark,
+        // matching the reference pack this was styled after) should resolve to its own
+        // recolored texture rather than silently falling back to the light one.
+        val (buttonTexture, darkSurfaceTexture) = computeOnClient {
+            val bedrock = ThemeData(ThemeVariants.DEFAULT, "bedrock", KColor.DARK_GRAY, KColor.WHITE)
+            val bedrockDark = ThemeData(ThemeVariants.DARK, "bedrock", KColor.DARK_GRAY, KColor.WHITE)
+            val button = bedrock.getComposableTheme("button").states[TextureStates.DEFAULT]!!.texture.toString()
+            val darkSurface = bedrockDark.getComposableTheme("surface").states[TextureStates.DEFAULT]!!.texture.toString()
+            button to darkSurface
+        }
+        assertEquals("archie:bedrock/button", buttonTexture)
+        assertEquals("archie:bedrock/surface_dark", darkSurfaceTexture)
+    }
+
+    @ClientGameTest
     fun ClientGameTestContext.testTextFieldTypeAndBackspace() {
         val typed = AtomicReference("")
         setScreen { InputComponentsProbeScreen(onTextChanged = { typed.set(it) }) }

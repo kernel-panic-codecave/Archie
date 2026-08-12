@@ -1,0 +1,26 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/surface",
+      "texture_size": {
+        "width": 16,
+        "height": 16
+      },
+      "width": 16,
+      "height": 16
+    }
+  },
+  "variants": {
+    "inset": {
+      "default": {
+        "texture": "archie:bedrock/surface_inset",
+        "texture_size": {
+          "width": 18,
+          "height": 18
+        },
+        "width": 16,
+        "height": 16
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/slider",
+      "texture_size": {
+        "width": 3,
+        "height": 3
+      },
+      "width": 200,
+      "height": 20
+    },
+    "focused": {
+      "texture": "archie:bedrock/slider_highlighted"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/slider_highlighted"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/radio",
+      "texture_size": {
+        "width": 10,
+        "height": 10
+      },
+      "width": 10,
+      "height": 10
+    },
+    "focused": {
+      "texture": "archie:bedrock/radio_focused"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/radio_clicked"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:bedrock/radio_clicked_and_focused"
+    },
+    "disabled": {
+      "texture": "archie:bedrock/radio_disabled"
+    }
+  }
+}

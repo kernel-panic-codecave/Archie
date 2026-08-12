@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/switch_track",
+      "texture_size": {
+        "width": 38,
+        "height": 20
+      },
+      "width": 38,
+      "height": 20
+    },
+    "focused": {
+      "texture": "archie:bedrock/switch_track_focused"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/switch_track_clicked"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:bedrock/switch_track_clicked_and_focused"
+    },
+    "disabled": {
+      "texture": "archie:bedrock/switch_track_disabled"
+    }
+  }
+}
