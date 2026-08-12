@@ -83,7 +83,6 @@ fun ModalScope.AlertDialog(
                     onConfirm()
                     dismiss()
                 },
-                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
             ) {
                 Text(confirmText, dropShadow = false)
             }
@@ -136,7 +135,6 @@ fun ModalScope.PromptDialog(
                     onCancel()
                     dismiss()
                 },
-                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
             ) {
                 Text(cancelText, dropShadow = false)
             }
@@ -146,7 +144,6 @@ fun ModalScope.PromptDialog(
                     onConfirm(value)
                     dismiss()
                 },
-                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
             ) {
                 Text(confirmText, dropShadow = false)
             }
@@ -186,7 +183,7 @@ fun <T> ModalScope.ChoiceDialog(
                     choices.forEach { choice ->
                         Button(
                             enabled = choice.enabled,
-                            modifier = Modifier.sizeIn(minWidth = 150, maxWidth = 150, minHeight = 20),
+                            modifier = Modifier.width(150),
                             onClick = {
                                 onSelected(choice.value)
                                 dismiss()
@@ -204,7 +201,6 @@ fun <T> ModalScope.ChoiceDialog(
                     onCancel()
                     dismiss()
                 },
-                modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20),
             ) {
                 Text(cancelText, dropShadow = false)
             }

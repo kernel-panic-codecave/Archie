@@ -1,7 +1,6 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.*
-import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
 import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
@@ -12,11 +11,10 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.toggleable
-import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
@@ -47,14 +45,7 @@ fun Checkbox(
 ) {
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
-    val sizeModifier = if (!composableTheme.isNineslice) {
-        with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-            Modifier.sizeIn(
-                minWidth = width,
-                minHeight = height
-            )
-        }
-    } else Modifier
+    val sizeModifier = composableTheme.intrinsicSizeModifier()
 
     CheckboxCore(
         checked = checked,

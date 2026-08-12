@@ -22,7 +22,6 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.margin
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
-import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.minecraft.network.chat.Component
 import kotlinx.coroutines.delay
@@ -95,12 +94,10 @@ fun ModalScope.ConfirmDialog(
 				Button(
 					onClick = { closeWithAnimation(onConfirm) },
 					enabled = !closing,
-					modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20)
 				) { Text(confirmText) }
 				Button(
 					onClick = { closeWithAnimation(onCancel) },
 					enabled = !closing,
-					modifier = Modifier.sizeIn(minWidth = 50, minHeight = 20)
 				) { Text(cancelText) }
 			}
 		}

@@ -15,5 +15,9 @@
     "disabled": {
       "texture": "archie:java/button_disabled"
     }
+  },
+  "min_size": {
+    "width": 50,
+    "height": 20
   }
 }

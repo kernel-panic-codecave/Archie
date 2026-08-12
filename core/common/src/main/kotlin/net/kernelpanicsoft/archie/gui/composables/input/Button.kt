@@ -12,12 +12,11 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
-import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
@@ -86,11 +85,7 @@ fun Button(
                     drawThemeState(state, x, y, node.width, node.height)
                 }
             },
-            modifier = (if (!composableTheme.isNineslice) {
-                with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-                    modifier.sizeIn(minWidth = width, minHeight = height)
-                }
-            } else modifier).offset(x = 0, y = pressOffset)
+            modifier = modifier.then(composableTheme.intrinsicSizeModifier()).offset(x = 0, y = pressOffset)
         )
     }
 }

@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.basic.Texture
-import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
 import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
@@ -30,8 +29,8 @@ import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.network.chat.Component
@@ -366,10 +365,7 @@ fun Tab(
         .zIndex(if (selected && elevateSelected) 1f else 0f)
         .offset(x = 0, y = if (selected && !elevateSelected) -SELECTED_ELEVATION_PX else 0)
         .padding(horizontal = 10, vertical = 6)
-    val sizeModifier = if (!composableTheme.isNineslice) {
-        val defaultState = composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState
-        Modifier.sizeIn(minWidth = defaultState.width, minHeight = defaultState.height)
-    } else Modifier
+    val sizeModifier = composableTheme.intrinsicSizeModifier()
 
     Layout(
         name = "Tab",

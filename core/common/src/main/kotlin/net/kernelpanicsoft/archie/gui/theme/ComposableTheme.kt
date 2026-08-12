@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Size
+import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.resourcepacks.SerializationReloadListener
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
@@ -58,6 +60,7 @@ data class StatefulTheme(val states: Map<String, ThemeState>)
 data class RawComposableTheme(
     val states: Map<String, RawThemeState> = emptyMap(),
     val variants: Map<String, Map<String, RawThemeState>> = emptyMap(),
+    @SerialName("min_size") val minSize: Size? = null,
 )
 
 /** Raw JSON shape of a single theme state; fields left `null` inherit from the state's `"default"` entry. */
@@ -96,16 +99,22 @@ private data class GuiScalingMetadata(
  * Contains base [states] and optional named [variants] (e.g. `"dark"`).
  *
  * @property isNineslice Whether [states]' default texture is nine-slice scaled, per its
- *   `.mcmeta` sprite metadata. When `false`, composables using this theme get a minimum
- *   size matching the sprite's own pixel dimensions instead of stretching arbitrarily.
+ *   `.mcmeta` sprite metadata. When `false` and [minSize] isn't set, composables using this
+ *   theme get a minimum size matching the sprite's own pixel dimensions instead of stretching
+ *   arbitrarily.
  * @property states      Base state map (always contains at least `"default"`).
  * @property variants    Named variant overrides (e.g. `"dark"` → its own state map).
+ * @property minSize     Explicit intrinsic minimum size composables using this theme should
+ *   enforce, regardless of [isNineslice] - e.g. a nine-slice button texture still wants a
+ *   sensible minimum clickable area even though its sprite can stretch to any size. Takes
+ *   priority over the sprite-size fallback described under [isNineslice] when set.
  */
 @Serializable
 data class ComposableTheme(
     val isNineslice: Boolean = false,
     val states: Map<String, ThemeState>,
     val variants: Map<String, StatefulTheme> = emptyMap(),
+    val minSize: Size? = null,
 ) {
     companion object {
         /**
@@ -136,6 +145,20 @@ data class ComposableTheme(
         (variantName?.let { variants[it] }?.states?.get(stateName) ?: states[stateName]) != null
 }
 
+/**
+ * The [Modifier.sizeIn] floor a composable using this theme should apply to its own layout
+ * node: [ComposableTheme.minSize] when the theme declares one, otherwise the `"default"`
+ * state's own sprite dimensions for a non-nine-slice texture (which can't stretch without
+ * distorting), otherwise no floor at all - a nine-slice texture with no explicit [ComposableTheme.minSize]
+ * is free to shrink or stretch to fit its content.
+ */
+fun ComposableTheme.intrinsicSizeModifier(): Modifier {
+    minSize?.let { return Modifier.sizeIn(minWidth = it.width, minHeight = it.height) }
+    if (isNineslice) return Modifier
+    val default = states[TextureStates.DEFAULT] as SimpleThemeState
+    return Modifier.sizeIn(minWidth = default.width, minHeight = default.height)
+}
+
 /* ─────────────────────── Reload listener ─────────────────────── */
 
 /**
@@ -156,7 +179,8 @@ data class ComposableTheme(
  *       "height": 20
  *     },
  *     "focused": { "texture": "archie:java/button_highlighted" }
- *   }
+ *   },
+ *   "min_size": { "width": 50, "height": 20 }
  * }
  * ```
  */
@@ -211,10 +235,10 @@ class ThemeResourceListener :
                 }
 
                 val isNineslice = resourceManager.isNineSliceTexture(defaultState.texture)
-                COMPOSABLES[location] = ComposableTheme(isNineslice, states, variants)
+                COMPOSABLES[location] = ComposableTheme(isNineslice, states, variants, root.minSize)
                 Archie.LOGGER.info(
-                    "Theme \"{}\" loaded ({} states, {} variants, nineslice={})",
-                    location, states.size, variants.size, isNineslice,
+                    "Theme \"{}\" loaded ({} states, {} variants, nineslice={}, minSize={})",
+                    location, states.size, variants.size, isNineslice, root.minSize,
                 )
             } catch (e: Exception) {
                 Archie.LOGGER.warn("Error processing theme at {}: {}", location, e.message, e)

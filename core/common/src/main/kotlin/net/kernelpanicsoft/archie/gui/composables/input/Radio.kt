@@ -18,11 +18,10 @@ import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Row
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.selectable
-import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
@@ -88,11 +87,7 @@ fun RadioButton(
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.Center) }
-    val sizeModifier = if (!composableTheme.isNineslice) {
-        with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-            Modifier.sizeIn(minWidth = width, minHeight = height)
-        }
-    } else Modifier
+    val sizeModifier = composableTheme.intrinsicSizeModifier()
 
     RadioButtonCore(
         selected = selected,
