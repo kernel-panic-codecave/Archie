@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/small_checkbox",
+      "texture": "archie:bedrock/small_checkbox_dark",
       "texture_size": {
         "width": 13,
         "height": 13
@@ -10,7 +10,7 @@
       "height": 13
     },
     "clicked": {
-      "texture": "archie:bedrock/small_checkbox_clicked"
+      "texture": "archie:bedrock/small_checkbox_clicked_dark"
     }
   }
 }

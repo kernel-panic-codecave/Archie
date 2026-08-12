@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/progress_bar",
+      "texture": "archie:bedrock/progress_bar_dark",
       "texture_size": {
         "width": 3,
         "height": 3

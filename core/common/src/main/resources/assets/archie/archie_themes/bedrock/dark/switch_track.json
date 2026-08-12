@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/switch_track",
+      "texture": "archie:bedrock/switch_track_dark",
       "texture_size": {
         "width": 17,
         "height": 12
@@ -10,10 +10,10 @@
       "height": 12
     },
     "focused": {
-      "texture": "archie:bedrock/switch_track_focused"
+      "texture": "archie:bedrock/switch_track_focused_dark"
     },
     "clicked": {
-      "texture": "archie:bedrock/switch_track_clicked",
+      "texture": "archie:bedrock/switch_track_clicked_dark",
       "texture_size": {
         "width": 16,
         "height": 12
@@ -22,7 +22,7 @@
       "height": 12
     },
     "clicked_and_focused": {
-      "texture": "archie:bedrock/switch_track_clicked_and_focused",
+      "texture": "archie:bedrock/switch_track_clicked_and_focused_dark",
       "texture_size": {
         "width": 16,
         "height": 12
@@ -31,7 +31,7 @@
       "height": 12
     },
     "disabled": {
-      "texture": "archie:bedrock/switch_track_disabled"
+      "texture": "archie:bedrock/switch_track_disabled_dark"
     }
   }
 }

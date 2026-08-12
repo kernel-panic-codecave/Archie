@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/energy_bar",
+      "texture": "archie:bedrock/energy_bar_dark",
       "texture_size": {
         "width": 3,
         "height": 3

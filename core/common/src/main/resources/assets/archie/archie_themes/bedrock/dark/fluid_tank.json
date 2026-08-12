@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/fluid_tank",
+      "texture": "archie:bedrock/fluid_tank_dark",
       "texture_size": {
         "width": 3,
         "height": 3

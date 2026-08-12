@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/switch_thumb",
+      "texture": "archie:bedrock/switch_thumb_dark",
       "texture_size": {
         "width": 10,
         "height": 12
@@ -10,7 +10,7 @@
       "height": 12
     },
     "disabled": {
-      "texture": "archie:bedrock/switch_thumb_disabled"
+      "texture": "archie:bedrock/switch_thumb_disabled_dark"
     }
   }
 }

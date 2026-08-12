@@ -1,7 +1,7 @@
 {
   "states": {
     "default": {
-      "texture": "archie:bedrock/radio",
+      "texture": "archie:bedrock/radio_dark",
       "texture_size": {
         "width": 10,
         "height": 10
@@ -10,16 +10,16 @@
       "height": 10
     },
     "focused": {
-      "texture": "archie:bedrock/radio_focused"
+      "texture": "archie:bedrock/radio_focused_dark"
     },
     "clicked": {
-      "texture": "archie:bedrock/radio_clicked"
+      "texture": "archie:bedrock/radio_clicked_dark"
     },
     "clicked_and_focused": {
-      "texture": "archie:bedrock/radio_clicked_and_focused"
+      "texture": "archie:bedrock/radio_clicked_and_focused_dark"
     },
     "disabled": {
-      "texture": "archie:bedrock/radio_disabled"
+      "texture": "archie:bedrock/radio_disabled_dark"
     }
   }
 }
