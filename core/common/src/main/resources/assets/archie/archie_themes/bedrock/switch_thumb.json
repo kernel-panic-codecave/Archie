@@ -3,11 +3,11 @@
     "default": {
       "texture": "archie:bedrock/switch_thumb",
       "texture_size": {
-        "width": 14,
-        "height": 14
+        "width": 10,
+        "height": 12
       },
-      "width": 14,
-      "height": 14
+      "width": 10,
+      "height": 12
     },
     "disabled": {
       "texture": "archie:bedrock/switch_thumb_disabled"

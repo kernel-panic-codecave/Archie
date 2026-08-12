@@ -3,11 +3,11 @@
     "default": {
       "texture": "archie:bedrock/checkbox",
       "texture_size": {
-        "width": 16,
-        "height": 13
+        "width": 10,
+        "height": 10
       },
-      "width": 16,
-      "height": 13
+      "width": 10,
+      "height": 10
     },
     "focused": {
       "texture": "archie:bedrock/checkbox_focused"
