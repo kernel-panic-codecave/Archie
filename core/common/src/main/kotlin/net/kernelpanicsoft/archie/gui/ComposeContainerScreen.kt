@@ -147,14 +147,13 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
      */
     protected fun start(content: @Composable () -> Unit) {
         recomposer = Recomposer(coroutineContext)
-        layerManager = LayerStackManager(recomposer, this)
-
-        AUIScopeManager.scopes += composeScope
-        launch { recomposer.runRecomposeAndApplyChanges() }
-
-        layerManager.push { _ ->
+        layerManager = LayerStackManager(recomposer) { layerContent ->
+            // Applied to every layer this screen ever pushes (base, modal, dropdown, tooltip
+            // alike) - see LayerStackManager's screenLocals doc for why a plain
+            // CompositionLocalProvider wrapping only this start() call wouldn't reach them.
             CompositionLocalProvider(
                 LocalContainerScreen provides this,
+                LocalVanillaScreen provides this,
                 LocalContainerMenu provides menu,
                 LocalSlotData provides menu.slotData,
                 // Only one of these is non-null for any given menu - LocalBlockEntityState /
@@ -164,10 +163,15 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
                 LocalBlockEntityState provides (menu as? ComposeBlockContainerMenu<*, *>)?.blockEntityState,
                 LocalItemState provides (menu as? ComposeItemContainerMenu<*>)?.itemState,
                 LocalLayerManager provides layerManager,
-            ) {
-                RootContainer {
-                    content()
-                }
+            ) { layerContent() }
+        }
+
+        AUIScopeManager.scopes += composeScope
+        launch { recomposer.runRecomposeAndApplyChanges() }
+
+        layerManager.push { _ ->
+            RootContainer {
+                content()
             }
         }
     }

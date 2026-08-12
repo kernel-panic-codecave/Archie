@@ -34,8 +34,6 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
-import net.kernelpanicsoft.archie.gui.LocalVanillaScreen
-import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import java.util.*
 import kotlinx.coroutines.delay
@@ -89,14 +87,19 @@ data class ModalTransitionSpec(
  *
  * @param parentComposition The [CompositionContext] from the host screen, required
  *   when creating child [Composition]s for each layer.
- * @param vanillaScreen The hosting vanilla [Screen], re-provided as [LocalVanillaScreen] for
- *   every layer this manager pushes. Each layer is its own top-level [Composition] parented
- *   directly to [parentComposition] rather than nested inside the base layer's, so a
- *   `CompositionLocalProvider` scoped to the base layer's own content (e.g. `ComposeScreen.start`)
- *   never reaches a later-pushed modal layer - this has to be re-supplied here instead, the same
- *   way [LocalLayerDepth] already is below.
+ * @param screenLocals Wraps every layer's content in whatever `CompositionLocalProvider`
+ *   the host screen needs visible screen-wide (e.g. `LocalScreen`, `LocalVanillaScreen`,
+ *   [LocalLayerManager]). Each layer is its own top-level [Composition]
+ *   parented directly to [parentComposition] rather than nested inside another layer's, so
+ *   ordinary composition-local scoping - a `CompositionLocalProvider` wrapping only the base
+ *   layer's own content, say - never reaches a later-pushed modal/dropdown/tooltip layer.
+ *   [push] applies this to *every* layer it creates so all such locals stay implicitly shared
+ *   across the whole stack instead of each caller needing to remember which ones to re-supply.
  */
-class LayerStackManager(private val parentComposition: CompositionContext, private val vanillaScreen: Screen) {
+class LayerStackManager(
+    private val parentComposition: CompositionContext,
+    private val screenLocals: @Composable (content: @Composable () -> Unit) -> Unit,
+) {
 
     /** The ordered list of active layers. Layers are rendered bottom-to-top. */
     val layers = mutableStateListOf<Layer>()
@@ -150,8 +153,10 @@ class LayerStackManager(private val parentComposition: CompositionContext, priva
         val layerId = UUID.randomUUID()
         val layerDepth = layers.size
         val layer = Layer(id = layerId, parentComposition = parentComposition, depth = layerDepth) {
-            CompositionLocalProvider(LocalLayerDepth provides layerDepth, LocalVanillaScreen provides vanillaScreen) {
-                layerContent { popById(layerId) }
+            screenLocals {
+                CompositionLocalProvider(LocalLayerDepth provides layerDepth) {
+                    layerContent { popById(layerId) }
+                }
             }
         }
         layers.add(layer)

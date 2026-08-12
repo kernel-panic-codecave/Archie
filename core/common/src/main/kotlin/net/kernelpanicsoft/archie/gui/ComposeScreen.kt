@@ -183,19 +183,23 @@ abstract class ComposeScreen(
      */
     protected fun start(content: @Composable () -> Unit) {
         recomposer = Recomposer(coroutineContext)
-        layerManager = LayerStackManager(recomposer, this)
+        layerManager = LayerStackManager(recomposer) { layerContent ->
+            // Applied to every layer this screen ever pushes (base, modal, dropdown, tooltip
+            // alike) - see LayerStackManager's screenLocals doc for why a plain
+            // CompositionLocalProvider wrapping only this start() call wouldn't reach them.
+            CompositionLocalProvider(
+                LocalScreen provides this,
+                LocalVanillaScreen provides this,
+                LocalLayerManager provides layerManager,
+            ) { layerContent() }
+        }
 
         AUIScopeManager.scopes += composeScope
         launch { recomposer.runRecomposeAndApplyChanges() }
 
         layerManager.push { _ ->
-            CompositionLocalProvider(
-                LocalScreen provides this,
-                LocalLayerManager provides layerManager,
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    content()
-                }
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                content()
             }
         }
     }
