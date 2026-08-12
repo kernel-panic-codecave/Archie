@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -20,7 +21,7 @@ interface InteractionSource {
 
 /** An [InteractionSource] that can also emit new [Interaction]s into itself. */
 interface MutableInteractionSource : InteractionSource {
-    /** Emits [interaction] without suspending, dropping it if the internal buffer is full. */
+    /** Emits [interaction] without suspending. Never fails to enqueue - see [MutableInteractionSourceImpl]. */
     fun tryEmit(interaction: Interaction): Boolean
 }
 
@@ -28,7 +29,16 @@ interface MutableInteractionSource : InteractionSource {
 fun MutableInteractionSource(): MutableInteractionSource = MutableInteractionSourceImpl()
 
 private class MutableInteractionSourceImpl : MutableInteractionSource {
-    private val flow = MutableSharedFlow<Interaction>(extraBufferCapacity = 16)
+    // DROP_OLDEST (not the default SUSPEND, which makes a non-suspending tryEmit() on a full
+    // buffer fail and silently drop the *newest* interaction instead) - a state-defining
+    // interaction like FocusInteraction.Focus/Unfocus has to never go missing, since
+    // collectIsFocusedAsState() only reduces off whatever interactions it actually receives.
+    // A missed Unfocus is exactly "sometimes Tab-focusing doesn't visually update" (a stale
+    // collector - e.g. rapid Tab presses outrunning the Recomposer's own dispatch - could
+    // previously fill the 16-slot buffer and start rejecting new emissions outright). Losing a
+    // stale buffered event this way is harmless since only the latest of each interaction type
+    // ever matters to the reducer; losing the newest one wasn't.
+    private val flow = MutableSharedFlow<Interaction>(extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     override val interactions: Flow<Interaction> = flow
     override fun tryEmit(interaction: Interaction): Boolean = flow.tryEmit(interaction)
 }
