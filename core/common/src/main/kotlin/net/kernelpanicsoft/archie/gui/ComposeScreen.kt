@@ -30,6 +30,21 @@ val LocalScreen: ProvidableCompositionLocal<ComposeScreen> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
 
 /**
+ * Provides the hosting vanilla [Screen], regardless of whether it's a [ComposeScreen] or a
+ * [ComposeContainerScreen] - unlike [LocalScreen]/`LocalContainerScreen`, which are mutually
+ * exclusive depending on the screen type, this is provided by both.
+ *
+ * `Screen.setFocused`/`getFocused`/`clearFocus` are all public vanilla API (unlike
+ * `setInitialFocus`/`changeFocus`, which are `protected`), so composables that need to register
+ * or release vanilla keyboard/controller focus explicitly - e.g. a pointer-driven text field
+ * syncing its local focus state back to vanilla, so Tab navigation and a modal opening over it
+ * both stay consistent with what's actually focused - can reach them through this without
+ * needing a reference to the concrete screen subclass.
+ */
+val LocalVanillaScreen: ProvidableCompositionLocal<Screen> =
+    compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
+
+/**
  * Implemented by Compose-driven screens that recompose asynchronously, so test harnesses can
  * poll for a settled frame (no pending or in-flight recomposition) before asserting on rendered
  * output - e.g. before taking a screenshot right after simulating a click.
@@ -168,7 +183,7 @@ abstract class ComposeScreen(
      */
     protected fun start(content: @Composable () -> Unit) {
         recomposer = Recomposer(coroutineContext)
-        layerManager = LayerStackManager(recomposer)
+        layerManager = LayerStackManager(recomposer, this)
 
         AUIScopeManager.scopes += composeScope
         launch { recomposer.runRecomposeAndApplyChanges() }

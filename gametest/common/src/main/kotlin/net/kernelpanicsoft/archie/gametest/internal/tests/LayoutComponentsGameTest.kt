@@ -14,6 +14,7 @@ import net.kernelpanicsoft.archie.gui.composables.containers.Panel
 import net.kernelpanicsoft.archie.gui.composables.containers.Scrollable
 import net.kernelpanicsoft.archie.gui.composables.containers.ScrollableState
 import net.kernelpanicsoft.archie.gui.composables.containers.TabPanel
+import net.kernelpanicsoft.archie.gui.composables.input.Button
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.Column
@@ -25,6 +26,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.theme.Theme
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import org.lwjgl.glfw.GLFW
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -132,6 +134,29 @@ class LayoutComponentsGameTest {
     }
 
     @ClientGameTest
+    fun ClientGameTestContext.testFocusScrollsIntoView() {
+        val scrollState = ScrollableState()
+        setScreen { FocusScrollProbeScreen(scrollState) }
+        waitForScreen<FocusScrollProbeScreen> {
+            waitForLayer(0) {
+                node("Scrollable") {
+                    assertEquals(0.0, computeOnClient { scrollState.scrollOffset })
+
+                    // The 80px-tall viewport only shows the first few of 20 buttons - Tab far
+                    // enough to reach one scrolled out of view below the fold.
+                    repeat(15) { getInput().pressKey(GLFW.GLFW_KEY_TAB) }
+                    waitForComposeIdle()
+
+                    val offsetAfter = computeOnClient { scrollState.scrollOffset }
+                    assertTrue(offsetAfter > 0.0) {
+                        "Expected Tab-focusing a button scrolled out of view to scroll it into view, got offset=$offsetAfter"
+                    }
+                }
+            }
+        }
+    }
+
+    @ClientGameTest
     fun ClientGameTestContext.testTabPanelSwitchesActiveTabOnClick() {
         setScreen { TabPanelProbeScreen() }
         waitForScreen<TabPanelProbeScreen> {
@@ -208,6 +233,25 @@ private class ScrollableProbeScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(2)) {
                         repeat(60) { index ->
                             Text(Component.literal("Row ${index + 1}"), dropShadow = false)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private class FocusScrollProbeScreen(
+    private val scrollState: ScrollableState,
+) : ComposeScreen(Component.literal("Focus Scroll Probe")) {
+    override fun init() {
+        super.init()
+        start {
+            Theme {
+                Scrollable(state = scrollState, modifier = Modifier.height(80).width(120)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2)) {
+                        repeat(20) { index ->
+                            Button(onClick = {}) { Text(Component.literal("Button $index"), dropShadow = false) }
                         }
                     }
                 }

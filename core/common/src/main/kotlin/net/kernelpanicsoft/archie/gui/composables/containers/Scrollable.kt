@@ -3,6 +3,8 @@ package net.kernelpanicsoft.archie.gui.composables.containers
 import androidx.compose.runtime.*
 import net.kernelpanicsoft.archie.gui.LocalSlotClipBounds
 import net.kernelpanicsoft.archie.gui.SlotClipSource
+import net.kernelpanicsoft.archie.gui.focus.BringIntoViewParent
+import net.kernelpanicsoft.archie.gui.focus.LocalBringIntoViewParent
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
@@ -112,6 +114,34 @@ fun Scrollable(
 ) {
     val clipSource = remember { SlotClipSource() }
 
+    // Lets a focused descendant (see focusable()'s vanilla-focus bridge) scroll itself into
+    // view - reuses clipSource's already-tracked absolute viewport bounds rather than tracking
+    // origin/size separately.
+    val bringIntoViewParent = remember(direction, state) {
+        BringIntoViewParent { target ->
+            val bounds = clipSource.bounds ?: return@BringIntoViewParent
+            val containerStart: Int
+            val containerSize: Int
+            val targetStart: Int
+            val targetSize: Int
+            if (direction == ScrollDirection.VERTICAL) {
+                containerStart = bounds.minY; containerSize = bounds.height
+                targetStart = target.absoluteCoords.y; targetSize = target.height
+            } else {
+                containerStart = bounds.minX; containerSize = bounds.width
+                targetStart = target.absoluteCoords.x; targetSize = target.width
+            }
+            val relativeStart = targetStart - containerStart
+            val relativeEnd = relativeStart + targetSize
+            val delta = when {
+                relativeStart < 0 -> relativeStart
+                relativeEnd > containerSize -> relativeEnd - containerSize
+                else -> 0
+            }
+            if (delta != 0) state.scrollBy(delta.toDouble())
+        }
+    }
+
     val measurePolicy = remember(direction) {
         object : MeasurePolicy {
             override fun measure(
@@ -154,7 +184,7 @@ fun Scrollable(
         }
     }
 
-    CompositionLocalProvider(LocalSlotClipBounds provides clipSource) {
+    CompositionLocalProvider(LocalSlotClipBounds provides clipSource, LocalBringIntoViewParent provides bringIntoViewParent) {
         Layout(
             name = "Scrollable",
             measurePolicy = measurePolicy,

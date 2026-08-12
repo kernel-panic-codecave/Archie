@@ -34,6 +34,8 @@ import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.gui.LocalVanillaScreen
+import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import java.util.*
 import kotlinx.coroutines.delay
@@ -87,8 +89,14 @@ data class ModalTransitionSpec(
  *
  * @param parentComposition The [CompositionContext] from the host screen, required
  *   when creating child [Composition]s for each layer.
+ * @param vanillaScreen The hosting vanilla [Screen], re-provided as [LocalVanillaScreen] for
+ *   every layer this manager pushes. Each layer is its own top-level [Composition] parented
+ *   directly to [parentComposition] rather than nested inside the base layer's, so a
+ *   `CompositionLocalProvider` scoped to the base layer's own content (e.g. `ComposeScreen.start`)
+ *   never reaches a later-pushed modal layer - this has to be re-supplied here instead, the same
+ *   way [LocalLayerDepth] already is below.
  */
-class LayerStackManager(private val parentComposition: CompositionContext) {
+class LayerStackManager(private val parentComposition: CompositionContext, private val vanillaScreen: Screen) {
 
     /** The ordered list of active layers. Layers are rendered bottom-to-top. */
     val layers = mutableStateListOf<Layer>()
@@ -142,7 +150,7 @@ class LayerStackManager(private val parentComposition: CompositionContext) {
         val layerId = UUID.randomUUID()
         val layerDepth = layers.size
         val layer = Layer(id = layerId, parentComposition = parentComposition, depth = layerDepth) {
-            CompositionLocalProvider(LocalLayerDepth provides layerDepth) {
+            CompositionLocalProvider(LocalLayerDepth provides layerDepth, LocalVanillaScreen provides vanillaScreen) {
                 layerContent { popById(layerId) }
             }
         }

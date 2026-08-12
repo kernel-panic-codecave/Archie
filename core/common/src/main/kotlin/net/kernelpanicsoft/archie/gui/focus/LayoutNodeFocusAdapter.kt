@@ -42,7 +42,12 @@ class LayoutNodeFocusAdapter(val node: LayoutNode) : GuiEventListener {
     override fun isFocused(): Boolean = focusable?.focused?.value == true
 
     override fun setFocused(focused: Boolean) {
-        focusable?.setFocused(focused)
+        val f = focusable ?: return
+        f.setFocused(focused)
+        // A redundant call while already focused (e.g. ComponentPath.Path.applyFocus calling
+        // this twice for one logical focus change) is harmless here - bringing an
+        // already-visible node into view again is a no-op.
+        if (focused) f.bringIntoViewParent?.bringIntoView(node)
     }
 
     // The GuiEventListener default always returns null - AbstractWidget overrides it the same

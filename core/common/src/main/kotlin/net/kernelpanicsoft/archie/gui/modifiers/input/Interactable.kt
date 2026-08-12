@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import net.kernelpanicsoft.archie.gui.focus.BringIntoViewParent
+import net.kernelpanicsoft.archie.gui.focus.LocalBringIntoViewParent
 import net.kernelpanicsoft.archie.gui.interaction.DragInteraction
 import net.kernelpanicsoft.archie.gui.interaction.FocusInteraction
 import net.kernelpanicsoft.archie.gui.interaction.HoverInteraction
@@ -29,14 +31,18 @@ internal val ACTIVATION_KEYS: IntArray = intArrayOf(GLFW.GLFW_KEY_ENTER, GLFW.GL
  * Controlify's controller-driven `ScreenProcessor` - can reach it exactly like an ordinary
  * `AbstractWidget`.
  *
- * @property focused           Backing focus state: vanilla writes to it via `setFocused`.
- * @property interactionSource When set, [FocusInteraction.Focus]/[FocusInteraction.Unfocus] is
+ * @property focused            Backing focus state: vanilla writes to it via `setFocused`.
+ * @property interactionSource  When set, [FocusInteraction.Focus]/[FocusInteraction.Unfocus] is
  *   emitted alongside every [focused] write, so callers can observe focus the same way as
  *   press/hover/drag (see [collectIsFocusedAsState][net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState]).
+ * @property bringIntoViewParent The nearest ancestor `Scrollable`'s [BringIntoViewParent], if
+ *   any - called on focus gain so Tab-navigating to a scrolled-out-of-view node brings it back
+ *   into the viewport.
  */
 internal data class FocusableModifier(
     val focused: MutableState<Boolean>,
     val interactionSource: MutableInteractionSource? = null,
+    val bringIntoViewParent: BringIntoViewParent? = null,
 ) : Modifier.Element<FocusableModifier> {
     override fun mergeWith(other: FocusableModifier): FocusableModifier = other
     override fun toString(): String = "FocusableModifier(focused=${focused.value})"
@@ -70,8 +76,9 @@ internal data class FocusableModifier(
 @Composable
 fun Modifier.focusable(enabled: Boolean = true, interactionSource: MutableInteractionSource? = null): Modifier {
     val focused = remember { mutableStateOf(false) }
+    val bringIntoViewParent = LocalBringIntoViewParent.current
     return if (enabled) {
-        this then FocusableModifier(focused, interactionSource)
+        this then FocusableModifier(focused, interactionSource, bringIntoViewParent)
     } else {
         focused.value = false
         this

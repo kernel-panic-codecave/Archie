@@ -147,7 +147,7 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
      */
     protected fun start(content: @Composable () -> Unit) {
         recomposer = Recomposer(coroutineContext)
-        layerManager = LayerStackManager(recomposer)
+        layerManager = LayerStackManager(recomposer, this)
 
         AUIScopeManager.scopes += composeScope
         launch { recomposer.runRecomposeAndApplyChanges() }
