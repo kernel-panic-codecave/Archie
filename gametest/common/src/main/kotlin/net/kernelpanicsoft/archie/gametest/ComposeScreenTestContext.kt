@@ -31,7 +31,7 @@ class TestNodeScope(
 ) {
     /**
      * Waits for compose to settle before reading [node]'s on-screen bounds - without this, a
-     * node's very first interaction (right after [ComposeScreenTestContext.waitForScreen]/
+     * node's very first interaction (right after [waitForScreen]/
      * [ComposeScreenTestContext.node] finds it) can read a transient pre-layout-settle position
      * (e.g. before a wrapping Scrollable's initial measure has stabilized), computing a click/
      * hover target that no longer matches the node's real bounds one frame later - silently
@@ -51,7 +51,7 @@ class TestNodeScope(
         context.getInput().click(x, y, button)
     }
 
-    /** Moves the cursor to the center of this node's on-screen bounds, without clicking - e.g. to assert a [TextureStates.FOCUSED] visual state. */
+    /** Moves the cursor to the center of this node's on-screen bounds, without clicking - e.g. to assert a [net.kernelpanicsoft.archie.gui.composables.theme.TextureStates.FOCUSED] visual state. */
     fun hover() {
         val (x, y) = centerCoords()
         context.getInput().setCursor(x, y)
@@ -79,7 +79,7 @@ class TestNodeScope(
     }
 
     /**
-     * The [TextureStates] key this node's [net.kernelpanicsoft.archie.gui.layout.Renderer] most
+     * The [net.kernelpanicsoft.archie.gui.composables.theme.TextureStates] key this node's [net.kernelpanicsoft.archie.gui.layout.Renderer] most
      * recently selected to draw (e.g. `"hovered"`), or `null` if this node doesn't render a
      * theme-state-driven visual. See [net.kernelpanicsoft.archie.gui.nodes.UINode.renderState].
      */

@@ -59,7 +59,7 @@ data class SimpleThemeState(
 data class StatefulTheme(val states: Map<String, ThemeState>)
 
 /**
- * Inner spacing a composable using a theme should reserve around its own [content], so e.g. a
+ * Inner spacing a composable using a theme should reserve around its own content, so e.g. a
  * button's label never renders flush against the button's edges once it grows past
  * [ComposableTheme.minSize] to fit a longer label.
  *

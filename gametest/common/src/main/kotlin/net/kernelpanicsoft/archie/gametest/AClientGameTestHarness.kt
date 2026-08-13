@@ -199,7 +199,7 @@ interface TestInput {
 /**
  * Builds a test world from [ClientGameTestContext.worldBuilder]: either a singleplayer world via
  * [create]/[withSingleplayer], or a same-JVM dedicated server via [createServer]/[withServer] for
- * tests that need a real client↔server boundary (e.g. exercising [ConfigSpec.Server] sync or
+ * tests that need a real client↔server boundary (e.g. exercising [net.kernelpanicsoft.archie.config.ConfigSpec.Server] sync or
  * other multiplayer-only codepaths) rather than the integrated server a singleplayer world uses.
  */
 @Suppress("unused")
@@ -1493,13 +1493,13 @@ data class AClientGameTestSummary(
     val failedDetails: List<AClientGameTestFailure> = emptyList(),
 )
 
-/**
- * Runs every [ClientGameTest]-annotated method across [modToClasses] (as collected by
- * [AGameTestPlatform.register] via [AGameTestEventObject]/`AGametestEvents.ArchieGameTestBuilder`'s
- * `client { }` block) sequentially on the client thread, then returns to the title screen.
- * No-ops (returning an all-zero summary) unless [side] is [AGameTestSide.CLIENT].
- */
 object AClientGameTestHarness {
+    /**
+     * Runs every [ClientGameTest]-annotated method across [modToClasses] (as collected by
+     * [AGameTestPlatform.register] via [AGameTestEventObject]/`AGametestEvents.ArchieGameTestBuilder`'s
+     * `client { }` block) sequentially on the client thread, then returns to the title screen.
+     * No-ops (returning an all-zero summary) unless [side] is [AGameTestSide.CLIENT].
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun run(modToClasses: Map<Mod, List<Class<*>>>, side: AGameTestSide?): AClientGameTestSummary {
         if (side != AGameTestSide.CLIENT) return AClientGameTestSummary(passed = 0, failed = 0, skipped = 0)

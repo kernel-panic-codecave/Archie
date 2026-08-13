@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 
 /**
  * Client-side mirror of a [DataSpec], built lazily as [DataSpec.client]. Every `boolean`/
- * `int`/... method here is called by its [DataSpec] counterpart (via [DataSpec.onClient])
+ * `int`/... method here is called by its [DataSpec] counterpart (via [net.kernelpanicsoft.archie.util.onClient])
  * with matching parameters, and queues a [ConfigEntryBuilder]-based entry that reads from and
  * writes back into the same backing maps on [spec]. [buildRoot]/[buildSub] then turn the queued
  * entries into an actual Cloth Config [ConfigCategory]/[SubCategoryListEntry]. None of this is

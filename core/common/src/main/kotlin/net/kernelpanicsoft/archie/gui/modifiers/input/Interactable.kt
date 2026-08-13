@@ -105,7 +105,7 @@ fun Modifier.hoverable(
     }
 
 /**
- * Emits [PressInteraction] and invokes [onPress]/[onRelease] across a press - the
+ * Emits [PressInteraction] and invokes [onPress] across a press - the
  * `net.kernelpanicsoft.archie` equivalent of the press-recognition half of Compose
  * Foundation's `Modifier.clickable`. Observe release via
  * [net.kernelpanicsoft.archie.gui.interaction.collectIsPressedAsState] rather than a callback -
