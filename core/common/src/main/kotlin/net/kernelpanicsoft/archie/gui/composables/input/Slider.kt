@@ -193,6 +193,11 @@ fun Slider(
     val sliderSize = trackTheme.minSize ?: Size(SLIDER_MIN_WIDTH, SLIDER_MIN_HEIGHT)
     val thumbSize = thumbTheme.minSize ?: Size(SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT)
     val sizeModifier = Modifier.sizeIn(minWidth = sliderSize.width, minHeight = sliderSize.height)
+    // Java's fill is a thin accent line (SLIDER_TRACK_HEIGHT) drawn over a much taller track,
+    // but some themes draw the fill as a full-thickness bicolor bar (filled portion one shade,
+    // unfilled another, both the same thickness as the track itself) - "slider_fill"'s own
+    // min_size height overrides how tall the fill renders when a theme wants that look.
+    val fillHeight = fillTheme.minSize?.height ?: SLIDER_TRACK_HEIGHT
     SliderCore(
         value = value,
         onValueChange = onValueChange,
@@ -221,7 +226,7 @@ fun Slider(
 	                mouseY: Int,
 	                partialTick: Float,
                 ) = guiGraphics {
-                    val trackY = y + (node.height - SLIDER_TRACK_HEIGHT) / 2
+                    val trackY = y + (node.height - fillHeight) / 2
                     val trackStart = x + (thumbSize.width / 2)
                     val trackEnd = x + node.width - (thumbSize.width / 2)
                     val availableTrack = (trackEnd - trackStart).coerceAtLeast(1)
@@ -242,7 +247,7 @@ fun Slider(
 
                     drawThemeState(trackState, x, y, node.width, node.height)
                     if (fillEnd > trackStart) {
-                        drawThemeState(fillState, trackStart, trackY, fillEnd - trackStart, SLIDER_TRACK_HEIGHT)
+                        drawThemeState(fillState, trackStart, trackY, fillEnd - trackStart, fillHeight)
                     }
 
                     val drawThumbWidth = (thumbSize.width * thumbScale).roundToInt()
