@@ -1,0 +1,16 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/slider_fill",
+      "texture_size": {
+        "width": 3,
+        "height": 3
+      },
+      "width": 8,
+      "height": 2
+    },
+    "disabled": {
+      "texture": "archie:java/slider_fill_disabled"
+    }
+  }
+}

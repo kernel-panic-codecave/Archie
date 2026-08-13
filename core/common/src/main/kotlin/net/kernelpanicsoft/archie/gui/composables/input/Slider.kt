@@ -156,8 +156,8 @@ fun SliderCore(
 }
 
 /**
- * A standard themed horizontal slider, drawing a "slider" track and "slider_handle" thumb
- * from the current theme, plus a solid-color fill up to the thumb.
+ * A standard themed horizontal slider, drawing a "slider" track, "slider_handle" thumb, and
+ * "slider_fill" progress fill up to the thumb, all from the current theme.
  *
  * @param value                 The current value, normalized/snapped via [snapSliderValue].
  * @param onValueChange         Called with the new normalized value on every drag/click update.
@@ -181,6 +181,7 @@ fun Slider(
     val theme = LocalTheme.current
     val trackTheme = theme.getComposableTheme("slider")
     val thumbTheme = theme.getComposableTheme("slider_handle")
+    val fillTheme = theme.getComposableTheme("slider_fill")
     val sizeModifier = Modifier.sizeIn(minWidth = SLIDER_MIN_WIDTH, minHeight = SLIDER_MIN_HEIGHT)
     SliderCore(
         value = value,
@@ -227,11 +228,12 @@ fun Slider(
                     node.renderState = stateName
                     val trackState = trackTheme.getState(stateName, variant)
                     val thumbState = thumbTheme.getState(stateName, variant)
-
-                    val fillColor = if (enabled) 0xFF6BA8FF.toInt() else 0xFF5A5A5A.toInt()
+                    val fillState = fillTheme.getState(WidgetState.resolve(fillTheme, variant, enabled = enabled), variant)
 
                     drawThemeState(trackState, x, y, node.width, node.height)
-                    fill(trackStart, trackY, fillEnd, trackY + SLIDER_TRACK_HEIGHT, fillColor)
+                    if (fillEnd > trackStart) {
+                        drawThemeState(fillState, trackStart, trackY, fillEnd - trackStart, SLIDER_TRACK_HEIGHT)
+                    }
 
                     val drawThumbWidth = (SLIDER_THUMB_WIDTH * thumbScale).roundToInt()
                     val drawThumbHeight = (SLIDER_THUMB_HEIGHT * thumbScale).roundToInt()

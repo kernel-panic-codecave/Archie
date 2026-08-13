@@ -3,11 +3,11 @@
     "default": {
       "texture": "archie:bedrock/button_dark",
       "texture_size": {
-        "width": 4,
-        "height": 4
+        "width": 9,
+        "height": 9
       },
-      "width": 4,
-      "height": 4
+      "width": 9,
+      "height": 9
     },
     "focused": {
       "texture": "archie:bedrock/button_highlighted_dark"

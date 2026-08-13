@@ -13,22 +13,10 @@
       "texture": "archie:bedrock/switch_track_focused"
     },
     "clicked": {
-      "texture": "archie:bedrock/switch_track_clicked",
-      "texture_size": {
-        "width": 34,
-        "height": 18
-      },
-      "width": 34,
-      "height": 18
+      "texture": "archie:bedrock/switch_track"
     },
     "clicked_and_focused": {
-      "texture": "archie:bedrock/switch_track_clicked_and_focused",
-      "texture_size": {
-        "width": 34,
-        "height": 18
-      },
-      "width": 34,
-      "height": 18
+      "texture": "archie:bedrock/switch_track_focused"
     },
     "disabled": {
       "texture": "archie:bedrock/switch_track_disabled"
