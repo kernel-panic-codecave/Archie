@@ -17,3 +17,10 @@ operator fun ResourceLocation.div(other: String): ResourceLocation = withSuffix(
 operator fun ResourceLocation.div(other: ResourceLocation): ResourceLocation = withSuffix("/${other.path}")
 /** Prepends `this/` to [other]'s path, keeping [other]'s namespace. */
 operator fun String.div(other: ResourceLocation): ResourceLocation = other.withPrefix("$this/")
+
+/** Appends [other] directly to this location's path with no separator, e.g. `loc + "_dark"`. */
+operator fun ResourceLocation.plus(other: String): ResourceLocation = withSuffix(other)
+/** Appends [other]'s path directly to this location's path with no separator (namespace of [other] is ignored). */
+operator fun ResourceLocation.plus(other: ResourceLocation): ResourceLocation = withSuffix(other.path)
+/** Prepends `this` directly to [other]'s path with no separator, keeping [other]'s namespace. */
+operator fun String.plus(other: ResourceLocation): ResourceLocation = other.withPrefix(this)
