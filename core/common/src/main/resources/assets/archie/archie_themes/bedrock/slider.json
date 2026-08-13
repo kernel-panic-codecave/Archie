@@ -6,8 +6,8 @@
         "width": 3,
         "height": 3
       },
-      "width": 200,
-      "height": 20
+      "width": 96,
+      "height": 16
     },
     "focused": {
       "texture": "archie:bedrock/slider_highlighted"
@@ -15,5 +15,9 @@
     "clicked": {
       "texture": "archie:bedrock/slider_highlighted"
     }
+  },
+  "min_size": {
+    "width": 96,
+    "height": 16
   }
 }
