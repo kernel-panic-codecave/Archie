@@ -4,7 +4,12 @@
       "type": "nine_slice",
       "width": 9,
       "height": 9,
-      "border": 2
+      "border": {
+        "left": 1,
+        "top": 1,
+        "right": 1,
+        "bottom": 3
+      }
     }
   }
 }

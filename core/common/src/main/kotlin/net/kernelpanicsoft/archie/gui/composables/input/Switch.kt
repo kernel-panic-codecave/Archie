@@ -15,10 +15,12 @@ import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Alignment
+import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.toggleable
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.gui.theme.ComposableTheme
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
@@ -26,15 +28,18 @@ import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.time.Duration.Companion.milliseconds
 
+/** Fallback track size when the "switch_track" theme doesn't declare its own [ComposableTheme.minSize]. */
 private const val SWITCH_MIN_WIDTH = 34
 private const val SWITCH_MIN_HEIGHT = 18
+/** Fallback gap between the thumb and the track's edge, when "switch_track" doesn't declare its own [ComposableTheme.contentPadding]. */
 private const val SWITCH_PADDING = 2
+/** Fallback (square) thumb size when the "switch_thumb" theme doesn't declare its own [ComposableTheme.minSize]. */
 private const val SWITCH_THUMB_SIZE = 14
 
-/** Clamps a raw thumb x-offset so the thumb stays within the track, respecting [SWITCH_PADDING]. */
-internal fun resolveSwitchThumbOffset(thumbOffset: Int, trackWidth: Int): Int {
-    val minOffset = SWITCH_PADDING
-    val maxOffset = (trackWidth - SWITCH_THUMB_SIZE - SWITCH_PADDING).coerceAtLeast(minOffset)
+/** Clamps a raw thumb x-offset so the [thumbWidth]-wide thumb stays within the track, respecting [padding]. */
+internal fun resolveSwitchThumbOffset(thumbOffset: Int, trackWidth: Int, thumbWidth: Int = SWITCH_THUMB_SIZE, padding: Int = SWITCH_PADDING): Int {
+    val minOffset = padding
+    val maxOffset = (trackWidth - thumbWidth - padding).coerceAtLeast(minOffset)
     return thumbOffset.coerceIn(minOffset, maxOffset)
 }
 
@@ -93,9 +98,19 @@ fun Switch(
     val trackTheme = theme.getComposableTheme(trackTexture)
     val thumbTheme = theme.getComposableTheme(thumbTexture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.CenterStart) }
-    val sizeModifier = Modifier.sizeIn(minWidth = SWITCH_MIN_WIDTH, minHeight = SWITCH_MIN_HEIGHT)
+    // A theme's track/thumb art isn't always native to SWITCH_MIN_WIDTH/HEIGHT and
+    // SWITCH_THUMB_SIZE's proportions (tuned for the default look) - min_size on the
+    // "switch_track"/"switch_thumb" theme entries lets a theme declare its own real dimensions
+    // instead of getting force-stretched into ones it wasn't designed for. Likewise,
+    // content_padding's horizontal component overrides how far the thumb sits from the track's
+    // edge - some art (e.g. a track drawn flush to its own bounds) wants the thumb sitting
+    // right in the corner instead of inset by the default gap.
+    val trackSize = trackTheme.minSize ?: Size(SWITCH_MIN_WIDTH, SWITCH_MIN_HEIGHT)
+    val thumbSize = thumbTheme.minSize ?: Size(SWITCH_THUMB_SIZE, SWITCH_THUMB_SIZE)
+    val padding = trackTheme.contentPadding?.horizontal ?: SWITCH_PADDING
+    val sizeModifier = Modifier.sizeIn(minWidth = trackSize.width, minHeight = trackSize.height)
     val thumbOffset = animateInt(
-        targetValue = if (checked) SWITCH_MIN_WIDTH - SWITCH_THUMB_SIZE - SWITCH_PADDING else SWITCH_PADDING,
+        targetValue = if (checked) trackSize.width - thumbSize.width - padding else padding,
         spec = AnimationSpec(durationMillis = 140.milliseconds, easing = Easings.OutCubic),
     )
 
@@ -132,9 +147,9 @@ fun Switch(
 
                     drawThemeState(trackState, x, y, node.width, node.height)
 
-                    val thumbX = x + resolveSwitchThumbOffset(thumbOffset, node.width)
-                    val thumbY = y + ((node.height - SWITCH_THUMB_SIZE) / 2)
-                    drawThemeState(thumbState, thumbX, thumbY, SWITCH_THUMB_SIZE, SWITCH_THUMB_SIZE)
+                    val thumbX = x + resolveSwitchThumbOffset(thumbOffset, node.width, thumbSize.width, padding)
+                    val thumbY = y + ((node.height - thumbSize.height) / 2)
+                    drawThemeState(thumbState, thumbX, thumbY, thumbSize.width, thumbSize.height)
                 }
             },
         )

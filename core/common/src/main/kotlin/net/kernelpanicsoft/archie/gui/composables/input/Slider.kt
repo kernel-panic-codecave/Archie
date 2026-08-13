@@ -15,6 +15,7 @@ import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
+import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.focusable
@@ -35,8 +36,10 @@ import org.lwjgl.glfw.GLFW
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
+/** Fallback overall size when the "slider" theme doesn't declare its own [ComposableTheme.minSize]. */
 private const val SLIDER_MIN_WIDTH = 96
 private const val SLIDER_MIN_HEIGHT = 20
+/** Fallback thumb size when the "slider_handle" theme doesn't declare its own [ComposableTheme.minSize]. */
 private const val SLIDER_THUMB_WIDTH = 8
 private const val SLIDER_THUMB_HEIGHT = 20
 private const val SLIDER_TRACK_HEIGHT = 2
@@ -182,7 +185,14 @@ fun Slider(
     val trackTheme = theme.getComposableTheme("slider")
     val thumbTheme = theme.getComposableTheme("slider_handle")
     val fillTheme = theme.getComposableTheme("slider_fill")
-    val sizeModifier = Modifier.sizeIn(minWidth = SLIDER_MIN_WIDTH, minHeight = SLIDER_MIN_HEIGHT)
+    // A theme's handle art isn't always native to SLIDER_THUMB_WIDTH/HEIGHT's proportions
+    // (tuned for the default look, a tall thin pill) - min_size on the "slider"/"slider_handle"
+    // theme entries lets a theme declare its own real dimensions instead of getting
+    // force-stretched into ones it wasn't designed for (a compact/roughly-square handle nine-sliced
+    // into a tall thin pill looks visibly distorted).
+    val sliderSize = trackTheme.minSize ?: Size(SLIDER_MIN_WIDTH, SLIDER_MIN_HEIGHT)
+    val thumbSize = thumbTheme.minSize ?: Size(SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT)
+    val sizeModifier = Modifier.sizeIn(minWidth = sliderSize.width, minHeight = sliderSize.height)
     SliderCore(
         value = value,
         onValueChange = onValueChange,
@@ -212,17 +222,17 @@ fun Slider(
 	                partialTick: Float,
                 ) = guiGraphics {
                     val trackY = y + (node.height - SLIDER_TRACK_HEIGHT) / 2
-                    val trackStart = x + (SLIDER_THUMB_WIDTH / 2)
-                    val trackEnd = x + node.width - (SLIDER_THUMB_WIDTH / 2)
+                    val trackStart = x + (thumbSize.width / 2)
+                    val trackEnd = x + node.width - (thumbSize.width / 2)
                     val availableTrack = (trackEnd - trackStart).coerceAtLeast(1)
                     val fillEnd = trackStart + (availableTrack * normalizedValue).roundToInt()
                     val thumbX = resolveSliderThumbX(
-                        rawThumbX = fillEnd - (SLIDER_THUMB_WIDTH / 2),
+                        rawThumbX = fillEnd - (thumbSize.width / 2),
                         sliderX = x,
                         sliderWidth = node.width,
-                        thumbWidth = SLIDER_THUMB_WIDTH,
+                        thumbWidth = thumbSize.width,
                     )
-                    val thumbY = y + (node.height - SLIDER_THUMB_HEIGHT) / 2
+                    val thumbY = y + (node.height - thumbSize.height) / 2
 
                     val stateName = resolveSliderStateName(trackTheme, variant, enabled, hovered, dragging, focused)
                     node.renderState = stateName
@@ -235,12 +245,12 @@ fun Slider(
                         drawThemeState(fillState, trackStart, trackY, fillEnd - trackStart, SLIDER_TRACK_HEIGHT)
                     }
 
-                    val drawThumbWidth = (SLIDER_THUMB_WIDTH * thumbScale).roundToInt()
-                    val drawThumbHeight = (SLIDER_THUMB_HEIGHT * thumbScale).roundToInt()
+                    val drawThumbWidth = (thumbSize.width * thumbScale).roundToInt()
+                    val drawThumbHeight = (thumbSize.height * thumbScale).roundToInt()
                     drawThemeState(
                         thumbState,
-                        thumbX + (SLIDER_THUMB_WIDTH - drawThumbWidth) / 2,
-                        thumbY + (SLIDER_THUMB_HEIGHT - drawThumbHeight) / 2,
+                        thumbX + (thumbSize.width - drawThumbWidth) / 2,
+                        thumbY + (thumbSize.height - drawThumbHeight) / 2,
                         drawThumbWidth,
                         drawThumbHeight,
                     )

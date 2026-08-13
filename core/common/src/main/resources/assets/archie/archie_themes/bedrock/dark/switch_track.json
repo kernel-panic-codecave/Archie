@@ -3,11 +3,11 @@
     "default": {
       "texture": "archie:bedrock/switch_track_dark",
       "texture_size": {
-        "width": 34,
-        "height": 18
+        "width": 28,
+        "height": 13
       },
-      "width": 34,
-      "height": 18
+      "width": 28,
+      "height": 13
     },
     "focused": {
       "texture": "archie:bedrock/switch_track_focused_dark"
@@ -21,5 +21,12 @@
     "disabled": {
       "texture": "archie:bedrock/switch_track_disabled_dark"
     }
+  },
+  "min_size": {
+    "width": 28,
+    "height": 13
+  },
+  "content_padding": {
+    "horizontal": 0
   }
 }
