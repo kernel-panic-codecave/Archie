@@ -12,12 +12,12 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.DebugModifier
-import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.contentPaddingModifier
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * A standard themed, clickable button.
  *
- * Renders the themed [texture] state ([TextureStates.DEFAULT]/[TextureStates.HOVERED]/
+ * Renders the themed [texture] state ([TextureStates.DEFAULT]/[TextureStates.FOCUSED]/
  * [TextureStates.CLICKED]/[TextureStates.DISABLED]) behind [content], animating a 1px press
  * offset while held. For fully custom visuals, use [ButtonCore] directly instead.
  *
@@ -54,7 +54,7 @@ fun Button(
         onClick,
         modifier,
         enabled
-    ) { isHovered, isPressed ->
+    ) { isHovered, isPressed, isFocused ->
         val pressOffset = animateInt(
             targetValue = if (isPressed) 1 else 0,
             spec = AnimationSpec(durationMillis = 90.milliseconds, easing = Easings.OutCubic),
@@ -77,7 +77,7 @@ fun Button(
                 ) = guiGraphics {
                     val stateKey = WidgetState.resolve(
                         composableTheme, variant,
-                        WidgetState.clicked(isPressed), WidgetState.hovered(isHovered),
+                        WidgetState.clicked(isPressed), WidgetState.focused(isHovered || isFocused),
                         enabled = enabled,
                     )
                     node.renderState = stateKey
@@ -86,16 +86,10 @@ fun Button(
                     drawThemeState(state, x, y, node.width, node.height)
                 }
             },
-            modifier = modifier.apply {
-                if (!composableTheme.isNineslice) {
-                    with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-                        sizeIn(
-                            minWidth = width,
-                            minHeight = height
-                        )
-                    }
-                }
-            }.offset(x = 0, y = pressOffset)
+            modifier = modifier
+                .then(composableTheme.intrinsicSizeModifier())
+                .then(composableTheme.contentPaddingModifier())
+                .offset(x = 0, y = pressOffset)
         )
     }
 }
@@ -104,16 +98,20 @@ fun Button(
 /**
  * A stateless clickable container composable.
  *
- * `ButtonCore` manages hover and pressed state internally and exposes them to [content]
- * via the lambda parameters. It handles cursor changes and the full pointer-event lifecycle,
- * but applies no visual styling of its own — that is left entirely to [content].
+ * `ButtonCore` manages hover, pressed and focus state internally and exposes them to
+ * [content] via the lambda parameters. It handles cursor changes, the full pointer-event
+ * lifecycle, and vanilla keyboard/controller focus navigation - Tab/Shift-Tab and arrow keys
+ * (via `Screen.children()`/`nextFocusPath`) can reach and activate it (Enter/Space) exactly
+ * like a plain `AbstractWidget`, including through controller-navigation mods such as
+ * Controlify. It applies no visual styling of its own - `isFocused` is exposed to [content]
+ * so callers can render their own focus indicator (see [Button]'s themed `focused` state).
  *
  * Use [ButtonCore] when you need custom button visuals. For a standard themed button, use
  * [Button] instead.
  *
  * ### Example
  * ```kotlin
- * ButtonCore(onClick = { println("Clicked!") }) { isHovered, isPressed ->
+ * ButtonCore(onClick = { println("Clicked!") }) { isHovered, isPressed, isFocused ->
  *     Box(
  *         modifier = Modifier.background(if (isHovered) KColor.LIGHT_GRAY else KColor.GRAY)
  *             .size(80, 20)
@@ -123,23 +121,27 @@ fun Button(
  * }
  * ```
  *
- * @param onClick  Invoked with the receiving [UINode] when the button is pressed.
+ * @param onClick  Invoked with the receiving [UINode] when the button is pressed (by mouse,
+ *   or by Enter/Space while vanilla-focused).
  * @param modifier Additional modifiers applied to the outer clickable container.
- * @param enabled  When `false`, pointer events are ignored and no cursor change occurs.
- * @param content  The button's visual content, receiving `isHovered` and `isPressed` booleans.
+ * @param enabled  When `false`, pointer and activation-key events are ignored and no cursor
+ *   change occurs.
+ * @param content  The button's visual content, receiving `isHovered`, `isPressed` and
+ *   `isFocused` booleans.
  */
 @Composable
 fun ButtonCore(
 	onClick: (UINode) -> Unit,
 	modifier: Modifier = Modifier,
 	enabled: Boolean = true,
-	content: @Composable (isHovered: Boolean, isPressed: Boolean) -> Unit,
+	content: @Composable (isHovered: Boolean, isPressed: Boolean, isFocused: Boolean) -> Unit,
 ) {
     Clickable(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.then(DebugModifier(strs = listOf("Enabled: $enabled"))).then(modifier),
-    ) { isHovered, isPressed ->
-        content(isHovered, isPressed)
-    }
+        modifier = Modifier
+            .then(DebugModifier(strs = listOf("Enabled: $enabled")))
+            .then(modifier),
+        content = content,
+    )
 }

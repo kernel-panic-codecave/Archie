@@ -1,0 +1,36 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/button",
+      "texture_size": {
+        "width": 4,
+        "height": 4
+      },
+      "width": 4,
+      "height": 4
+    },
+    "focused": {
+      "texture": "archie:bedrock/button_highlighted"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/button_clicked"
+    },
+    "disabled": {
+      "texture": "archie:bedrock/button_disabled",
+      "texture_size": {
+        "width": 50,
+        "height": 20
+      },
+      "width": 50,
+      "height": 20
+    }
+  },
+  "min_size": {
+    "width": 50,
+    "height": 20
+  },
+  "content_padding": {
+    "horizontal": 4,
+    "vertical": 2
+  }
+}

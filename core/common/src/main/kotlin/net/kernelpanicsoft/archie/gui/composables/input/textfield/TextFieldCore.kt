@@ -2,6 +2,10 @@ package net.kernelpanicsoft.archie.gui.composables.input.textfield
 
 import androidx.compose.runtime.*
 import kotlinx.coroutines.delay
+import net.kernelpanicsoft.archie.gui.LocalVanillaScreen
+import net.kernelpanicsoft.archie.gui.focus.LayoutNodeFocusAdapter
+import net.kernelpanicsoft.archie.gui.focus.LocalBringIntoViewParent
+import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
@@ -32,8 +36,15 @@ class TextFieldState {
     var displayPos by mutableStateOf(0)
     /** Vertical scroll offset for multi-line fields, in pixels. */
     var scrollY by mutableStateOf(0.0)
+
+    // Backs isFocused as an explicit MutableState (rather than `by mutableStateOf`) so
+    // TextFieldCore can share this exact state with FocusableModifier - vanilla Tab/Shift-Tab
+    // navigation setting this text field's vanilla focus then reads back as isFocused too,
+    // through the same underlying state, no separate sync step needed.
+    internal val focusedState = mutableStateOf(false)
     /** Whether the field currently holds input focus. */
-    var isFocused by mutableStateOf(false)
+    var isFocused: Boolean by focusedState
+
     /** Whether the blinking cursor is currently visible. */
     var showCursor by mutableStateOf(false)
     internal var lastBlink by mutableStateOf(0L)
@@ -87,10 +98,18 @@ fun TextFieldCore(
     content: @Composable (state: TextFieldState) -> Unit,
 ) {
     val state = rememberTextFieldState()
+    val interactionSource = remember { MutableInteractionSource() }
+    val vanillaScreen = LocalVanillaScreen.current
+    val bringIntoViewParent = LocalBringIntoViewParent.current
 
-    // Cursor blink coroutine
+    // Cursor blink coroutine. Resets lastBlink/showCursor itself on (re)entering the focused
+    // branch rather than relying on onFocusChange's side effect for that, since vanilla Tab
+    // navigation focuses this field by writing state.focusedState directly (see the focusable()
+    // modifier below), not through onFocusChange.
     LaunchedEffect(state.isFocused) {
         if (state.isFocused) {
+            state.lastBlink = System.currentTimeMillis()
+            state.showCursor = true
             while (true) {
                 val t = System.currentTimeMillis()
                 if (t - state.lastBlink > CURSOR_BLINK_INTERVAL_MS) { state.showCursor = !state.showCursor; state.lastBlink = t }
@@ -140,9 +159,15 @@ fun TextFieldCore(
             }
         },
         modifier = modifier
+            // Bridges this field's existing pointer-driven focus into vanilla's own
+            // Tab/Shift-Tab focus graph, sharing state.focusedState directly (not the public
+            // Modifier.focusable(), which owns its own private state) - Tab can now reach a
+            // text field, and losing vanilla focus (e.g. a modal opening over it, per
+            // ComposeScreen/ComposeContainerScreen's own focus reset) blurs it the same way.
+            .let { if (enabled) it.then(FocusableModifier(state.focusedState, interactionSource, bringIntoViewParent)) else it }
             .onKeyEvent { _, event ->
                 if (!enabled || !state.isFocused) return@onKeyEvent
-                if (event.keyCode == 256) { state.onFocusChange(false); event.consume(true); return@onKeyEvent }
+                if (event.keyCode == 256) { vanillaScreen.clearFocus(); event.consume(true); return@onKeyEvent }
                 var handled = true
                 val result = when {
                     Screen.isSelectAll(event.keyCode) -> value.copy(selection = TextRange(0, value.text.length))
@@ -165,7 +190,7 @@ fun TextFieldCore(
             }
             .onPointerEvent<LayoutNode>(PointerEventType.PRESS) { node, event ->
                 if (state.isFocused && !node.isBounded(event.mouseX.toInt(), event.mouseY.toInt()))
-                    state.onFocusChange(false)
+                    vanillaScreen.clearFocus()
             }
             .onPointerEvent<LayoutNode>(PointerEventType.PRESS) { node, event ->
                 val (nX, _) = node.absoluteCoords
@@ -173,7 +198,7 @@ fun TextFieldCore(
                 if (!singleLine && event.mouseX >= scrollBarX && event.mouseX < nX + state.layoutInfo.width) {
                     state.isDraggingScrollbar = true
                 } else {
-                    state.onFocusChange(true)
+                    vanillaScreen.setFocused(LayoutNodeFocusAdapter(node))
                     val lX = event.mouseX - node.absoluteCoords.x - BORDER_PADDING
                     val lY = event.mouseY - node.absoluteCoords.y - BORDER_PADDING
                     val cur = findCursorPos(font, value.text, lX, lY, state, singleLine)

@@ -23,16 +23,20 @@ import kotlin.reflect.KClass
 import com.google.gson.JsonElement as GsonElement
 
 /**
+ * Gets data from a [RegistryFriendlyByteBuf] using the [KSerializer] resolved for its type.
+ */
+inline fun <reified T : Any> RegistryFriendlyByteBuf.read(): T = read(SerializationManager.module.serializer<T>())
+
+/**
  * Gets data from a [RegistryFriendlyByteBuf] using the provided [KSerializer]
  */
 fun <T : Any> RegistryFriendlyByteBuf.read(serializer: KSerializer<T>): T =
 	SerializationManager.cbor.decodeFromByteArray(serializer, readByteArray())
 
 /**
- * Writes data into a [RegistryFriendlyByteBuf] using the [KSerializer] using the class of the data
+ * Writes data into a [RegistryFriendlyByteBuf] using the [KSerializer] resolved for its type.
  */
-@OptIn(InternalSerializationApi::class)
-fun <T : Any> RegistryFriendlyByteBuf.write(data: T) = write(data::class.serializer() as KSerializer<T>, data)
+inline fun <reified T : Any> RegistryFriendlyByteBuf.write(data: T) = write(SerializationManager.module.serializer<T>(), data)
 
 /**
  * Writes data into a [RegistryFriendlyByteBuf] using a [KSerializer]
@@ -92,8 +96,8 @@ val <T : Any> KSerializer<T>.codec: Codec<T>
  */
 val <T : Any> KSerializer<T>.streamCodec: StreamCodec<RegistryFriendlyByteBuf, T>
 	get() = StreamCodec.of<RegistryFriendlyByteBuf, T>(
-		{ buffer, value -> buffer.writeByteArray(SerializationManager.cbor.encodeToByteArray(this, value)) },
-		{ buffer -> SerializationManager.cbor.decodeFromByteArray(this, buffer.readByteArray()) }
+		{ buffer, value -> buffer.write(this, value) },
+		{ buffer -> buffer.read(this) }
 	)
 
 /**

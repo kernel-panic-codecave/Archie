@@ -121,7 +121,31 @@ fun Collapsible(
                     }
                 },
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(5)) {
+                // A plain Row can't be used here: this whole subtree is measured with an
+                // unbounded maxHeight (see the measurePolicy above, which needs the content's
+                // natural height for the expand animation), so the separator's fillMaxHeight()
+                // would fill that unbounded height instead of matching its sibling - producing a
+                // separator (and this Row's own reported height) sized in the billions of pixels.
+                // Measuring content first and constraining the separator to its exact height
+                // sidesteps that: fillMaxHeight() then fills *this* bounded height correctly.
+                Layout(
+                    name = "Row",
+                    measurePolicy = { _, measurables, constraints ->
+                        val (separator, box) = measurables
+                        val boxPlaceable = box.measure(constraints.copy(minHeight = 0))
+                        val separatorPlaceable = separator.measure(
+                            constraints.copy(minHeight = boxPlaceable.height, maxHeight = boxPlaceable.height)
+                        )
+                        val spacing = 5
+                        MeasureResult(
+                            separatorPlaceable.width + spacing + boxPlaceable.width,
+                            maxOf(separatorPlaceable.height, boxPlaceable.height),
+                        ) {
+                            separatorPlaceable.placeAt(0, 0)
+                            boxPlaceable.placeAt(separatorPlaceable.width + spacing, 0)
+                        }
+                    },
+                ) {
                     Spacer(
                         modifier = Modifier
                             .then(PaddingModifier(PaddingValues(left = 5)))

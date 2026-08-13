@@ -1,0 +1,20 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/slider_fill",
+      "texture_size": {
+        "width": 3,
+        "height": 3
+      },
+      "width": 8,
+      "height": 14
+    },
+    "disabled": {
+      "texture": "archie:bedrock/slider_fill_disabled"
+    }
+  },
+  "min_size": {
+    "width": 8,
+    "height": 14
+  }
+}

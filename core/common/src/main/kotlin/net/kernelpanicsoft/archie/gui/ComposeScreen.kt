@@ -4,9 +4,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
 import kotlinx.coroutines.*
+import net.kernelpanicsoft.archie.gui.focus.collectFocusableChildren
+import net.kernelpanicsoft.archie.gui.layer.Layer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
+import net.kernelpanicsoft.archie.gui.layer.LocalLayerManagerOrNull
 import net.kernelpanicsoft.archie.gui.layout.*
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
@@ -17,6 +21,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
@@ -24,6 +29,21 @@ import kotlin.coroutines.CoroutineContext
 
 /** Provides the current [ComposeScreen] to any composable in its tree. */
 val LocalScreen: ProvidableCompositionLocal<ComposeScreen> =
+    compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
+
+/**
+ * Provides the hosting vanilla [Screen], regardless of whether it's a [ComposeScreen] or a
+ * [ComposeContainerScreen] - unlike [LocalScreen]/`LocalContainerScreen`, which are mutually
+ * exclusive depending on the screen type, this is provided by both.
+ *
+ * `Screen.setFocused`/`getFocused`/`clearFocus` are all public vanilla API (unlike
+ * `setInitialFocus`/`changeFocus`, which are `protected`), so composables that need to register
+ * or release vanilla keyboard/controller focus explicitly - e.g. a pointer-driven text field
+ * syncing its local focus state back to vanilla, so Tab navigation and a modal opening over it
+ * both stay consistent with what's actually focused - can reach them through this without
+ * needing a reference to the concrete screen subclass.
+ */
+val LocalVanillaScreen: ProvidableCompositionLocal<Screen> =
     compositionLocalOf { throw IllegalStateException("Screen has not been provided") }
 
 /**
@@ -141,6 +161,9 @@ abstract class ComposeScreen(
     private var lastMouseX = Double.NEGATIVE_INFINITY
     private var lastMouseY = Double.NEGATIVE_INFINITY
 
+    /** The layer [renderNodes] last ran [setInitialFocus] for - see its use there. */
+    private var lastTopLayer: Layer? = null
+
     // `Recomposer.hasPendingWork` is Compose's own atomically-maintained "is there recomposition,
     // apply-changes, or effect work outstanding" signal - the same one Compose's own test tooling
     // (ComposeTestRule.waitForIdle()) uses. Reimplementing this by hand via applyScheduled/
@@ -162,19 +185,35 @@ abstract class ComposeScreen(
      */
     protected fun start(content: @Composable () -> Unit) {
         recomposer = Recomposer(coroutineContext)
-        layerManager = LayerStackManager(recomposer)
+        layerManager = LayerStackManager(recomposer) { layerContent ->
+            // Applied to every layer this screen ever pushes (base, modal, dropdown, tooltip
+            // alike) - see LayerStackManager's screenLocals doc for why a plain
+            // CompositionLocalProvider wrapping only this start() call wouldn't reach them.
+            CompositionLocalProvider(
+                LocalScreen provides this,
+                LocalVanillaScreen provides this,
+                LocalLayerManager provides layerManager,
+                LocalLayerManagerOrNull provides layerManager,
+            ) {
+                // Re-supplies whatever Theme{} is currently mounted in the base layer (see
+                // LayerStackManager.rootTheme) so a later-pushed layer isn't stuck with
+                // LocalTheme's own default - it's a separate top-level composition, so it'd
+                // never otherwise see a Theme{} that only wraps the base layer's own content.
+                val theme = layerManager.rootTheme
+                if (theme != null) {
+                    CompositionLocalProvider(LocalTheme provides theme) { layerContent() }
+                } else {
+                    layerContent()
+                }
+            }
+        }
 
         AUIScopeManager.scopes += composeScope
         launch { recomposer.runRecomposeAndApplyChanges() }
 
         layerManager.push { _ ->
-            CompositionLocalProvider(
-                LocalScreen provides this,
-                LocalLayerManager provides layerManager,
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    content()
-                }
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                content()
             }
         }
     }
@@ -221,7 +260,19 @@ abstract class ComposeScreen(
             hasFrameWaiters = false
             recomposeJob = composeScope.launch { clock.sendFrame(System.nanoTime()) }
         }
-        setInitialFocus()
+
+        // setInitialFocus() re-runs vanilla's own Tab-navigation search (nextFocusPath) to find
+        // something to focus, which visits whatever's already focused first - calling it every
+        // frame while nothing changed would auto-advance focus to the next candidate each frame
+        // (indistinguishable, to vanilla, from a real Tab press) whenever the keyboard was the
+        // last input type. Only re-run it when the top layer actually changed - a modal opening
+        // or closing - and clear the old focus first, since a modal opening on top otherwise
+        // leaves the base screen's element (now hidden behind it) marked focused indefinitely.
+        if (layerManager.top !== lastTopLayer) {
+            lastTopLayer = layerManager.top
+            clearFocus()
+            setInitialFocus()
+        }
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -269,6 +320,18 @@ abstract class ComposeScreen(
     // ── Input ─────────────────────────────────────────────────────────────
 
     private fun topNode() = layerManager.top?.rootNode
+
+    // Bridges Compose's own focus concept (`Modifier.focusable`) into vanilla's built-in
+    // GuiEventListener focus graph. Screen already implements Tab/Shift-Tab/arrow-key
+    // navigation, focus tracking (getFocused/setFocused) and ComponentPath-based dispatch
+    // entirely in terms of `children()` - overriding just this one method is enough to make
+    // all of that (plus anything else that walks GuiEventListener, e.g. Controlify's
+    // controller navigation) reach Compose content. Scoped to the top layer only, matching
+    // topNode()'s modal-aware input dispatch: a modal's focus stays within the modal.
+    override fun children(): List<GuiEventListener> {
+        val top = topNode() ?: return super.children()
+        return collectFocusableChildren(top)
+    }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val top = topNode() ?: return super.mouseClicked(mouseX, mouseY, button)

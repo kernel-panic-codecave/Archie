@@ -13,21 +13,26 @@ import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
 import net.kernelpanicsoft.archie.gui.blockentity.LocalBlockEntityState
 import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
+import net.kernelpanicsoft.archie.gui.focus.collectFocusableChildren
 import net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu
 import net.kernelpanicsoft.archie.gui.item.LocalItemState
+import net.kernelpanicsoft.archie.gui.layer.Layer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
+import net.kernelpanicsoft.archie.gui.layer.LocalLayerManagerOrNull
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
@@ -113,6 +118,9 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     private var lastMouseX = 0.0
     private var lastMouseY = 0.0
 
+    /** The layer [render] last ran [setInitialFocus] for - see its use there. */
+    private var lastTopLayer: Layer? = null
+
     override fun isComposeIdle(): Boolean =
         !applyScheduled && !hasFrameWaiters && recomposeJob?.isActive != true
 
@@ -141,14 +149,13 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
      */
     protected fun start(content: @Composable () -> Unit) {
         recomposer = Recomposer(coroutineContext)
-        layerManager = LayerStackManager(recomposer)
-
-        AUIScopeManager.scopes += composeScope
-        launch { recomposer.runRecomposeAndApplyChanges() }
-
-        layerManager.push { _ ->
+        layerManager = LayerStackManager(recomposer) { layerContent ->
+            // Applied to every layer this screen ever pushes (base, modal, dropdown, tooltip
+            // alike) - see LayerStackManager's screenLocals doc for why a plain
+            // CompositionLocalProvider wrapping only this start() call wouldn't reach them.
             CompositionLocalProvider(
                 LocalContainerScreen provides this,
+                LocalVanillaScreen provides this,
                 LocalContainerMenu provides menu,
                 LocalSlotData provides menu.slotData,
                 // Only one of these is non-null for any given menu - LocalBlockEntityState /
@@ -158,10 +165,27 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
                 LocalBlockEntityState provides (menu as? ComposeBlockContainerMenu<*, *>)?.blockEntityState,
                 LocalItemState provides (menu as? ComposeItemContainerMenu<*>)?.itemState,
                 LocalLayerManager provides layerManager,
+                LocalLayerManagerOrNull provides layerManager,
             ) {
-                RootContainer {
-                    content()
+                // Re-supplies whatever Theme{} is currently mounted in the base layer (see
+                // LayerStackManager.rootTheme) so a later-pushed layer isn't stuck with
+                // LocalTheme's own default - it's a separate top-level composition, so it'd
+                // never otherwise see a Theme{} that only wraps the base layer's own content.
+                val theme = layerManager.rootTheme
+                if (theme != null) {
+                    CompositionLocalProvider(LocalTheme provides theme) { layerContent() }
+                } else {
+                    layerContent()
                 }
+            }
+        }
+
+        AUIScopeManager.scopes += composeScope
+        launch { recomposer.runRecomposeAndApplyChanges() }
+
+        layerManager.push { _ ->
+            RootContainer {
+                content()
             }
         }
     }
@@ -246,6 +270,14 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
         if (layerManager.layers.size > 1)
         {
             renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
+        }
+
+        // See ComposeScreen.renderNodes for why this only runs when the top layer actually
+        // changed (a modal opening or closing), not every frame.
+        if (layerManager.top !== lastTopLayer) {
+            lastTopLayer = layerManager.top
+            clearFocus()
+            setInitialFocus()
         }
     }
 
@@ -375,6 +407,14 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     }
 
     private fun getTopNode(): LayoutNode? = layerManager.top?.rootNode
+
+    // See ComposeScreen.children() for why this one override is enough to bridge Compose's
+    // `Modifier.focusable` nodes into vanilla's Tab/Shift-Tab/arrow-key navigation and any
+    // other GuiEventListener-walking consumer (e.g. Controlify).
+    override fun children(): List<GuiEventListener> {
+        val topNode = getTopNode() ?: return super.children()
+        return collectFocusableChildren(topNode)
+    }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val topNode = getTopNode() ?: return super.mouseClicked(mouseX, mouseY, button)

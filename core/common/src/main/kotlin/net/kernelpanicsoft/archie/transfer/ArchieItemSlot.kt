@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.transfer
 
-import net.kernelpanicsoft.archie.serialization.NBT
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import earth.terrarium.common_storage_lib.resources.ResourceStack
@@ -144,7 +144,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 
 	override fun createSnapshot(): NbtTag
 	{
-		return NBT.encodeToNbtTagRootless(serializer(), this)
+		return SerializationManager.nbt.encodeToNbtTagRootless(serializer(), this)
 	}
 
 	override fun update()
@@ -154,7 +154,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 
 	override fun readSnapshot(snapshot: NbtTag)
 	{
-		this.stack = NBT.decodeFromNbtTagRootless(serializer(), snapshot).stack
+		this.stack = SerializationManager.nbt.decodeFromNbtTagRootless(serializer(), snapshot).stack
 	}
 
 	/** Serializes an [ArchieItemSlot] as its underlying [ResourceStack], or `null` when blank. */

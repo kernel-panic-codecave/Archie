@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/switch_track_dark",
+      "texture_size": {
+        "width": 34,
+        "height": 18
+      },
+      "width": 34,
+      "height": 18
+    },
+    "focused": {
+      "texture": "archie:java/switch_track_focused_dark"
+    },
+    "clicked": {
+      "texture": "archie:java/switch_track_clicked_dark"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:java/switch_track_clicked_and_focused_dark"
+    },
+    "disabled": {
+      "texture": "archie:java/switch_track_disabled_dark"
+    }
+  }
+}

@@ -2,6 +2,7 @@ package net.kernelpanicsoft.archie.gui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import kotlinx.serialization.SerialName
@@ -9,6 +10,7 @@ import kotlinx.serialization.Serializable
 import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.resourcepacks.SerializationReloadListener
 import net.kernelpanicsoft.archie.serialization.SerializationManager
+import net.kernelpanicsoft.archie.gui.layer.LocalLayerManagerOrNull
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.util.div
 import net.kernelpanicsoft.archie.util.rem
@@ -183,11 +185,27 @@ fun Theme(
     lightTextColor: KColor = KColor.WHITE,
     namespace: String = Archie.MOD_ID,
     content: @Composable () -> Unit,
-) = CompositionLocalProvider(LocalTheme provides ThemeData(mode, type, darkTextColor, lightTextColor, namespace)) { content() }
+) = Theme(ThemeData(mode, type, darkTextColor, lightTextColor, namespace), content)
 
 /**
  * Sets the active theme using a pre-built [ThemeData].
+ *
+ * Also pushes [data] onto the nearest [net.kernelpanicsoft.archie.gui.layer.LayerStackManager]'s
+ * theme stack while mounted (popping it back off on dispose), so a modal/dropdown/tooltip pushed
+ * from anywhere in [content] inherits this theme too instead of silently falling back to
+ * [LocalTheme]'s own default - each later-pushed layer is its own top-level composition (see
+ * [net.kernelpanicsoft.archie.gui.layer.LayerStackManager]'s own doc) and would otherwise never
+ * see a `Theme {}` that only wraps the base layer's content. A nested `Theme {}` override stacks
+ * on top of whatever it's nested inside for as long as it stays mounted.
  */
 @Composable
-fun Theme(data: ThemeData, content: @Composable () -> Unit) =
+fun Theme(data: ThemeData, content: @Composable () -> Unit) {
+    val layers = LocalLayerManagerOrNull.current
+    if (layers != null) {
+        DisposableEffect(data) {
+            layers.themeStack.add(data)
+            onDispose { layers.themeStack.remove(data) }
+        }
+    }
     CompositionLocalProvider(LocalTheme provides data) { content() }
+}

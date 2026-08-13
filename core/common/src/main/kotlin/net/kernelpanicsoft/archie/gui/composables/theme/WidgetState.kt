@@ -14,7 +14,7 @@ import net.kernelpanicsoft.archie.gui.theme.ComposableTheme
  * ```kotlin
  * val stateKey = WidgetState.resolve(
  *     composableTheme, variant,
- *     WidgetState.clicked(checked), WidgetState.hovered(hovered),
+ *     WidgetState.clicked(checked), WidgetState.focused(hovered || vanillaFocused),
  *     enabled = enabled,
  * )
  * node.renderState = stateKey
@@ -23,15 +23,22 @@ import net.kernelpanicsoft.archie.gui.theme.ComposableTheme
  */
 object WidgetState {
     /**
-     * One named boolean axis of a widget's interaction state (e.g. "hovered" paired with
-     * whether the pointer currently is), in the priority order [resolve] should consider it -
+     * One named boolean axis of a widget's interaction state (e.g. "focused" paired with
+     * whether the widget currently is), in the priority order [resolve] should consider it -
      * pass axes to [resolve] most-significant first (typically the "activated" axis - checked/
-     * selected/pressed - before "hovered").
+     * selected/pressed - before "focused").
      */
     data class Axis(val name: String, val active: Boolean)
 
-    /** An [Axis] for [TextureStates.HOVERED]. */
-    fun hovered(active: Boolean) = Axis(TextureStates.HOVERED, active)
+    /**
+     * An [Axis] for [TextureStates.FOCUSED] - whether the widget is currently highlighted,
+     * meaning either the mouse is hovering it *or* it holds vanilla keyboard/controller focus
+     * (see `Modifier.focusable`). Both drive the same texture state: there's one "this is the
+     * thing about to be interacted with" visual regardless of which input method put it there,
+     * so callers that support both pass a single merged boolean (e.g. `isHovered || isFocused`)
+     * rather than two independent axes.
+     */
+    fun focused(active: Boolean) = Axis(TextureStates.FOCUSED, active)
 
     /** An [Axis] for [TextureStates.CLICKED] - a checkbox/switch/radio's checked-or-selected state, a button/tab's pressed-or-selected state, or a slider's dragging state. */
     fun clicked(active: Boolean) = Axis(TextureStates.CLICKED, active)
@@ -45,8 +52,8 @@ object WidgetState {
      *   weren't a factor - matching every existing chain's behavior of only branching on
      *   `!enabled` where a `disabled` theme state actually exists to show.
      * - Otherwise, tries the most specific composite key first: every currently-active axis's
-     *   [Axis.name], joined by `"_and_"` in priority order (e.g. `"clicked_and_hovered"` for
-     *   [clicked]+[hovered] both active). If [theme] doesn't define that combination, falls
+     *   [Axis.name], joined by `"_and_"` in priority order (e.g. `"clicked_and_focused"` for
+     *   [clicked]+[focused] both active). If [theme] doesn't define that combination, falls
      *   back one axis at a time - by priority, i.e. trying each individual active axis's own
      *   key alone, highest priority first - stopping at the first one [theme] defines.
      * - Returns [TextureStates.DEFAULT] if no active axis (alone or combined) has a defined
@@ -54,15 +61,15 @@ object WidgetState {
      *
      * This graceful per-axis fallback (rather than jumping straight from the full composite to
      * [TextureStates.DEFAULT]) generalizes what `Button`'s chain alone used to do by hand
-     * (falling through a missing "clicked" state to "hovered" - `button.json` defines no
+     * (falling through a missing "clicked" state to "focused" - `button.json` defines no
      * "clicked" state at all) - every caller gets it for free, without needing its own
      * `hasState` check.
      *
      * **Tab note:** `TabContainer.kt`'s old chain computed its "clicked" axis from
-     * `selected || isPressed`, but only paired it with `hovered` into the combined state when
+     * `selected || isPressed`, but only paired it with `focused` into the combined state when
      * specifically `selected` was true - a pressed-but-unselected-and-hovered tab silently lost
      * its hover visual. Callers migrating to this resolver should pass a single `clicked` axis
-     * (`selected || isPressed`) and a separate `hovered` axis as normal; [resolve] then treats
+     * (`selected || isPressed`) and a separate `focused` axis as normal; [resolve] then treats
      * both uniformly like every other component, which is a deliberate behavior fix, not an
      * incidental one.
      */

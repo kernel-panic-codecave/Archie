@@ -1,0 +1,32 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/switch_track",
+      "texture_size": {
+        "width": 28,
+        "height": 13
+      },
+      "width": 28,
+      "height": 13
+    },
+    "focused": {
+      "texture": "archie:bedrock/switch_track_focused"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/switch_track"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:bedrock/switch_track_focused"
+    },
+    "disabled": {
+      "texture": "archie:bedrock/switch_track_disabled"
+    }
+  },
+  "min_size": {
+    "width": 28,
+    "height": 13
+  },
+  "content_padding": {
+    "horizontal": 0
+  }
+}

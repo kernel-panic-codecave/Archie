@@ -1,6 +1,6 @@
 package net.kernelpanicsoft.archie.transfer
 
-import net.kernelpanicsoft.archie.serialization.NBT
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import earth.terrarium.common_storage_lib.resources.item.ItemResource
@@ -65,7 +65,7 @@ open class ArchieItemStorage private constructor(
 
 	override fun createSnapshot(): NbtTag
 	{
-		return NBT.encodeToNbtTagRootless(serializer(), this)
+		return SerializationManager.nbt.encodeToNbtTagRootless(serializer(), this)
 	}
 
 	override fun update()
@@ -75,7 +75,7 @@ open class ArchieItemStorage private constructor(
 
 	override fun readSnapshot(snapshot: NbtTag)
 	{
-		val slots = NBT.decodeFromNbtTagRootless(serializer(), snapshot).slots
+		val slots = SerializationManager.nbt.decodeFromNbtTagRootless(serializer(), snapshot).slots
 		for (i in 0 until min(this.slots.size, slots.size))
 		{
 			this.slots[i] = slots[i]

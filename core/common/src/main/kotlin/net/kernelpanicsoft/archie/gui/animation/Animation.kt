@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -89,6 +90,48 @@ fun animateFloat(targetValue: Float, spec: AnimationSpec = AnimationSpec()): Flo
 fun animateInt(targetValue: Int, spec: AnimationSpec = AnimationSpec()): Int {
     val animatedFloat = animateFloat(targetValue.toFloat(), spec)
     return animatedFloat.roundToInt()
+}
+
+/**
+ * Sweeps from [from] to [to] every time [key] changes, holding at [to] otherwise - a one-shot
+ * "pulse"/"pop" effect for a discrete event (a checkbox toggling, a radio button being
+ * selected) rather than the continuous value [animateFloat]/[animateInt] track toward a moving
+ * target. Pair with [Easings.OutBack] for a satisfying overshoot-then-settle bounce.
+ *
+ * Does not pulse on the composable's initial composition - only on a later change of [key].
+ */
+@Composable
+fun animatePulse(key: Any?, from: Float = 0.8f, to: Float = 1f, spec: AnimationSpec = AnimationSpec()): Float {
+    var value by remember { mutableFloatStateOf(to) }
+    var initialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(key) {
+        if (!initialized) {
+            initialized = true
+            return@LaunchedEffect
+        }
+
+        val duration = spec.durationMillis
+        if (duration <= 0.milliseconds) {
+            value = to
+            return@LaunchedEffect
+        }
+
+        value = from
+        val startTime = withFrameNanos { it }
+        var frameTime = startTime
+        var rawProgress: Float
+        do {
+            val elapsedNanos = frameTime - startTime
+            rawProgress = (elapsedNanos / (duration.inWholeMilliseconds * 1_000_000f)).coerceIn(0f, 1f)
+            value = from + (to - from) * spec.easing.transform(rawProgress)
+            frameTime = withFrameNanos { it }
+        } while (rawProgress < 1f)
+
+        value = to
+    }
+
+    return value
 }
 
 

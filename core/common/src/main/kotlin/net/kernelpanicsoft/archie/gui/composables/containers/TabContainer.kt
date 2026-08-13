@@ -6,11 +6,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.basic.Texture
-import net.kernelpanicsoft.archie.gui.composables.input.ButtonCore
-import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
+import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
+import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
+import net.kernelpanicsoft.archie.gui.interaction.collectIsHoveredAsState
+import net.kernelpanicsoft.archie.gui.interaction.collectIsPressedAsState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
@@ -20,19 +24,21 @@ import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Row
 import net.kernelpanicsoft.archie.gui.layout.dp
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.input.selectable
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.modifiers.position.zIndex
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.client.gui.GuiGraphics
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Built-in themed texture keys for [Tab]/[TabContainer], matching vanilla tab styles. */
 object TabTextures
@@ -340,71 +346,80 @@ fun Tab(
     val composableTheme = theme.getComposableTheme(texture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.CenterStart) }
 
-    ButtonCore(
-        onClick = { onClick(spec) },
-        enabled = enabled,
-        modifier = modifier,
-    ) { isHovered, isPressed ->
-        val stateKey = WidgetState.resolve(
-            composableTheme, variant,
-            WidgetState.clicked(selected || isPressed), WidgetState.hovered(isHovered),
-            enabled = enabled,
-        )
-        val state = composableTheme.getState(stateKey, variant)
-        val offsetModifier = Modifier
-            .zIndex(if (selected && elevateSelected) 1f else 0f)
-            .offset(x = 0, y = if (selected && !elevateSelected) -SELECTED_ELEVATION_PX else 0)
-            .padding(horizontal = 10, vertical = 6)
-        val sizeModifier = if (!composableTheme.isNineslice) {
-            val defaultState = composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState
-            Modifier.sizeIn(minWidth = defaultState.width, minHeight = defaultState.height)
-        } else Modifier
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val isFocused by interactionSource.collectIsFocusedAsState()
 
-        Layout(
-            name = "Tab",
-            measurePolicy = measurePolicy,
-            renderer = object : Renderer {
-                override fun render(
-                    node: UINode,
-                    x: Int,
-                    y: Int,
-                    guiGraphics: GuiGraphics,
-                    mouseX: Int,
-                    mouseY: Int,
-                    partialTick: Float,
-                ) = guiGraphics {
-                    node.renderState = stateKey
-                    drawThemeState(state, x, y, node.width, node.height)
-                }
-            },
-            modifier = sizeModifier.then(offsetModifier),
+    val selectableModifier = Modifier.selectable(
+        selected = selected,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        onClick = { onClick(spec) },
+    )
+
+    val stateKey = WidgetState.resolve(
+        composableTheme, variant,
+        WidgetState.clicked(selected || isPressed), WidgetState.focused(isHovered || isFocused),
+        enabled = enabled,
+    )
+    val state = composableTheme.getState(stateKey, variant)
+    // Eases into/out of the selected elevation instead of snapping, matching Button's own
+    // press-offset animation.
+    val elevationOffset = animateInt(
+        targetValue = if (selected && !elevateSelected) -SELECTED_ELEVATION_PX else 0,
+        spec = AnimationSpec(durationMillis = 120.milliseconds),
+    )
+    val offsetModifier = Modifier
+        .zIndex(if (selected && elevateSelected) 1f else 0f)
+        .offset(x = 0, y = elevationOffset)
+        .padding(horizontal = 10, vertical = 6)
+    val sizeModifier = composableTheme.intrinsicSizeModifier()
+
+    Layout(
+        name = "Tab",
+        measurePolicy = measurePolicy,
+        renderer = object : Renderer {
+            override fun render(
+                node: UINode,
+                x: Int,
+                y: Int,
+                guiGraphics: GuiGraphics,
+                mouseX: Int,
+                mouseY: Int,
+                partialTick: Float,
+            ) = guiGraphics {
+                node.renderState = stateKey
+                drawThemeState(state, x, y, node.width, node.height)
+            }
+        },
+        modifier = selectableModifier.then(sizeModifier).then(offsetModifier).then(modifier),
+    ) {
+        Row(
+            modifier = Modifier,
+            horizontalArrangement = Arrangement.spacedBy(iconSpacing.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.spacedBy(iconSpacing.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                spec.icon?.let { icon ->
-                    Texture(
-                        loc = icon.texture,
-                        uOffset = icon.uOffset,
-                        vOffset = icon.vOffset,
-                        u = icon.regionWidth,
-                        v = icon.regionHeight,
-                        textureWidth = icon.textureWidth,
-                        textureHeight = icon.textureHeight,
-                        modifier = Modifier.sizeIn(
-                            minWidth = icon.displayWidth,
-                            minHeight = icon.displayHeight,
-                        ),
-                    )
-                }
-                Text(
-                    text = spec.title,
-                    color = if (selected) theme.darkTextColor else theme.lightTextColor,
-                    dropShadow = !selected
+            spec.icon?.let { icon ->
+                Texture(
+                    loc = icon.texture,
+                    uOffset = icon.uOffset,
+                    vOffset = icon.vOffset,
+                    u = icon.regionWidth,
+                    v = icon.regionHeight,
+                    textureWidth = icon.textureWidth,
+                    textureHeight = icon.textureHeight,
+                    modifier = Modifier.sizeIn(
+                        minWidth = icon.displayWidth,
+                        minHeight = icon.displayHeight,
+                    ),
                 )
             }
+            Text(
+                text = spec.title,
+                color = if (selected) theme.darkTextColor else theme.lightTextColor,
+                dropShadow = !selected
+            )
         }
     }
 }

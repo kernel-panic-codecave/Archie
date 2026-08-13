@@ -1,0 +1,25 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:bedrock/checkbox_dark",
+      "texture_size": {
+        "width": 10,
+        "height": 10
+      },
+      "width": 10,
+      "height": 10
+    },
+    "focused": {
+      "texture": "archie:bedrock/checkbox_focused_dark"
+    },
+    "clicked": {
+      "texture": "archie:bedrock/checkbox_clicked_dark"
+    },
+    "clicked_and_focused": {
+      "texture": "archie:bedrock/checkbox_clicked_and_focused_dark"
+    },
+    "disabled": {
+      "texture": "archie:bedrock/checkbox_disabled_dark"
+    }
+  }
+}

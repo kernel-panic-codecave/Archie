@@ -1,10 +1,17 @@
 package net.kernelpanicsoft.archie.gui.composables.input
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
+import net.kernelpanicsoft.archie.gui.animation.Easings
+import net.kernelpanicsoft.archie.gui.animation.animatePulse
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
+import net.kernelpanicsoft.archie.gui.interaction.MutableInteractionSource
+import net.kernelpanicsoft.archie.gui.interaction.collectIsFocusedAsState
+import net.kernelpanicsoft.archie.gui.interaction.collectIsHoveredAsState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
@@ -13,44 +20,51 @@ import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Row
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
+import net.kernelpanicsoft.archie.gui.modifiers.input.selectable
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
-import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
+import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
+import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Low-level unstyled radio-button behavior, built on [Clickable].
+ * Low-level unstyled radio-button behavior, built on [Modifier.selectable].
  *
  * Calls [onSelect] on press only when not already [selected] (clicking an already-selected
- * radio option is a no-op, matching standard radio-group semantics). Applies no visuals -
- * that is up to [content].
+ * radio option is a no-op, matching standard radio-group semantics) - the same on Enter/Space
+ * while this is a vanilla keyboard/controller focus-navigation stop. Applies no visuals - that
+ * is up to [content].
  *
  * @param selected Whether this option is currently selected.
  * @param onSelect Invoked when this (unselected) option is clicked.
- * @param modifier Additional modifiers applied to the outer clickable container.
  * @param enabled  When `false`, pointer events are ignored.
- * @param content  The visual content; receives hover/press state and [selected].
+ * @param content  The visual content; receives the [Modifier] to apply to its own node, plus
+ *   hover/focus state and [selected].
  */
 @Composable
 fun RadioButtonCore(
     selected: Boolean,
     onSelect: () -> Unit,
-    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    content: @Composable (isHovered: Boolean, isPressed: Boolean, selected: Boolean) -> Unit,
+    content: @Composable (modifier: Modifier, isHovered: Boolean, isFocused: Boolean, selected: Boolean) -> Unit,
 ) {
-    Clickable(
-        onClick = { if (!selected) onSelect() },
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val selectableModifier = Modifier.selectable(
+        selected = selected,
         enabled = enabled,
-        modifier = modifier,
-    ) { hovered, pressed ->
-        content(hovered, pressed, selected)
-    }
+        interactionSource = interactionSource,
+        onClick = { if (!selected) onSelect() },
+    )
+
+    content(selectableModifier, isHovered, isFocused, selected)
 }
 
 /**
@@ -78,22 +92,24 @@ fun RadioButton(
     val theme = LocalTheme.current
     val composableTheme = theme.getComposableTheme(texture)
     val measurePolicy = remember { BoxMeasurePolicy(Alignment.Center) }
-    val sizeModifier = if (!composableTheme.isNineslice) {
-        with(composableTheme.states[TextureStates.DEFAULT] as SimpleThemeState) {
-            Modifier.sizeIn(minWidth = width, minHeight = height)
-        }
-    } else Modifier
+    val sizeModifier = composableTheme.intrinsicSizeModifier()
+    // A brief overshoot-then-settle pop whenever `selected` flips, rather than the dot
+    // snapping in/out instantly - purely cosmetic, so it's scaled around the node's own
+    // center instead of touching layout size.
+    val pop = animatePulse(
+        key = selected,
+        spec = AnimationSpec(durationMillis = 160.milliseconds, easing = Easings.OutBack),
+    )
 
     RadioButtonCore(
         selected = selected,
         onSelect = onSelect,
         enabled = enabled,
-        modifier = sizeModifier.then(modifier),
-    ) { hovered, _, currentSelected ->
+    ) { radioModifier, hovered, focused, currentSelected ->
         Layout(
             name = "RadioButton",
             measurePolicy = measurePolicy,
-            modifier = sizeModifier,
+            modifier = radioModifier.then(sizeModifier).then(modifier),
             renderer = object : Renderer {
                 override fun render(
 	                node: UINode,
@@ -106,13 +122,21 @@ fun RadioButton(
                 ) = guiGraphics {
                     val stateKey = WidgetState.resolve(
                         composableTheme, variant,
-                        WidgetState.clicked(currentSelected), WidgetState.hovered(hovered),
+                        WidgetState.clicked(currentSelected), WidgetState.focused(hovered || focused),
                         enabled = enabled,
                     )
                     node.renderState = stateKey
                     val state = composableTheme.getState(stateKey, variant)
 
-                    drawThemeState(state, x, y, node.width, node.height)
+                    val drawWidth = (node.width * pop).roundToInt()
+                    val drawHeight = (node.height * pop).roundToInt()
+                    drawThemeState(
+                        state,
+                        x + (node.width - drawWidth) / 2,
+                        y + (node.height - drawHeight) / 2,
+                        drawWidth,
+                        drawHeight,
+                    )
                 }
             },
         )

@@ -16,6 +16,7 @@ import net.kernelpanicsoft.archie.gui.layout.Column
 import net.kernelpanicsoft.archie.gui.layout.Row
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.position.margin
+import net.kernelpanicsoft.archie.gui.modifiers.position.padding
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
@@ -36,8 +37,10 @@ private fun ModalDialogScaffold(
     body: @Composable () -> Unit,
     actions: @Composable () -> Unit,
 ) {
-    Surface(modifier = modifier) {
-        Column(modifier = Modifier.margin(4), verticalArrangement = Arrangement.spacedBy(4)) {
+    // Padding on the Surface itself, not margin on the inner Column, matching ConfirmDialog -
+    // margin only grows the parent, it doesn't shrink what content measures against.
+    Surface(modifier = Modifier.padding(4).then(modifier)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = title,
                 color = LocalTheme.current.darkTextColor,
@@ -51,6 +54,50 @@ private fun ModalDialogScaffold(
             ) { actions() }
         }
     }
+}
+
+/**
+ * Generic confirm/cancel modal with fully custom [content], rather than a fixed message layout
+ * like [AlertDialog]/[PromptDialog]/[ChoiceDialog].
+ *
+ * @param title       The dialog's header text.
+ * @param confirmText Label for the confirm button.
+ * @param cancelText  Label for the cancel button.
+ * @param onConfirm   Called when the confirm button is pressed, just before the modal dismisses itself.
+ * @param onCancel    Called when the cancel button is pressed, just before the modal dismisses itself.
+ * @param content     The dialog body, shown above the action row.
+ */
+@Composable
+fun ModalScope.ConfirmDialog(
+    title: Component = Component.literal("Confirm Dialog"),
+    confirmText: Component = Component.literal("Confirm"),
+    cancelText: Component = Component.literal("Cancel"),
+    onConfirm: () -> Unit = {},
+    onCancel: () -> Unit = {},
+    content: @Composable () -> Unit,
+) {
+    ModalDialogScaffold(
+        title = title,
+        body = content,
+        actions = {
+            Button(
+                onClick = {
+                    onConfirm()
+                    dismiss()
+                },
+            ) {
+                Text(confirmText, dropShadow = false)
+            }
+            Button(
+                onClick = {
+                    onCancel()
+                    dismiss()
+                },
+            ) {
+                Text(cancelText, dropShadow = false)
+            }
+        },
+    )
 }
 
 /**
@@ -75,10 +122,12 @@ fun ModalScope.AlertDialog(
             Text(text = message, dropShadow = false, color = LocalTheme.current.darkTextColor)
         },
         actions = {
-            Button(onClick = {
-                onConfirm()
-                dismiss()
-            }) {
+            Button(
+                onClick = {
+                    onConfirm()
+                    dismiss()
+                },
+            ) {
                 Text(confirmText, dropShadow = false)
             }
         },
@@ -125,10 +174,12 @@ fun ModalScope.PromptDialog(
             }
         },
         actions = {
-            Button(onClick = {
-                onCancel()
-                dismiss()
-            }) {
+            Button(
+                onClick = {
+                    onCancel()
+                    dismiss()
+                },
+            ) {
                 Text(cancelText, dropShadow = false)
             }
             Button(
@@ -189,10 +240,12 @@ fun <T> ModalScope.ChoiceDialog(
             }
         },
         actions = {
-            Button(onClick = {
-                onCancel()
-                dismiss()
-            }) {
+            Button(
+                onClick = {
+                    onCancel()
+                    dismiss()
+                },
+            ) {
                 Text(cancelText, dropShadow = false)
             }
         },

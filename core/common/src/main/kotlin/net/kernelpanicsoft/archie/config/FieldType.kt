@@ -1,6 +1,5 @@
 package net.kernelpanicsoft.archie.config
 
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -8,10 +7,12 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
 import net.kernelpanicsoft.archie.serialization.DeferredListSerializer
 import net.kernelpanicsoft.archie.serialization.DeferredMapSerializer
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.ColorSerializer
 import net.kernelpanicsoft.archie.serialization.serializers.ResourceLocationSerializer
 import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KClass
+import kotlin.reflect.full.createType
 
 /**
  * Tags a [DataSpec] field with its runtime type and the [KSerializer] used to read/write it,
@@ -81,14 +82,16 @@ internal sealed class FieldType<T>
 
 	data class EnumSelector<T : Enum<T>>(val kClass: KClass<T>) : FieldType<T>()
 	{
-		@OptIn(InternalSerializationApi::class)
-		override val serializer: KSerializer<T> = kClass.serializer()
+		// Module-aware, unlike the bare KClass.serializer() reflective lookup - matters if T
+		// (or a field of it) ever needs a contextual serializer registered via SerializationManager.
+		@Suppress("UNCHECKED_CAST")
+		override val serializer: KSerializer<T> = SerializationManager.module.serializer(kClass.createType()) as KSerializer<T>
 	}
 
 	data class Selector<T : Any>(val kClass: KClass<T>) : FieldType<T>()
 	{
-		@OptIn(InternalSerializationApi::class)
-		override val serializer: KSerializer<T> = kClass.serializer()
+		@Suppress("UNCHECKED_CAST")
+		override val serializer: KSerializer<T> = SerializationManager.module.serializer(kClass.createType()) as KSerializer<T>
 	}
 
 	data object IntList : FieldType<List<kotlin.Int>>()

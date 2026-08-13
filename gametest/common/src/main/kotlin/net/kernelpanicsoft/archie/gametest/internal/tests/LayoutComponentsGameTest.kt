@@ -14,6 +14,7 @@ import net.kernelpanicsoft.archie.gui.composables.containers.Panel
 import net.kernelpanicsoft.archie.gui.composables.containers.Scrollable
 import net.kernelpanicsoft.archie.gui.composables.containers.ScrollableState
 import net.kernelpanicsoft.archie.gui.composables.containers.TabPanel
+import net.kernelpanicsoft.archie.gui.composables.input.Button
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Arrangement
 import net.kernelpanicsoft.archie.gui.layout.Column
@@ -25,6 +26,7 @@ import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.kernelpanicsoft.archie.gui.theme.Theme
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import org.lwjgl.glfw.GLFW
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -64,10 +66,19 @@ class LayoutComponentsGameTest {
 
                     node("Row") { click() }
                     waitForComposeIdle()
+                    waitTicks(10) // let the expand animation (220ms) finish settling
 
                     assertTrue(toggled.get()) { "Expected onToggled to fire on header click" }
                     assertHasDescendant("CollapsibleContent")
                     assertAllDescendantsSized()
+
+                    // Regression check: the separator Spacer's fillMaxHeight() previously filled
+                    // CollapsibleContent's own deliberately-unbounded measure constraint instead
+                    // of matching its sibling content, ballooning this to ~Int.MAX_VALUE.
+                    val contentHeight = node("CollapsibleContent") { context.computeOnClient { node.height } }
+                    assertTrue(contentHeight in 1..30) {
+                        "Expected CollapsibleContent's height to roughly match a single line of text, got $contentHeight"
+                    }
 
                     node("Row") { click() }
                     waitForComposeIdle()
@@ -92,6 +103,54 @@ class LayoutComponentsGameTest {
 
                     val offsetAfterScroll = computeOnClient { scrollState.scrollOffset }
                     assertTrue(offsetAfterScroll > 0.0) { "Expected scrolling over the Scrollable node to move scrollOffset, got $offsetAfterScroll" }
+                }
+            }
+        }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testScrollDoesNotCorruptContentX() {
+        // Regression test for IntCoordinates' packed-Long constructor: a negative y sign-extends
+        // across the bits x is packed into, so any negatively-offset content (exactly what
+        // Scrollable produces once scrolled - placeAt(0, -scrollPos)) previously decoded with
+        // x forced to -1 no matter its real value.
+        val scrollState = ScrollableState()
+        setScreen { ScrollableProbeScreen(scrollState) }
+        waitForScreen<ScrollableProbeScreen> {
+            waitForLayer(0) {
+                node("Scrollable") {
+                    val xBefore = computeOnClient { node.children.first().x }
+                    assertEquals(0, xBefore)
+
+                    scroll(y = -10.0)
+                    waitForComposeIdle()
+
+                    val (scrollOffset, xAfter) = computeOnClient { scrollState.scrollOffset to node.children.first().x }
+                    assertTrue(scrollOffset > 0.0) { "Expected scrolling over the Scrollable node to move scrollOffset, got $scrollOffset" }
+                    assertEquals(0, xAfter) { "Expected the scrolled content's x to stay 0 (only y should move), got $xAfter" }
+                }
+            }
+        }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testFocusScrollsIntoView() {
+        val scrollState = ScrollableState()
+        setScreen { FocusScrollProbeScreen(scrollState) }
+        waitForScreen<FocusScrollProbeScreen> {
+            waitForLayer(0) {
+                node("Scrollable") {
+                    assertEquals(0.0, computeOnClient { scrollState.scrollOffset })
+
+                    // The 80px-tall viewport only shows the first few of 20 buttons - Tab far
+                    // enough to reach one scrolled out of view below the fold.
+                    repeat(15) { getInput().pressKey(GLFW.GLFW_KEY_TAB) }
+                    waitForComposeIdle()
+
+                    val offsetAfter = computeOnClient { scrollState.scrollOffset }
+                    assertTrue(offsetAfter > 0.0) {
+                        "Expected Tab-focusing a button scrolled out of view to scroll it into view, got offset=$offsetAfter"
+                    }
                 }
             }
         }
@@ -174,6 +233,25 @@ private class ScrollableProbeScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(2)) {
                         repeat(60) { index ->
                             Text(Component.literal("Row ${index + 1}"), dropShadow = false)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private class FocusScrollProbeScreen(
+    private val scrollState: ScrollableState,
+) : ComposeScreen(Component.literal("Focus Scroll Probe")) {
+    override fun init() {
+        super.init()
+        start {
+            Theme {
+                Scrollable(state = scrollState, modifier = Modifier.height(80).width(120)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2)) {
+                        repeat(20) { index ->
+                            Button(onClick = {}) { Text(Component.literal("Button $index"), dropShadow = false) }
                         }
                     }
                 }

@@ -9,11 +9,19 @@
       "width": 64,
       "height": 20
     },
-    "hovered": {
+    "focused": {
       "texture": "archie:java/button_highlighted"
     },
     "disabled": {
       "texture": "archie:java/button_disabled"
     }
+  },
+  "min_size": {
+    "width": 50,
+    "height": 20
+  },
+  "content_padding": {
+    "horizontal": 4,
+    "vertical": 2
   }
 }

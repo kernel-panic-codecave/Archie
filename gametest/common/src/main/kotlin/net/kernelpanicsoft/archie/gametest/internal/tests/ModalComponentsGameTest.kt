@@ -1,5 +1,6 @@
 package net.kernelpanicsoft.archie.gametest.internal.tests
 
+import androidx.compose.runtime.SideEffect
 import net.kernelpanicsoft.archie.gametest.ClientGameTest
 import net.kernelpanicsoft.archie.gametest.ClientGameTestContext
 import net.kernelpanicsoft.archie.gametest.LayerSelector
@@ -11,7 +12,11 @@ import net.kernelpanicsoft.archie.gui.composables.modal.ModalChoice
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
 import net.kernelpanicsoft.archie.gui.layout.Column
+import net.kernelpanicsoft.archie.gui.nodes.UINode
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.theme.Theme
 import net.minecraft.network.chat.Component
+import org.lwjgl.glfw.GLFW
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -150,6 +155,100 @@ class ModalComponentsGameTest {
             }
             waitFor { _ -> layerCount == 1 }
             assertTrue(cancelled.get()) { "Expected ConfirmDialog's onCancel to fire" }
+        }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testModalOpenResetsBaseScreenFocus() {
+        setScreen { ModalComponentsProbeScreen() }
+        waitForScreen<ModalComponentsProbeScreen> {
+            getInput().pressKey(GLFW.GLFW_KEY_TAB)
+            waitForComposeIdle()
+
+            val triggers = baseLayer.rootNode { nodes("Button") }
+            triggers[0] {
+                assertRenderState(TextureStates.FOCUSED) { "Expected Tab to vanilla-focus the first base-screen button" }
+            }
+
+            // Opening the modal is a mouse click, not Tab, so the base screen's vanilla focus
+            // reference is still pointing at triggers[0] the instant the modal appears - exactly
+            // the stale-focus scenario the reset needs to clear.
+            triggers[3] { click() } // "Open Confirm"
+            waitFor { _ -> layerCount == 2 }
+            waitForComposeIdle()
+
+            triggers[0] {
+                assertTrue(renderState != TextureStates.FOCUSED) {
+                    "Expected the base screen's button to lose vanilla focus once a modal opened on top of it"
+                }
+            }
+        }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testModalInheritsRootTheme() {
+        // Regression check: a pushed modal is its own top-level Composition, parented directly
+        // to the screen's Recomposer rather than nested under the base layer's tree (see
+        // LayerStackManager's own doc) - so without LayerStackManager.rootTheme explicitly
+        // re-supplying it, LocalTheme.current inside a modal would silently fall back to its own
+        // default ("java") instead of whatever Theme{} the base layer actually used.
+        val capturedType = AtomicReference<String?>(null)
+        setScreen { ModalThemeProbeScreen(onModalThemeCaptured = { capturedType.set(it) }) }
+        waitForScreen<ModalThemeProbeScreen> {
+            assertEquals(1, layerCount)
+            baseLayer.rootNode { nodes("Button") }[0] { click() } // "Open Modal"
+            waitFor { _ -> layerCount == 2 }
+            waitForComposeIdle()
+            assertEquals("bedrock", capturedType.get()) {
+                "Expected the modal to inherit the root Theme's type instead of LocalTheme's own default"
+            }
+        }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testModalInheritsNestedThemeOverride() {
+        // A Theme{} nested inside another Theme{} pushes onto LayerStackManager.themeStack on
+        // top of the outer one while mounted - a modal triggered from within the nested override
+        // should inherit *that* (the innermost/most specific ambient theme), not the outer root.
+        val capturedType = AtomicReference<String?>(null)
+        setScreen { ModalThemeProbeScreen(nestedOverrideType = "java", onModalThemeCaptured = { capturedType.set(it) }) }
+        waitForScreen<ModalThemeProbeScreen> {
+            baseLayer.rootNode { nodes("Button") }[0] { click() } // "Open Modal", inside the nested override
+            waitFor { _ -> layerCount == 2 }
+            waitForComposeIdle()
+            assertEquals("java", capturedType.get()) {
+                "Expected the modal to inherit the nested Theme override, not the outer root theme"
+            }
+        }
+    }
+}
+
+private class ModalThemeProbeScreen(
+    private val nestedOverrideType: String? = null,
+    private val onModalThemeCaptured: (String) -> Unit = {},
+) : ComposeScreen(Component.literal("Modal Theme Probe")) {
+    override fun init() {
+        super.init()
+        start {
+            Theme(type = "bedrock") {
+                val layers = LocalLayerManager.current
+                val openModal: (UINode) -> Unit = {
+                    layers.modal {
+                        val theme = LocalTheme.current
+                        SideEffect { onModalThemeCaptured(theme.type) }
+                        Text(Component.literal("Modal"), dropShadow = false)
+                    }
+                }
+                Column {
+                    if (nestedOverrideType != null) {
+                        Theme(type = nestedOverrideType) {
+                            Button(onClick = openModal) { Text(Component.literal("Open Modal"), dropShadow = false) }
+                        }
+                    } else {
+                        Button(onClick = openModal) { Text(Component.literal("Open Modal"), dropShadow = false) }
+                    }
+                }
+            }
         }
     }
 }

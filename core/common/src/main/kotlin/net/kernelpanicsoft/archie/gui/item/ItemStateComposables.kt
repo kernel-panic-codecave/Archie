@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import kotlinx.serialization.serializer
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 
 /**
  * Provides the current [ComposeItemContainerMenu]'s state to composables in the composition
@@ -45,5 +46,5 @@ inline fun <reified T> observeItemProperty(
 	initialValue: T? = null,
 ): MutableState<T?> {
 	val state = LocalItemState.current ?: throw RuntimeException("No item container state available in composition")
-	return state.observeProperty<T>(propertyName, serializer(), initialValue)
+	return state.observeProperty<T>(propertyName, SerializationManager.module.serializer(), initialValue)
 }

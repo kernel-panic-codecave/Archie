@@ -25,6 +25,8 @@ import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.theme.Theme
+import net.kernelpanicsoft.archie.gui.theme.ThemeData
+import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.HsvColor
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.minecraft.network.chat.Component
@@ -59,12 +61,10 @@ class InputComponentsGameTest {
                     assertHasDescendant("ColorPicker")
                     assertHasDescendant("Button")
 
-                    // Every RadioGroup option's Row wraps exactly one RadioButton (itself inside
-                    // the Box every Clickable-based composable renders its content in) plus its
-                    // label, in order.
+                    // Every RadioGroup option's Row wraps exactly one RadioButton (applying
+                    // Modifier.selectable directly - no wrapping Box) plus its label, in order.
                     node("Row") {
-                        assertChildNames("Box", "Text")
-                        node("Box") { assertHasDescendant("RadioButton") }
+                        assertChildNames("RadioButton", "Text")
                     }
 
                     assertAllDescendantsSized()
@@ -83,15 +83,15 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     click()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.CLICKED_AND_HOVERED) { "Expected checkbox to be both checked and hovered right after a click at its own center" }
+                    assertRenderState(TextureStates.CLICKED_AND_FOCUSED) { "Expected checkbox to be both checked and hovered right after a click at its own center" }
 
                     click()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED) { "Expected checkbox to be unchecked again after a second click" }
+                    assertRenderState(TextureStates.FOCUSED) { "Expected checkbox to be unchecked again after a second click" }
                 }
             }
         }
@@ -112,7 +112,7 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
                 }
             }
         }
@@ -165,7 +165,7 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     context.getInput().holdMouse(0)
                     waitForComposeIdle()
@@ -173,7 +173,7 @@ class InputComponentsGameTest {
 
                     context.getInput().releaseMouse(0)
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED) { "Expected slider to return to hovered after releasing the drag" }
+                    assertRenderState(TextureStates.FOCUSED) { "Expected slider to return to hovered after releasing the drag" }
                 }
             }
         }
@@ -190,7 +190,7 @@ class InputComponentsGameTest {
 
                     hover()
                     waitForComposeIdle()
-                    assertRenderState(TextureStates.HOVERED)
+                    assertRenderState(TextureStates.FOCUSED)
 
                     click()
                     waitForComposeIdle()
@@ -199,6 +199,42 @@ class InputComponentsGameTest {
                 }
             }
         }
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testDarkThemeResolvesRecoloredButtonTexture() {
+        // Regression check for the generated archie_themes/java/dark/*.json + *_dark.png
+        // assets: ThemeData.getComposableTheme looks up "java/dark/button" first when mode is
+        // ThemeVariants.DARK - a missing/misnamed dark file would silently fall back to the
+        // light "java/button" theme instead of failing loudly, so this asserts the resolved
+        // default-state texture is actually the recolored one.
+        val texture = computeOnClient {
+            ThemeData(ThemeVariants.DARK, "java", KColor.DARK_GRAY, KColor.WHITE)
+                .getComposableTheme("button")
+                .states[TextureStates.DEFAULT]!!
+                .texture
+                .toString()
+        }
+        assertEquals("archie:java/button_dark", texture)
+    }
+
+    @ClientGameTest
+    fun ClientGameTestContext.testBedrockThemeResolvesOriginalTextures() {
+        // Regression check for the generated archie_themes/bedrock/*.json + bedrock/dark/*.json
+        // assets (an original theme, not copied from any third-party pack - see commit history):
+        // the light variant's button should resolve to the bedrock texture set, and the dark
+        // variant's surface (the one component whose art actually differs between light/dark,
+        // matching the reference pack this was styled after) should resolve to its own
+        // recolored texture rather than silently falling back to the light one.
+        val (buttonTexture, darkSurfaceTexture) = computeOnClient {
+            val bedrock = ThemeData(ThemeVariants.DEFAULT, "bedrock", KColor.DARK_GRAY, KColor.WHITE)
+            val bedrockDark = ThemeData(ThemeVariants.DARK, "bedrock", KColor.DARK_GRAY, KColor.WHITE)
+            val button = bedrock.getComposableTheme("button").states[TextureStates.DEFAULT]!!.texture.toString()
+            val darkSurface = bedrockDark.getComposableTheme("surface").states[TextureStates.DEFAULT]!!.texture.toString()
+            button to darkSurface
+        }
+        assertEquals("archie:bedrock/button", buttonTexture)
+        assertEquals("archie:bedrock/surface_dark", darkSurfaceTexture)
     }
 
     @ClientGameTest

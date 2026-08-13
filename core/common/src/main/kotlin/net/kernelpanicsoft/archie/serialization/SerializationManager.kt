@@ -90,6 +90,15 @@ object SerializationManager {
 		serializersModule = sharedModule
 	}
 
+	/**
+	 * The [SerializersModule] shared by [cbor]/[json]/[nbt], for code that needs a serializer
+	 * without going through one of those formats - e.g. `module.serializer<T>()` instead of the
+	 * bare top-level `serializer<T>()`, which silently ignores every contextual serializer
+	 * registered here (ResourceLocation, BlockPos, etc. - see [MinecraftSerializersModule]) and
+	 * falls back to raw reflection instead.
+	 */
+	val module: SerializersModule get() = sharedModule
+
 	/** The shared [Cbor] instance, reconfigured with [sharedModule] whenever [overwriteWith] or [invoke] runs. */
 	var cbor: Cbor = createCbor()
 		private set

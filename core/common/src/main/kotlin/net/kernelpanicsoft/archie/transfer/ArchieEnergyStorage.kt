@@ -13,7 +13,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.encoding.decodeStructure
 import kotlinx.serialization.encoding.encodeStructure
 import net.benwoodworth.knbt.NbtTag
-import net.kernelpanicsoft.archie.serialization.NBT
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import kotlin.math.min
@@ -96,7 +96,7 @@ class ArchieEnergyStorage(
 	}
 
 	/** Snapshots this storage's [getCapacity] and stored amount as an [NbtTag], for save/sync. */
-	override fun createSnapshot(): NbtTag = NBT.encodeToNbtTagRootless(serializer(), this)
+	override fun createSnapshot(): NbtTag = SerializationManager.nbt.encodeToNbtTagRootless(serializer(), this)
 
 	/**
 	 * Restores this storage's capacity and stored amount from a snapshot produced by
@@ -106,7 +106,7 @@ class ArchieEnergyStorage(
 	 */
 	override fun readSnapshot(snapshot: NbtTag)
 	{
-		val decoded = NBT.decodeFromNbtTagRootless(serializer(), snapshot)
+		val decoded = SerializationManager.nbt.decodeFromNbtTagRootless(serializer(), snapshot)
 		this.capacity = decoded.capacity.coerceAtLeast(0)
 		this.amount = decoded.amount.coerceIn(0, this.capacity)
 	}

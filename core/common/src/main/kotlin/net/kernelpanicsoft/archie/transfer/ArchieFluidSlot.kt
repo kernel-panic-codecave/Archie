@@ -19,7 +19,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.encoding.decodeStructure
 import kotlinx.serialization.encoding.encodeStructure
 import net.benwoodworth.knbt.NbtTag
-import net.kernelpanicsoft.archie.serialization.NBT
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.kSerializer
@@ -134,7 +134,7 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 
 	override fun createSnapshot(): NbtTag
 	{
-		return NBT.encodeToNbtTagRootless(serializer(), this)
+		return SerializationManager.nbt.encodeToNbtTagRootless(serializer(), this)
 	}
 
 	override fun update()
@@ -144,7 +144,7 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 
 	override fun readSnapshot(snapshot: NbtTag)
 	{
-		this.stack = NBT.decodeFromNbtTagRootless(serializer(), snapshot).stack
+		this.stack = SerializationManager.nbt.decodeFromNbtTagRootless(serializer(), snapshot).stack
 	}
 
 	/** Serializes an [ArchieFluidSlot] as its [limit] followed by its [ResourceStack] (or `null` when blank). */
