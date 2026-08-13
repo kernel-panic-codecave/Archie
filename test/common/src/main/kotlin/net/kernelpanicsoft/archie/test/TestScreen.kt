@@ -52,9 +52,6 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 
 	init
 	{
-//		ArchieTest.LOGGER.info("Screen: $title")
-//		this.imageHeight = 114 + rows * 18
-//		this.inventoryLabelY = this.imageHeight - 94
 		start {
 			content()
 		}
@@ -212,32 +209,6 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 			Column(verticalArrangement = Arrangement.spacedBy(4)) {
 				Text(Component.literal("Synced value: ${test.ifEmpty { "<empty>" }}"), dropShadow = false)
 				Text(Component.literal("Choice dialog result: $pickedChoice"), dropShadow = false)
-				Button(onClick = {
-					layers.modal(dismissOnClickOutside = false) {
-						Panel(modifier = Modifier.size(196, 150)) {
-							Column(verticalArrangement = Arrangement.spacedBy(4)) {
-								Text(Component.literal("Modal Slot Scroll Test"), dropShadow = false)
-								Text(Component.literal("This modal should render above all base slots."), dropShadow = false, fontScale = 0.9f)
-								Scrollable(modifier = Modifier.size(186, 104)) {
-									Column(verticalArrangement = Arrangement.spacedBy(1)) {
-										repeat(14) {
-											Row(horizontalArrangement = Arrangement.spacedBy(1)) {
-												repeat(9) {
-													Surface(texture = "slot", modifier = Modifier.size(18, 18)) {}
-												}
-											}
-										}
-									}
-								}
-								Button(onClick = { dismiss() }, modifier = Modifier.width(80)) {
-									Text(Component.literal("Close"), dropShadow = false)
-								}
-							}
-						}
-					}
-				}) {
-					Text(Component.literal("Open Modal Slot Scroll Test"), dropShadow = false)
-				}
 				Button(onClick = {
 					layers.confirmDialog(
 						title = Component.literal("Compose Layer Demo"),

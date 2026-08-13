@@ -53,19 +53,19 @@ class NBTHolderImpl : NBTHolder
 				override fun getValue(thisRef: Any?, property: KProperty<*>): T
 				{
 					return runCatching {
-						NBT.decodeFromNbtTagRootless(serializer, data.getOrPut(property.name.toSnakeCase()) {
-							NBT.encodeToNbtTagRootless(serializer, default())
+						SerializationManager.nbt.decodeFromNbtTagRootless(serializer, data.getOrPut(property.name.toSnakeCase()) {
+							SerializationManager.nbt.encodeToNbtTagRootless(serializer, default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(serializer, ret)
+						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
 						ret
 					}.getOrThrow()
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
-					data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(serializer, value)
+					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
 					if (thisRef is BlockEntity)
 					{
 						if (property.name.toSnakeCase() in sync)
@@ -99,19 +99,19 @@ class NBTHolderImpl : NBTHolder
 				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableList<T>
 				{
 					return ObservableList(runCatching {
-						NBT.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(property.name.toSnakeCase()) {
-							NBT.encodeToNbtTagRootless(ListSerializer(serializer), default())
+						SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(property.name.toSnakeCase()) {
+							SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(ListSerializer(serializer), ret)
+						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
 						ret
 					}.getOrThrow().toMutableList()) { list -> setValue(thisRef, property, list) }
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableList<T>)
 				{
-					data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(ListSerializer(serializer), value)
+					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
 					if (thisRef is BlockEntity)
 					{
 						if (property.name.toSnakeCase() in sync)
@@ -145,19 +145,19 @@ class NBTHolderImpl : NBTHolder
 				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableMap<String, T>
 				{
 					return ObservableMap(runCatching {
-						NBT.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(property.name.toSnakeCase()) {
-							NBT.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), default())
+						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(property.name.toSnakeCase()) {
+							SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
+						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
 						ret
 					}.getOrThrow().toMutableMap()) { map -> setValue(thisRef, property, map) }
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableMap<String, T>)
 				{
-					data[property.name.toSnakeCase()] = NBT.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
+					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
 					if (thisRef is BlockEntity)
 					{
 						if (property.name.toSnakeCase() in sync)
@@ -299,6 +299,6 @@ class NBTHolderImpl : NBTHolder
 
 	override fun <T> updateProperty(propertyName: String, serializer: KSerializer<T>, value: T)
 	{
-		this.data[propertyName] = NBT.encodeToNbtTagRootless(serializer, value)
+		this.data[propertyName] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
 	}
 }

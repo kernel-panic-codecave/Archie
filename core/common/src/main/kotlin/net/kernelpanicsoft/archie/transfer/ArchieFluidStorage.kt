@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.encoding.decodeStructure
 import kotlinx.serialization.encoding.encodeStructure
 import net.benwoodworth.knbt.NbtTag
-import net.kernelpanicsoft.archie.serialization.NBT
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import net.minecraft.core.NonNullList
@@ -68,7 +68,7 @@ open class ArchieFluidStorage private constructor(
 
 	override fun createSnapshot(): NbtTag
 	{
-		return NBT.encodeToNbtTagRootless(serializer(), this)
+		return SerializationManager.nbt.encodeToNbtTagRootless(serializer(), this)
 	}
 
 	override fun update()
@@ -78,7 +78,7 @@ open class ArchieFluidStorage private constructor(
 
 	override fun readSnapshot(snapshot: NbtTag)
 	{
-		val slots = NBT.decodeFromNbtTagRootless(serializer(), snapshot).slots
+		val slots = SerializationManager.nbt.decodeFromNbtTagRootless(serializer(), snapshot).slots
 		for (i in 0 until min(this.slots.size, slots.size))
 		{
 			this.slots[i] = slots[i]

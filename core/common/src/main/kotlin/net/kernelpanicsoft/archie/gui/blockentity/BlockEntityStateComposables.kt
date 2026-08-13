@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import kotlinx.serialization.serializer
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 
 /**
  * Provides the current block entity state to composables in the composition tree.
@@ -40,5 +41,5 @@ inline fun <reified T> observeProperty(
     initialValue: T? = null,
 ): MutableState<T?> {
     val state = LocalBlockEntityState.current ?: throw RuntimeException("No block entity state available in composition")
-    return state.observeProperty<T>(propertyName, serializer(), initialValue)
+    return state.observeProperty<T>(propertyName, SerializationManager.module.serializer(), initialValue)
 }
