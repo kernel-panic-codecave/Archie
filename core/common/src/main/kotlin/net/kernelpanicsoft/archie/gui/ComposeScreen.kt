@@ -79,7 +79,7 @@ interface LayerManagerProvider
  * (`compileOnly` in `common`, `runtimeLibrary` - present for local runs, never bundled - in the
  * loader modules; see `common/build.gradle.kts`). [ComposeScreen] is loaded by every screen in
  * the mod, so its own class file must never reference a symbol that isn't resolvable in a real
- * player's game; only [AClientGameTestHarness]'s method bodies (never invoked outside
+ * player's game; only `AClientGameTestHarness`'s method bodies (never invoked outside
  * `AGameTestPlatform.isGameTest`) construct the actual `StandardTestDispatcher`/
  * `TestCoroutineScheduler` instances installed here.
  */

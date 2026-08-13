@@ -81,7 +81,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	 */
 	open val isEnabled: Boolean = true
 
-	/** Registers [subcategories] as fields on this category, recursively. */
+	/** Registers [CategorySpec.subcategories] as fields on this category, recursively. */
 	internal open fun init()
 	{
 		SerializationManager {

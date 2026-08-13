@@ -25,9 +25,6 @@ import net.minecraft.resources.ResourceLocation
  */
 object AConditionBuilder
 {
-	/** [AAndCondition] of `this` and [other]. */
-
-
 	fun and(vararg values: IACondition): IACondition = AAndCondition(*values)
 	fun or(vararg values: IACondition): IACondition = AOrCondition(*values)
 	fun xor(vararg values: IACondition): IACondition = AXorCondition(*values)

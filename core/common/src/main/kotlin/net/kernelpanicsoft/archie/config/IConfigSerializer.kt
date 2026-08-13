@@ -11,7 +11,7 @@ import java.nio.file.StandardCopyOption
  * implementations live in `net.kernelpanicsoft.archie.config.serializer`; [ConfigSpec.fileSerializer]
  * picks one per-platform by default.
  *
- * [configPath], [load], and [save] all take a [configFolder] that defaults to the platform's shared
+ * [configPath], [load], and [save] all take a `configFolder` that defaults to the platform's shared
  * config folder ([Platform.getConfigFolder]); [ConfigSpec] passes its own [ConfigSpec.configFolder]
  * instead, which a [ConfigSpec.Server] repoints at the current world's per-save `serverconfig/` folder.
  */

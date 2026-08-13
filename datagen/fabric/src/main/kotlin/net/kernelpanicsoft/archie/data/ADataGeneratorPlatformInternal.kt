@@ -25,7 +25,7 @@ internal object ADataGeneratorPlatformInternal
 	 * Appends one [EntrypointContainer] per mod in [ADatagenEvents.MODS] to
 	 * [dataGeneratorInitializers], each of which fires [ADatagenEvents.GATHER_DATA] with an
 	 * [ADataGeneratorFabric] for that mod. No-op outside a datagen run
-	 * ([ADataGeneratorPlatform.isDataGen] false).
+	 * ([net.kernelpanicsoft.archie.data.platform.ADataGeneratorPlatform.isDataGen] false).
 	 */
 	@JvmStatic
 	@JvmName("addEntrypoints")
