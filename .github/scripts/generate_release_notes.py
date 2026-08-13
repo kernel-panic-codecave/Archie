@@ -189,9 +189,16 @@ def update_changelog(path: Path, version_heading: str, date: str, body: str) -> 
             "[Conventional Commits](https://www.conventionalcommits.org/).\n\n"
         )
     marker = re.search(r"^## \[", content, re.MULTILINE)
-    if marker:
-        insert_at = marker.start()
-        content = content[:insert_at] + section + content[insert_at:]
+    # A retried/re-run pre-publish generation (--new-tag hasn't become a real tag yet, so the
+    # walk range and version_heading are identical to last time) would otherwise prepend another
+    # full duplicate section on every retry instead of regenerating the same one - replace the
+    # existing section in place when it's for this exact version and already sits at the top.
+    if marker and content[marker.start():].startswith(f"## {version_heading} - "):
+        next_marker = re.search(r"^## \[", content[marker.end():], re.MULTILINE)
+        section_end = marker.end() + next_marker.start() if next_marker else len(content)
+        content = content[:marker.start()] + section + content[section_end:]
+    elif marker:
+        content = content[:marker.start()] + section + content[marker.start():]
     else:
         content = content.rstrip("\n") + "\n\n" + section
     path.write_text(content)
@@ -230,13 +237,19 @@ def main() -> None:
                               "explicitly (e.g. HEAD) when --new-tag isn't a ref that exists yet")
     parser.add_argument("--prev-tag", default=None, help="auto-detected if omitted")
     parser.add_argument("--changelog-path", type=Path, default=None)
+    parser.add_argument("--latest-path", type=Path, default=None,
+                         help="also write just this release's own rendered body (no accumulated "
+                              "history) here - e.g. for modpublisher's changelog = file(...), "
+                              "which submits its whole input as a single platform-side upload "
+                              "(Modrinth's version_body has a length limit CHANGELOG.md's full, "
+                              "ever-growing history will eventually exceed)")
     parser.add_argument("--posts-dir", type=Path, default=None,
                          help="omit to skip news-post generation (e.g. the pre-publish flow)")
     parser.add_argument("--dry-run", action="store_true", help="print instead of writing files")
     args = parser.parse_args()
 
-    if not args.dry_run and not args.changelog_path and not args.posts_dir:
-        parser.error("nothing to do - pass --changelog-path and/or --posts-dir, or --dry-run")
+    if not args.dry_run and not args.changelog_path and not args.latest_path and not args.posts_dir:
+        parser.error("nothing to do - pass --changelog-path, --latest-path, and/or --posts-dir, or --dry-run")
 
     range_end = args.range_end or args.new_tag
     prev_tag = args.prev_tag or detect_previous_tag(range_end)
@@ -263,6 +276,11 @@ def main() -> None:
     if args.changelog_path:
         update_changelog(args.changelog_path, f"[{version_display}]", date, body)
         print(f"Updated {args.changelog_path}")
+
+    if args.latest_path:
+        args.latest_path.parent.mkdir(parents=True, exist_ok=True)
+        args.latest_path.write_text(body)
+        print(f"Wrote {args.latest_path}")
 
     if args.posts_dir:
         post_path = write_news_post(
