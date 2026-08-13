@@ -265,7 +265,13 @@ tasks {
 		group = "publishing"
 		val tag = rootProject.version.toString().substringBeforeLast(".")
 		workingDir = rootDir
-		commandLine("mike", "deploy", "--push", "--update-aliases", tag, "latest")
+		// --alias-type redirect: mike's default ("symlink") writes the "latest" alias as an
+		// actual symlink into the gh-pages branch, which GitHub's own automatic Pages
+		// build-and-deploy (triggered whenever gh-pages is pushed, separate from this task)
+		// rejects outright ("content does not contain any hard links, symlinks"). "redirect"
+		// makes the alias a small HTML redirect page instead - no symlink, same effect for
+		// visitors.
+		commandLine("mike", "deploy", "--push", "--update-aliases", "--alias-type", "redirect", tag, "latest")
 	}
 	// modpublisher's changelog reads CHANGELOG.md straight off disk when a publish task runs - it
 	// doesn't know about git tags or PRs. .github/workflows/release-notes.yaml (reactive, post-tag)
