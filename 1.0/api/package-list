@@ -24,6 +24,8 @@ net.kernelpanicsoft.archie.gui.composables.input
 net.kernelpanicsoft.archie.gui.composables.input.textfield
 net.kernelpanicsoft.archie.gui.composables.modal
 net.kernelpanicsoft.archie.gui.composables.theme
+net.kernelpanicsoft.archie.gui.focus
+net.kernelpanicsoft.archie.gui.interaction
 net.kernelpanicsoft.archie.gui.item
 net.kernelpanicsoft.archie.gui.layer
 net.kernelpanicsoft.archie.gui.layout
@@ -67,6 +69,8 @@ net.kernelpanicsoft.archie.gui.composables.input
 net.kernelpanicsoft.archie.gui.composables.input.textfield
 net.kernelpanicsoft.archie.gui.composables.modal
 net.kernelpanicsoft.archie.gui.composables.theme
+net.kernelpanicsoft.archie.gui.focus
+net.kernelpanicsoft.archie.gui.interaction
 net.kernelpanicsoft.archie.gui.item
 net.kernelpanicsoft.archie.gui.layer
 net.kernelpanicsoft.archie.gui.layout
@@ -113,6 +117,8 @@ net.kernelpanicsoft.archie.gui.composables.input
 net.kernelpanicsoft.archie.gui.composables.input.textfield
 net.kernelpanicsoft.archie.gui.composables.modal
 net.kernelpanicsoft.archie.gui.composables.theme
+net.kernelpanicsoft.archie.gui.focus
+net.kernelpanicsoft.archie.gui.interaction
 net.kernelpanicsoft.archie.gui.item
 net.kernelpanicsoft.archie.gui.layer
 net.kernelpanicsoft.archie.gui.layout
