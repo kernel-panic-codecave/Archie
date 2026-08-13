@@ -227,8 +227,13 @@ fun Slider(
 	                partialTick: Float,
                 ) = guiGraphics {
                     val trackY = y + (node.height - fillHeight) / 2
-                    val trackStart = x + (thumbSize.width / 2)
-                    val trackEnd = x + node.width - (thumbSize.width / 2)
+                    // Spans the track's actual full width (0%..100% -> fully unfilled..fully
+                    // filled, touching both edges) - the thumb's own half-width inset is handled
+                    // separately by resolveSliderThumbX's clamp below, so insetting trackStart/
+                    // trackEnd here too would double up, leaving a permanent gap the fill could
+                    // never close even at 100%.
+                    val trackStart = x
+                    val trackEnd = x + node.width
                     val availableTrack = (trackEnd - trackStart).coerceAtLeast(1)
                     val fillEnd = trackStart + (availableTrack * normalizedValue).roundToInt()
                     val thumbX = resolveSliderThumbX(
