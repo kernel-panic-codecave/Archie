@@ -210,9 +210,8 @@ publisher {
 	apiKeys {
 		curseforge("curseforge_api_key".localOrEnv)
 		modrinth("modrinth_api_key".localOrEnv)
+		github("github_token".localOrEnv)
 	}
-
-	debug = true
 
 	curseID = "1029738"
 	modrinthID = "archie"
@@ -227,7 +226,11 @@ publisher {
 	artifact = tasks.fusejars.get()
 	javaVersions = listOf(JavaVersion.VERSION_21)
 
-	changelog = file("CHANGELOG.md")
+	// Just this release's own notes (generateChangelog writes it below), not the whole
+	// ever-growing CHANGELOG.md - modpublisher submits this file's entire content as the
+	// version body, and Modrinth's version_body has a length limit CHANGELOG.md's full history
+	// eventually exceeds.
+	changelog = file("build/latest-changelog.md")
 
 	curseDepends {
 		required = listOf("fabric-api", "fabric-language-kotlin", "kotlinlangforge", "architectury-api", "cloth-config")
@@ -288,6 +291,7 @@ tasks {
 			"--new-tag", "v${project.version}",
 			"--range-end", "HEAD",
 			"--changelog-path", "CHANGELOG.md",
+			"--latest-path", "build/latest-changelog.md",
 		)
 	}
 	listOf("publishCurseforge", "publishModrinth", "publishGitHub", "publishMod").forEach {
