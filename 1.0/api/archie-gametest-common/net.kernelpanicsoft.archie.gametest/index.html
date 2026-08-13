@@ -159897,9 +159897,6 @@
 </span></code></pre>
 </div>
 </div>
-<div>
-<p>Runs every <a href="-client-game-test/index.html"><code>ClientGameTest</code></a>-annotated method across modToClasses (as collected by AGameTestPlatform.register via <a href="-a-game-test-event-object/index.html"><code>AGameTestEventObject</code></a>/<code>AGametestEvents.ArchieGameTestBuilder</code>'s <code>client { }</code> block) sequentially on the client thread, then returns to the title screen. No-ops (returning an all-zero summary) unless side is <a href="../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-side/-c-l-i-e-n-t/index.html"><code>AGameTestSide.CLIENT</code></a>.</p>
-</div>
 <h3 id="aclientgametestsummary"><a href="-a-client-game-test-summary/index.html"><code>AClientGameTestSummary</code></a><a class="headerlink" href="#aclientgametestsummary" title="Permanent link">&para;</a></h3>
 <div>
 <div class="highlight">
@@ -159995,7 +159992,7 @@
 </div>
 </div>
 <div>
-<p>A trivially-succeeding placeholder, registered by AGameTestPlatformInternal on each loader when a mod's <a href="../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-mod-filter/index.html"><code>net.kernelpanicsoft.archie.gametest.platform.AGameTestModFilter</code></a>-selected suite has no real test functions for the current <a href="../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-side/index.html"><code>net.kernelpanicsoft.archie.gametest.platform.AGameTestSide</code></a> - e.g. a mod with only client-side coverage (like Archie-Test, whose own suite registers just net.kernelpanicsoft.archie.test.gametest.TestScreenGameTest) running its server invocation. Vanilla's <code>GameTestServer</code> refuses to boot with zero registered test functions at all (<code>IllegalArgumentException: No test functions were given!</code>); this keeps that boot trivially satisfied instead of crashing the whole invocation.</p>
+<p>A trivially-succeeding placeholder, registered by <code>AGameTestPlatformInternal</code> on each loader when a mod's <a href="../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-mod-filter/index.html"><code>net.kernelpanicsoft.archie.gametest.platform.AGameTestModFilter</code></a>-selected suite has no real test functions for the current <a href="../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-side/index.html"><code>net.kernelpanicsoft.archie.gametest.platform.AGameTestSide</code></a> - e.g. a mod with only client-side coverage (like Archie-Test, whose own suite registers just <code>net.kernelpanicsoft.archie.test.gametest.TestScreenGameTest</code>) running its server invocation. Vanilla's <code>GameTestServer</code> refuses to boot with zero registered test functions at all (<code>IllegalArgumentException: No test functions were given!</code>); this keeps that boot trivially satisfied instead of crashing the whole invocation.</p>
 </div>
 <h3 id="rawimageimpl"><a href="-raw-image-impl/index.html"><code>RawImageImpl</code></a><a class="headerlink" href="#rawimageimpl" title="Permanent link">&para;</a></h3>
 <div>
@@ -160136,7 +160133,7 @@
 </div>
 </div>
 <div>
-<p>Builds a test world from <a href="-client-game-test-context/index.html#worldbuilder"><code>ClientGameTestContext.worldBuilder</code></a>: either a singleplayer world via <a href="-test-world-builder/index.html#create"><code>create</code></a>/<a href="-test-world-builder/index.html#withsingleplayer"><code>withSingleplayer</code></a>, or a same-JVM dedicated server via <a href="-test-world-builder/index.html#createserver"><code>createServer</code></a>/<a href="-test-world-builder/index.html#withserver"><code>withServer</code></a> for tests that need a real client↔server boundary (e.g. exercising ConfigSpec.Server sync or other multiplayer-only codepaths) rather than the integrated server a singleplayer world uses.</p>
+<p>Builds a test world from <a href="-client-game-test-context/index.html#worldbuilder"><code>ClientGameTestContext.worldBuilder</code></a>: either a singleplayer world via <a href="-test-world-builder/index.html#create"><code>create</code></a>/<a href="-test-world-builder/index.html#withsingleplayer"><code>withSingleplayer</code></a>, or a same-JVM dedicated server via <a href="-test-world-builder/index.html#createserver"><code>createServer</code></a>/<a href="-test-world-builder/index.html#withserver"><code>withServer</code></a> for tests that need a real client↔server boundary (e.g. exercising <a href="../../archie-core-common/net.kernelpanicsoft.archie.config/-config-spec/-server/index.html"><code>net.kernelpanicsoft.archie.config.ConfigSpec.Server</code></a> sync or other multiplayer-only codepaths) rather than the integrated server a singleplayer world uses.</p>
 </div>
 <h3 id="verbosetestreporter"><a href="-verbose-test-reporter/index.html"><code>VerboseTestReporter</code></a><a class="headerlink" href="#verbosetestreporter" title="Permanent link">&para;</a></h3>
 <div>

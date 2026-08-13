@@ -159582,7 +159582,6 @@
 <pre><code class="md-code__content"><span markdown><span class="kd">object </span><a href="index.html">AClientGameTestHarness</a>
 </span></code></pre>
 </div>
-<p>Runs every <a href="../-client-game-test/index.html"><code>ClientGameTest</code></a>-annotated method across modToClasses (as collected by AGameTestPlatform.register via <a href="../-a-game-test-event-object/index.html"><code>AGameTestEventObject</code></a>/<code>AGametestEvents.ArchieGameTestBuilder</code>'s <code>client { }</code> block) sequentially on the client thread, then returns to the title screen. No-ops (returning an all-zero summary) unless side is <a href="../../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-side/-c-l-i-e-n-t/index.html"><code>AGameTestSide.CLIENT</code></a>.</p>
 </div>
 <h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <h3 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
@@ -159591,6 +159590,9 @@
 <pre><code class="md-code__content"><span markdown><span class="kd">fun </span><a href="index.html#run"><span class="nf">run</span></a><span class="p">(</span>modToClasses<span class="o">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="o">&lt;</span>Mod<span class="p">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="o">&lt;</span><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Class.html">Class</a><span class="o">&lt;</span><span class="o">*</span><span class="o">&gt;</span><span class="o">&gt;</span><span class="o">&gt;</span><span class="p">, </span>side<span class="o">: </span><a href="../../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-side/index.html">AGameTestSide</a><span class="o">?</span><span class="p">)</span><span class="o">: </span><a href="../-a-client-game-test-summary/index.html">AClientGameTestSummary</a>
 </span></code></pre>
 </div>
+</div>
+<div>
+<p>Runs every <a href="../-client-game-test/index.html"><code>ClientGameTest</code></a>-annotated method across <a href="index.html#run"><code>modToClasses</code></a> (as collected by AGameTestPlatform.register via <a href="../-a-game-test-event-object/index.html"><code>AGameTestEventObject</code></a>/<code>AGametestEvents.ArchieGameTestBuilder</code>'s <code>client { }</code> block) sequentially on the client thread, then returns to the title screen. No-ops (returning an all-zero summary) unless <a href="index.html#run"><code>side</code></a> is <a href="../../../archie-core-common/net.kernelpanicsoft.archie.gametest.platform/-a-game-test-side/-c-l-i-e-n-t/index.html"><code>AGameTestSide.CLIENT</code></a>.</p>
 </div>
 
 

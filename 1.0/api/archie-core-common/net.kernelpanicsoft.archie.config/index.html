@@ -159754,7 +159754,7 @@
 </div>
 </div>
 <div>
-<p>Client-side mirror of a <a href="-data-spec/index.html"><code>DataSpec</code></a>, built lazily as <a href="-data-spec/index.html#client"><code>DataSpec.client</code></a>. Every <code>boolean</code>/ <code>int</code>/... method here is called by its <a href="-data-spec/index.html"><code>DataSpec</code></a> counterpart (via DataSpec.onClient) with matching parameters, and queues a ConfigEntryBuilder-based entry that reads from and writes back into the same backing maps on spec. buildRoot/buildSub then turn the queued entries into an actual Cloth Config ConfigCategory/SubCategoryListEntry. None of this is called directly by mod authors - see <a href="-data-spec/index.html"><code>DataSpec</code></a> for the public DSL.</p>
+<p>Client-side mirror of a <a href="-data-spec/index.html"><code>DataSpec</code></a>, built lazily as <a href="-data-spec/index.html#client"><code>DataSpec.client</code></a>. Every <code>boolean</code>/ <code>int</code>/... method here is called by its <a href="-data-spec/index.html"><code>DataSpec</code></a> counterpart (via <a href="../net.kernelpanicsoft.archie.util/on-client.html"><code>net.kernelpanicsoft.archie.util.onClient</code></a>) with matching parameters, and queues a ConfigEntryBuilder-based entry that reads from and writes back into the same backing maps on spec. buildRoot/buildSub then turn the queued entries into an actual Cloth Config ConfigCategory/SubCategoryListEntry. None of this is called directly by mod authors - see <a href="-data-spec/index.html"><code>DataSpec</code></a> for the public DSL.</p>
 </div>
 <h3 id="comment"><a href="-comment/index.html"><code>Comment</code></a><a class="headerlink" href="#comment" title="Permanent link">&para;</a></h3>
 <div>
