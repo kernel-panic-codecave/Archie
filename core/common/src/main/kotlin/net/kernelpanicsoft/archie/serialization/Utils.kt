@@ -96,8 +96,8 @@ val <T : Any> KSerializer<T>.codec: Codec<T>
  */
 val <T : Any> KSerializer<T>.streamCodec: StreamCodec<RegistryFriendlyByteBuf, T>
 	get() = StreamCodec.of<RegistryFriendlyByteBuf, T>(
-		{ buffer, value -> buffer.writeByteArray(SerializationManager.cbor.encodeToByteArray(this, value)) },
-		{ buffer -> SerializationManager.cbor.decodeFromByteArray(this, buffer.readByteArray()) }
+		{ buffer, value -> buffer.write(this, value) },
+		{ buffer -> buffer.read(this) }
 	)
 
 /**

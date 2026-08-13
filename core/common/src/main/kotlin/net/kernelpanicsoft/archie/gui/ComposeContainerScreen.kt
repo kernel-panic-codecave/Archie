@@ -19,11 +19,13 @@ import net.kernelpanicsoft.archie.gui.item.LocalItemState
 import net.kernelpanicsoft.archie.gui.layer.Layer
 import net.kernelpanicsoft.archie.gui.layer.LayerStackManager
 import net.kernelpanicsoft.archie.gui.layer.LocalLayerManager
+import net.kernelpanicsoft.archie.gui.layer.LocalLayerManagerOrNull
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
+import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
@@ -163,7 +165,19 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
                 LocalBlockEntityState provides (menu as? ComposeBlockContainerMenu<*, *>)?.blockEntityState,
                 LocalItemState provides (menu as? ComposeItemContainerMenu<*>)?.itemState,
                 LocalLayerManager provides layerManager,
-            ) { layerContent() }
+                LocalLayerManagerOrNull provides layerManager,
+            ) {
+                // Re-supplies whatever Theme{} is currently mounted in the base layer (see
+                // LayerStackManager.rootTheme) so a later-pushed layer isn't stuck with
+                // LocalTheme's own default - it's a separate top-level composition, so it'd
+                // never otherwise see a Theme{} that only wraps the base layer's own content.
+                val theme = layerManager.rootTheme
+                if (theme != null) {
+                    CompositionLocalProvider(LocalTheme provides theme) { layerContent() }
+                } else {
+                    layerContent()
+                }
+            }
         }
 
         AUIScopeManager.scopes += composeScope
