@@ -66,7 +66,7 @@ class TestScreen(menu: TestMenu, playerInventory: Inventory, title: Component) :
 		val layerManager = LocalLayerManager.current
 		var syncedValue by observeProperty("test", "")
 		val test = syncedValue ?: ""
-		Theme {
+		Theme(type = "bedrock") {
 			Box(modifier = Modifier.width(contentWidth + 16)) {
 				TabContainerPanel(contentWidth) {
 					for (showcase in TestKind.entries) {
