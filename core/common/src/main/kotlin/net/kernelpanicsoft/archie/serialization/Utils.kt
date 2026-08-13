@@ -42,7 +42,7 @@ inline fun <reified T : Any> RegistryFriendlyByteBuf.write(data: T) = write(Seri
  * Writes data into a [RegistryFriendlyByteBuf] using a [KSerializer]
  */
 fun <T : Any> RegistryFriendlyByteBuf.write(serializer: KSerializer<T>, data: T) =
-	writeBytes(SerializationManager.cbor.encodeToByteArray(serializer, data))
+	writeByteArray(SerializationManager.cbor.encodeToByteArray(serializer, data))
 
 /**
  * Converts a [Codec] into a [KSerializer].
