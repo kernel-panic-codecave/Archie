@@ -40,7 +40,7 @@ val String.prop: String?
 	get() = sharedProperties?.get(this)?.toString()
 
 val String.localOrEnv: String?
-	get() = System.getenv(this.uppercase())
+	get() = localProperties?.getProperty(this) ?: System.getenv(this.uppercase())
 
 subprojects {
 	apply(plugin = "dev.architectury.loom")
@@ -226,10 +226,6 @@ publisher {
 	artifact = tasks.fusejars.get()
 	javaVersions = listOf(JavaVersion.VERSION_21)
 
-	// Just this release's own notes (generateChangelog writes it below), not the whole
-	// ever-growing CHANGELOG.md - modpublisher submits this file's entire content as the
-	// version body, and Modrinth's version_body has a length limit CHANGELOG.md's full history
-	// eventually exceeds.
 	changelog = file("build/latest-changelog.md")
 
 	curseDepends {
