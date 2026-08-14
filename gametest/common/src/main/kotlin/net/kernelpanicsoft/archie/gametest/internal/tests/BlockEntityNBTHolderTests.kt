@@ -43,6 +43,33 @@ class BlockEntityNBTHolderTests
 		val energy by energyField(1_000)
 	}
 
+	/** [NBTHolder] with one of each resource-storage *collection* field kind, used only by the test below. */
+	private class ResourceCollectionFixture : NBTHolder by NBTHolder.create()
+	{
+		val itemMap by itemMapField(1)
+		val itemList by itemListField(1)
+	}
+
+	/** A nested [NBTHolder] type, used only by [OtherNestedFixture] and the nesting test below. */
+	private class NestedFixture : NBTHolder by NBTHolder.create()
+	{
+		var value by intField { 0 }
+	}
+
+	/** A second, differently-shaped nested [NBTHolder] type, to exercise heterogeneous nested collections. */
+	private class OtherNestedFixture : NBTHolder by NBTHolder.create()
+	{
+		var label by stringField { "" }
+	}
+
+	/** [NBTHolder] with one of each nested-holder field kind, used only by the test below. */
+	private class NestingFixture : NBTHolder by NBTHolder.create()
+	{
+		val single by nestedField { NestedFixture() }
+		val list by nestedListField { tag -> if ("label" in tag) OtherNestedFixture() else NestedFixture() }
+		val map by nestedMapField { tag -> if ("label" in tag) OtherNestedFixture() else NestedFixture() }
+	}
+
 	@GameTest(template = EMPTY)
 	fun GameTestHelper.testFieldDefaultsAndPersistenceRoundTrip()
 	{
@@ -121,6 +148,53 @@ class BlockEntityNBTHolderTests
 		}
 		assertEquals(400L, loaded.energy.getStoredAmount())
 		assertEquals(1_000L, loaded.energy.getCapacity())
+		succeed()
+	}
+
+	@GameTest(template = EMPTY)
+	fun GameTestHelper.testItemMapAndListFieldsPersistMutations()
+	{
+		val holder = ResourceCollectionFixture()
+		holder.itemMap.getOrPut("a")[0].set(ItemStack(Items.DIAMOND, 3))
+		holder.itemList.add()[0].set(ItemStack(Items.EMERALD, 2))
+
+		val tag = CompoundTag()
+		holder.saveToTag(tag)
+
+		val loaded = ResourceCollectionFixture()
+		loaded.loadFromTag(tag)
+
+		assertEquals(Items.DIAMOND, loaded.itemMap["a"]!![0].getItem().item)
+		assertEquals(3, loaded.itemMap["a"]!![0].getItem().count)
+		assertEquals(1, loaded.itemList.size)
+		assertEquals(Items.EMERALD, loaded.itemList[0][0].getItem().item)
+		assertEquals(2, loaded.itemList[0][0].getItem().count)
+		succeed()
+	}
+
+	@GameTest(template = EMPTY)
+	fun GameTestHelper.testNestedHolderFieldsPersistHeterogeneousMutations()
+	{
+		val holder = NestingFixture()
+		holder.single.value = 5
+		holder.list.add { NestedFixture() }.value = 6
+		holder.list.add { OtherNestedFixture() }.label = "seven"
+		holder.map.getOrPut("a") { NestedFixture() }
+		(holder.map["a"] as NestedFixture).value = 8
+		holder.map.getOrPut("b") { OtherNestedFixture() }
+		(holder.map["b"] as OtherNestedFixture).label = "nine"
+
+		val tag = CompoundTag()
+		holder.saveToTag(tag)
+
+		val loaded = NestingFixture()
+		loaded.loadFromTag(tag)
+
+		assertEquals(5, loaded.single.value)
+		assertEquals(6, (loaded.list[0] as NestedFixture).value)
+		assertEquals("seven", (loaded.list[1] as OtherNestedFixture).label)
+		assertEquals(8, (loaded.map["a"] as NestedFixture).value)
+		assertEquals("nine", (loaded.map["b"] as OtherNestedFixture).label)
 		succeed()
 	}
 

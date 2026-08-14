@@ -52,14 +52,56 @@ interface NBTHolder
 	/** Declares a mutable-map (keyed by [String]) field backed by [serializer], keyed by the delegated property's name. */
 	fun <T> mapField(serializer: KSerializer<T>, default: () -> Map<String, T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
 
+	/**
+	 * Declares a [NestedNBTHolderMap] field, keyed by the delegated property's name. Unlike
+	 * [mapField], entries aren't one fixed kotlinx.serialization-compatible value type - each is
+	 * its own self-contained [NBTHolder], built fresh via [factory] either when first inserted
+	 * ([NestedNBTHolderMap.getOrPut]) or, when loading a previously-saved entry back, from that
+	 * entry's own raw sub-[CompoundTag] (so [factory] can inspect it - e.g. a stored "kind" field -
+	 * to decide which concrete nested holder type to reconstruct).
+	 */
+	fun nestedMapField(factory: (CompoundTag) -> NBTHolder): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap>>
+
+	/**
+	 * Declares a [NestedNBTHolderList] field, keyed by the delegated property's name - the
+	 * index-ordered counterpart to [nestedMapField]; see its KDoc for [factory]'s role.
+	 */
+	fun nestedListField(factory: (CompoundTag) -> NBTHolder): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList>>
+
+	/**
+	 * Declares a single nested [NBTHolder] field, keyed by the delegated property's name and built
+	 * once via [factory] - the scalar counterpart to [nestedMapField]/[nestedListField]. Unlike
+	 * those, there's exactly one fixed-type entry, so no per-entry type discrimination is needed:
+	 * [factory] takes no tag to inspect.
+	 */
+	fun <T : NBTHolder> nestedField(factory: () -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>>
+
 	/** Declares an [ArchieItemStorage] field with [size] slots, keyed by the delegated property's name. */
 	fun itemField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+
+	/** Declares an [ArchieStorageMap] of [ArchieItemStorage]s, each with [size] slots, keyed by the delegated property's name. */
+	fun itemMapField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
+
+	/** Declares an [ArchieStorageList] of [ArchieItemStorage]s, each with [size] slots, keyed by the delegated property's name. */
+	fun itemListField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
 
 	/** Declares an [ArchieFluidStorage] field with [size] tank slots each capped at [limit], keyed by the delegated property's name. */
 	fun fluidField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 
+	/** Declares an [ArchieStorageMap] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. */
+	fun fluidMapField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
+
+	/** Declares an [ArchieStorageList] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. */
+	fun fluidListField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
+
 	/** Declares an [ArchieEnergyStorage] field capped at [capacity], keyed by the delegated property's name. */
 	fun energyField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
+
+	/** Declares an [ArchieStorageMap] of [ArchieEnergyStorage]s, each capped at [capacity], keyed by the delegated property's name. */
+	fun energyMapField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieEnergyStorage>>>
+
+	/** Declares an [ArchieStorageList] of [ArchieEnergyStorage]s, each capped at [capacity], keyed by the delegated property's name. */
+	fun energyListField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieEnergyStorage>>>
 
 	fun booleanField(default: () -> Boolean = { false }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Boolean>> = field(Boolean.serializer(), default)
 	fun byteField(default: () -> Byte = { 0 }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Byte>> = field(Byte.serializer(), default)
