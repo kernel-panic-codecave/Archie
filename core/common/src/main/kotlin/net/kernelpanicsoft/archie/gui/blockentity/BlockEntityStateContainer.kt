@@ -3,6 +3,8 @@ package net.kernelpanicsoft.archie.gui.blockentity
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializerOrNull
+import net.kernelpanicsoft.archie.config.toSnakeCase
+import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.Sync
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.entity.BlockEntity
@@ -45,8 +47,8 @@ class BlockEntityStateContainer(
             if (property.hasAnnotation<Sync>())
             {
                 property.isAccessible = true
-                (property.returnType.classifier as KClass<out Any>).serializerOrNull()?.let { serializer ->
-                    propertySerializers[property.name] = serializer
+                SerializationManager.module.serializerOrNull(property.returnType)?.let { serializer ->
+                    propertySerializers[property.name.toSnakeCase()] = anySerializer(serializer)
                 }
             }
         }

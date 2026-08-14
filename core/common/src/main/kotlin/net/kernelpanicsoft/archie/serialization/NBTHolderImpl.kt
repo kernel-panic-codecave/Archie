@@ -91,7 +91,7 @@ class NBTHolderImpl : NBTHolder
 				sync += property.name.toSnakeCase()
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), serializer)
+					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ListSerializer(serializer))
 				}
 			}
 			val delegate = object : ReadWriteProperty<Any?, MutableList<T>>
@@ -137,7 +137,7 @@ class NBTHolderImpl : NBTHolder
 				sync += property.name.toSnakeCase()
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), serializer)
+					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), MapSerializer(String.serializer(), serializer))
 				}
 			}
 			val delegate = object : ReadWriteProperty<Any?, MutableMap<String, T>>
