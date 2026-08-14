@@ -72,6 +72,12 @@ dependencies {
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
+	// compose.runtime's own transitive deps; Loom's dev-run GAMELIBRARY discovery doesn't walk
+	// transitive deps of a bundled library the way production JarJar packaging does, so each needs
+	// its own explicit declaration to be visible during runClient/runClientNeoForge.
+	bundleRuntimeLibrary(libs.androidx.annotation)
+	bundleRuntimeLibrary(libs.androidx.collection)
+	bundleRuntimeLibrary(libs.okio)
 	modRuntimeOnly(libs.rei.neoforge)
 	modCompileOnlyApi(libs.catalogue.neoforge)
 	modRuntimeOnly(libs.catalogue.neoforge)

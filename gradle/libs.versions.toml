@@ -56,6 +56,9 @@ dokka-mkdocs = "0.6.1"
 junit = "5.11.4"
 junit-platform = "1.11.4"
 ui-tooling-preview-jvmstubs = "1.10.6"
+androidx-annotation = "1.8.0"
+androidx-collection = "1.4.0"
+okio = "3.9.0"
 
 [bundles]
 # must contain all transitive deps, so they can be included in the production jar
@@ -72,6 +75,13 @@ kotlinx-serialization-json5 = { module = "io.github.xn32:json5k-jvm", version.re
 kotlinx-serialization-nbt = { module = "net.benwoodworth.knbt:knbt-jvm", version.ref = "knbt" }
 kotlinx-serialization-toml = { module = "net.peanuuutz.tomlkt:tomlkt-jvm", version.ref = "tomlkt" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines-test" }
+
+# compose.runtime's own transitive deps - not pulled in automatically by bundleRuntimeLibrary's
+# dev-run GAMELIBRARY discovery (only its production JarJar packaging walks transitively), so each
+# needs its own explicit bundleRuntimeLibrary call
+androidx-annotation = { module = "androidx.annotation:annotation-jvm", version.ref = "androidx-annotation" }
+androidx-collection = { module = "androidx.collection:collection-jvm", version.ref = "androidx-collection" }
+okio = { module = "com.squareup.okio:okio-jvm", version.ref = "okio" }
 
 minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
 parchment = { module = "org.parchmentmc.data:parchment-1.21.1", version.ref = "parchment" }
