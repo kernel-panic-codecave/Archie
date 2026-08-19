@@ -215,7 +215,7 @@ fun Slider(
         Layout(
             name = "Slider",
             measurePolicy = measurePolicy,
-            modifier = sizeModifier,
+            modifier = sizeModifier.then(modifier),
             renderer = object : Renderer {
                 override fun render(
 	                node: UINode,
