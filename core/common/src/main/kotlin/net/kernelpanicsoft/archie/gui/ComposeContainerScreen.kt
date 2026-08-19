@@ -8,6 +8,7 @@ import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
+import com.mojang.blaze3d.systems.RenderSystem
 import kotlinx.coroutines.*
 import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
@@ -83,6 +84,15 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
         private const val BASE_LAYER_Z = 100f
         private const val LAYER_Z_STEP = 200f
         private const val SLOT_LAYER_OFFSET = 120f
+
+        /**
+         * Extra room past a slot's own 16x16 icon box that [slotClipRect] leaves unclipped, for
+         * vanilla's own stack-count/durability-bar decorations - those (and the count text's drop
+         * shadow, offset a further 1px down-right) are drawn slightly past that box's bottom-right
+         * corner and were never meant to be clipped to it. Only the *group* clip (a [net.kernelpanicsoft.archie.gui.composables.containers.Scrollable]
+         * viewport boundary) needs to stay pixel-tight to the icon box itself.
+         */
+        private const val SLOT_DECORATION_MARGIN = 2
 
         /** The base Z offset used when rendering the layer at [layerDepth], deepest layers on top. */
         fun layerBaseZ(layerDepth: Int): Float = BASE_LAYER_Z + layerDepth * LAYER_Z_STEP
@@ -266,11 +276,23 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(guiGraphics, mouseX, mouseY, partialTick)
-        renderTooltip(guiGraphics, mouseX, mouseY)
+        // Modal/dropdown layers draw after the title/inventory labels (real work deferred here
+        // from renderLabels(), see its own override below) and the tooltip, not before - both are
+        // meant to sit above whatever an open modal is showing, not get painted over by it, so
+        // they're the last things painted this frame instead of running where vanilla's own
+        // AbstractContainerScreen.render() would have put them (sandwiched between the slot loop
+        // and the floating dragged-item render, well before this screen's own modal layers ever
+        // get a turn to draw).
         if (layerManager.layers.size > 1)
         {
             renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
         }
+        RenderSystem.disableDepthTest()
+        guiGraphics.pose().pushPose()
+        guiGraphics.pose().translate(leftPos.toFloat(), topPos.toFloat(), 0f)
+        super.renderLabels(guiGraphics, mouseX, mouseY)
+        guiGraphics.pose().popPose()
+        renderTooltip(guiGraphics, mouseX, mouseY)
 
         // See ComposeScreen.renderNodes for why this only runs when the top layer actually
         // changed (a modal opening or closing), not every frame.
@@ -309,6 +331,18 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) {
         renderNodes(true, guiGraphics, mouseX, mouseY, partialTick)
+    }
+
+    /**
+     * No-op here - vanilla's own [AbstractContainerScreen.render] calls this sandwiched between
+     * the slot loop and the floating dragged-item render, well before this screen's own modal/
+     * dropdown layers ([renderNodes]) get their own turn to draw. [ContainerPanel][net.kernelpanicsoft.archie.gui.composables.containers.ContainerPanel]
+     * still routes the actual title/inventory text through vanilla's label rendering (positioned
+     * via [titleLabelPos]/[inventoryLabelPos]), so the real call just moves to [render] instead,
+     * after any open modal - otherwise a modal that visually overlaps the label position paints
+     * over it, the same problem [render] also fixes for the tooltip.
+     */
+    override fun renderLabels(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
     }
 
     /**
@@ -374,7 +408,7 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
         val slotMinX = leftPos + slot.x
         val slotMinY = topPos + slot.y
-        val slotRect = IntRect(slotMinX, slotMinY, slotMinX + 16, slotMinY + 16)
+        val slotRect = IntRect(slotMinX, slotMinY, slotMinX + 16 + SLOT_DECORATION_MARGIN, slotMinY + 16 + SLOT_DECORATION_MARGIN)
 
         return effectiveClip.intersect(slotRect)
     }
