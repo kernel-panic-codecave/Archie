@@ -276,6 +276,7 @@ abstract class ComposeScreen(
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        reconcileHoverState(mouseX.toDouble(), mouseY.toDouble())
         super.render(guiGraphics, mouseX, mouseY, partialTick)
         renderNodes(guiGraphics, mouseX, mouseY, partialTick)
     }
@@ -350,6 +351,23 @@ abstract class ComposeScreen(
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         val top = topNode() ?: return super.mouseMoved(mouseX, mouseY)
         processPointerEvent(top, mouseX, mouseY, PointerEventType.MOVE)
+        reconcileHoverState(mouseX, mouseY)
+        super.mouseMoved(mouseX, mouseY)
+    }
+
+    /**
+     * Fires ENTER/EXIT for whatever [topNode] children actually changed hover state between
+     * [lastMouseX]/[lastMouseY] and [mouseX]/[mouseY] - shared by [mouseMoved] (the normal,
+     * discrete-event path) and [render] (called every frame regardless of whether a `mouseMoved`
+     * event ever fires). The per-frame call from [render] matters because a cursor moving straight
+     * from over a node to outside the game window entirely fires no further `mouseMoved` - there's
+     * nothing left inside the window to move *to* - which otherwise leaves that node's own hover
+     * state (and anything driven by it, e.g. a tooltip or slot highlight) stuck indefinitely,
+     * self-correcting only once the cursor re-enters and triggers a real `mouseMoved` again.
+     */
+    private fun reconcileHoverState(mouseX: Double, mouseY: Double) {
+        val top = topNode() ?: return
+        if (mouseX == lastMouseX && mouseY == lastMouseY) return
         processPointerEvent(top, mouseX, mouseY, PointerEventType.ENTER) {
             it.isBounded(mouseX.toInt(), mouseY.toInt()) && !it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
         }
@@ -357,7 +375,6 @@ abstract class ComposeScreen(
             !it.isBounded(mouseX.toInt(), mouseY.toInt()) && it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
         }
         lastMouseX = mouseX; lastMouseY = mouseY
-        super.mouseMoved(mouseX, mouseY)
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
