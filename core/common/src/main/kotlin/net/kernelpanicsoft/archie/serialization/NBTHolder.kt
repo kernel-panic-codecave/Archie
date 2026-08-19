@@ -58,15 +58,18 @@ interface NBTHolder
 	 * its own self-contained [NBTHolder], built fresh via [factory] either when first inserted
 	 * ([NestedNBTHolderMap.getOrPut]) or, when loading a previously-saved entry back, from that
 	 * entry's own raw sub-[CompoundTag] (so [factory] can inspect it - e.g. a stored "kind" field -
-	 * to decide which concrete nested holder type to reconstruct).
+	 * to decide which concrete nested holder type to reconstruct). [T] is [factory]'s return type -
+	 * the common upper bound every entry shares, letting a caller declare e.g.
+	 * `NestedNBTHolderMap<HookHolderState>` instead of always getting back the base [NBTHolder]
+	 * type and having to cast every entry manually.
 	 */
-	fun nestedMapField(factory: (CompoundTag) -> NBTHolder): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap>>
+	fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
 
 	/**
 	 * Declares a [NestedNBTHolderList] field, keyed by the delegated property's name - the
-	 * index-ordered counterpart to [nestedMapField]; see its KDoc for [factory]'s role.
+	 * index-ordered counterpart to [nestedMapField]; see its KDoc for [factory]'s role and [T]'s.
 	 */
-	fun nestedListField(factory: (CompoundTag) -> NBTHolder): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList>>
+	fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
 
 	/**
 	 * Declares a single nested [NBTHolder] field, keyed by the delegated property's name and built
@@ -76,32 +79,45 @@ interface NBTHolder
 	 */
 	fun <T : NBTHolder> nestedField(factory: () -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>>
 
-	/** Declares an [ArchieItemStorage] field with [size] slots, keyed by the delegated property's name. */
-	fun itemField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+	/**
+	 * Declares an [ArchieItemStorage] field with [size] slots, keyed by the delegated property's
+	 * name. [onUpdate], if given, runs in addition to (not instead of) this holder's own internal
+	 * bookkeeping (persistence, `@Sync` propagation, `BlockEntity.setChanged`, ...) every time
+	 * [ArchieItemStorage.update] fires for this specific field - a caller-supplied "something in
+	 * this inventory changed" hook, without needing to poll it or re-derive the same notification
+	 * some other way.
+	 */
+	fun itemField(size: Int, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 
-	/** Declares an [ArchieStorageMap] of [ArchieItemStorage]s, each with [size] slots, keyed by the delegated property's name. */
-	fun itemMapField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
+	/**
+	 * Declares an [ArchieStorageMap] of [ArchieItemStorage]s, each with [size] slots, keyed by the
+	 * delegated property's name. [onUpdate], if given, runs whenever the map's own structure
+	 * changes (an entry added/removed/cleared) *or* any individual entry's own contents change -
+	 * every entry the map creates is wired with the map's own persistence trigger as well, so a
+	 * mutation deep inside one entry is never silently unpersisted.
+	 */
+	fun itemMapField(size: Int, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
 
-	/** Declares an [ArchieStorageList] of [ArchieItemStorage]s, each with [size] slots, keyed by the delegated property's name. */
-	fun itemListField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
+	/** Declares an [ArchieStorageList] of [ArchieItemStorage]s, each with [size] slots, keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
+	fun itemListField(size: Int, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
 
-	/** Declares an [ArchieFluidStorage] field with [size] tank slots each capped at [limit], keyed by the delegated property's name. */
-	fun fluidField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+	/** Declares an [ArchieFluidStorage] field with [size] tank slots each capped at [limit], keyed by the delegated property's name. See [itemField] for [onUpdate]'s semantics. */
+	fun fluidField(limit: Long, size: Int = 1, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 
-	/** Declares an [ArchieStorageMap] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. */
-	fun fluidMapField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
+	/** Declares an [ArchieStorageMap] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
+	fun fluidMapField(limit: Long, size: Int = 1, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
 
-	/** Declares an [ArchieStorageList] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. */
-	fun fluidListField(limit: Long, size: Int = 1): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
+	/** Declares an [ArchieStorageList] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
+	fun fluidListField(limit: Long, size: Int = 1, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
 
-	/** Declares an [ArchieEnergyStorage] field capped at [capacity], keyed by the delegated property's name. */
-	fun energyField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
+	/** Declares an [ArchieEnergyStorage] field capped at [capacity], keyed by the delegated property's name. See [itemField] for [onUpdate]'s semantics. */
+	fun energyField(capacity: Long, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
 
-	/** Declares an [ArchieStorageMap] of [ArchieEnergyStorage]s, each capped at [capacity], keyed by the delegated property's name. */
-	fun energyMapField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieEnergyStorage>>>
+	/** Declares an [ArchieStorageMap] of [ArchieEnergyStorage]s, each capped at [capacity], keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
+	fun energyMapField(capacity: Long, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieEnergyStorage>>>
 
-	/** Declares an [ArchieStorageList] of [ArchieEnergyStorage]s, each capped at [capacity], keyed by the delegated property's name. */
-	fun energyListField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieEnergyStorage>>>
+	/** Declares an [ArchieStorageList] of [ArchieEnergyStorage]s, each capped at [capacity], keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
+	fun energyListField(capacity: Long, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieEnergyStorage>>>
 
 	fun booleanField(default: () -> Boolean = { false }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Boolean>> = field(Boolean.serializer(), default)
 	fun byteField(default: () -> Byte = { 0 }): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Byte>> = field(Byte.serializer(), default)

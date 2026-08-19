@@ -31,9 +31,9 @@ class NBTHolderImpl : NBTHolder
 	private val itemStorage: MutableMap<String, ArchieItemStorage> = mutableMapOf()
 	private val fluidStorage: MutableMap<String, ArchieFluidStorage> = mutableMapOf()
 	private val energyStorage: MutableMap<String, ArchieEnergyStorage> = mutableMapOf()
-	private val nestedMapStorage: MutableMap<String, NestedNBTHolderMap> = mutableMapOf()
+	private val nestedMapStorage: MutableMap<String, NestedNBTHolderMap<*>> = mutableMapOf()
 	private val nestedMapFactories: MutableMap<String, (CompoundTag) -> NBTHolder> = mutableMapOf()
-	private val nestedListStorage: MutableMap<String, NestedNBTHolderList> = mutableMapOf()
+	private val nestedListStorage: MutableMap<String, NestedNBTHolderList<*>> = mutableMapOf()
 	private val nestedListFactories: MutableMap<String, (CompoundTag) -> NBTHolder> = mutableMapOf()
 	private val nestedHolderStorage: MutableMap<String, NBTHolder> = mutableMapOf()
 	private val itemMapStorage: MutableMap<String, ArchieStorageMap<ArchieItemStorage>> = mutableMapOf()
@@ -184,7 +184,7 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun nestedMapField(factory: (CompoundTag) -> NBTHolder): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap>>
+	override fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -195,7 +195,7 @@ class NBTHolderImpl : NBTHolder
 				// observation - only the map as a whole round-trips through saveToTag/loadFromTag/
 				// getSyncTag, same as itemField/fluidField/energyField below.
 			}
-			lateinit var map: NestedNBTHolderMap
+			lateinit var map: NestedNBTHolderMap<T>
 			map = NestedNBTHolderMap {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
@@ -207,12 +207,12 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun nestedListField(factory: (CompoundTag) -> NBTHolder): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList>>
+	override fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>()) sync += key
-			lateinit var list: NestedNBTHolderList
+			lateinit var list: NestedNBTHolderList<T>
 			list = NestedNBTHolderList {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
@@ -236,7 +236,7 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun itemField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+	override fun itemField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -247,7 +247,7 @@ class NBTHolderImpl : NBTHolder
 					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieItemStorage.serializer())
 				}
 			}
-			val onUpdate = when (thisRef)
+			val internalOnUpdate = when (thisRef)
 			{
 				is BlockEntity -> ({
 					if (property.name.toSnakeCase() in sync)
@@ -256,42 +256,46 @@ class NBTHolderImpl : NBTHolder
 				})
 				else -> ({})
 			}
-			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size, onUpdate)
+			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size) { internalOnUpdate(); onUpdate?.invoke() }
 			ReadOnlyProperty { _, _ -> itemStorage[property.name.toSnakeCase()]!! }
 		}
 	}
 
-	override fun itemMapField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
+	override fun itemMapField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			lateinit var map: ArchieStorageMap<ArchieItemStorage>
-			map = ArchieStorageMap({ ArchieItemStorage(size) }) {
+			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
+				onUpdate?.invoke()
 			}
+			map = ArchieStorageMap({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			itemMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun itemListField(size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
+	override fun itemListField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			lateinit var list: ArchieStorageList<ArchieItemStorage>
-			list = ArchieStorageList({ ArchieItemStorage(size) }) {
+			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
+				onUpdate?.invoke()
 			}
+			list = ArchieStorageList({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			itemListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }
 		}
 	}
 
-	override fun fluidField(limit: Long, size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+	override fun fluidField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -302,51 +306,55 @@ class NBTHolderImpl : NBTHolder
 					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieFluidStorage.serializer())
 				}
 			}
-			val onUpdate = when (thisRef)
-			{
-				is BlockEntity -> ({
+			val internalOnUpdate: () -> Unit = {
+				if (thisRef is BlockEntity)
+				{
 					if (property.name.toSnakeCase() in sync)
 						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), fluidStorage[property.name.toSnakeCase()])
 					thisRef.setChanged()
-				})
-				else -> ({})
+				}
+				onUpdate?.invoke()
 			}
-			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, onUpdate)
+			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, internalOnUpdate)
 			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
 		}
 	}
 
-	override fun fluidMapField(limit: Long, size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
+	override fun fluidMapField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			lateinit var map: ArchieStorageMap<ArchieFluidStorage>
-			map = ArchieStorageMap({ ArchieFluidStorage(limit, size) }) {
+			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
+				onUpdate?.invoke()
 			}
+			map = ArchieStorageMap({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			fluidMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun fluidListField(limit: Long, size: Int): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
+	override fun fluidListField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			lateinit var list: ArchieStorageList<ArchieFluidStorage>
-			list = ArchieStorageList({ ArchieFluidStorage(limit, size) }) {
+			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
+				onUpdate?.invoke()
 			}
+			list = ArchieStorageList({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			fluidListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }
 		}
 	}
 
-	override fun energyField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
+	override fun energyField(capacity: Long, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -357,44 +365,48 @@ class NBTHolderImpl : NBTHolder
 					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieEnergyStorage.serializer())
 				}
 			}
-			val onUpdate = when (thisRef)
-			{
-				is BlockEntity -> ({
+			val internalOnUpdate: () -> Unit = {
+				if (thisRef is BlockEntity)
+				{
 					if (property.name.toSnakeCase() in sync)
 						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), energyStorage[property.name.toSnakeCase()])
 					thisRef.setChanged()
-				})
-				else -> ({})
+				}
+				onUpdate?.invoke()
 			}
-			energyStorage[property.name.toSnakeCase()] = ArchieEnergyStorage(capacity, onUpdate)
+			energyStorage[property.name.toSnakeCase()] = ArchieEnergyStorage(capacity, internalOnUpdate)
 			ReadOnlyProperty { _, _ -> energyStorage[property.name.toSnakeCase()]!! }
 		}
 	}
 
-	override fun energyMapField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieEnergyStorage>>>
+	override fun energyMapField(capacity: Long, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieEnergyStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			lateinit var map: ArchieStorageMap<ArchieEnergyStorage>
-			map = ArchieStorageMap({ ArchieEnergyStorage(capacity) }) {
+			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
+				onUpdate?.invoke()
 			}
+			map = ArchieStorageMap({ ArchieEnergyStorage(capacity, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			energyMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun energyListField(capacity: Long): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieEnergyStorage>>>
+	override fun energyListField(capacity: Long, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieEnergyStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			lateinit var list: ArchieStorageList<ArchieEnergyStorage>
-			list = ArchieStorageList({ ArchieEnergyStorage(capacity) }) {
+			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) thisRef.setChanged()
+				onUpdate?.invoke()
 			}
+			list = ArchieStorageList({ ArchieEnergyStorage(capacity, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			energyListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }
