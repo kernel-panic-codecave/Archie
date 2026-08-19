@@ -525,7 +525,22 @@ object KOps
 			return NbtString(value)
 		}
 
-		private operator fun NbtList.Companion.invoke(content: List<NbtTag>): NbtList<*> = ListTag().apply { addAll(content.map { it.toMinecraft })}.fromMinecraft!!
+		/**
+		 * Builds an [NbtList] from [content] - for a non-empty [content], via a vanilla [ListTag] and
+		 * [fromMinecraft], which recovers the list's element type from its first real vanilla tag byte.
+		 * An empty [content] short-circuits that path instead: [ListTag.fromMinecraft] intentionally
+		 * returns `null` for an untyped (empty) list (there's no vanilla tag-type byte to recover a type
+		 * from at all), which this helper used to force-unwrap with `!!`, crashing on any genuinely empty
+		 * list - e.g. serializing an [ItemStack][net.minecraft.world.item.ItemStack] whose own component
+		 * data contains an empty list anywhere (confirmed via `HookBlockEntity.tick()` NPEing while
+		 * ticking a real item slot holding a blank pattern item, i.e. one backed by an empty list). The
+		 * phantom [NbtByte] element type an empty list is built with here is inert either way -
+		 * [NbtList.elementType] reports [net.benwoodworth.knbt.NbtTagType.TAG_End] for any empty list
+		 * regardless of its declared type parameter.
+		 */
+		private operator fun NbtList.Companion.invoke(content: List<NbtTag>): NbtList<*> =
+			if (content.isEmpty()) NbtList(emptyList<NbtByte>())
+			else ListTag().apply { addAll(content.map { it.toMinecraft }) }.fromMinecraft!!
 
 		override fun mergeToList(list: NbtTag?, value: NbtTag): DataResult<NbtTag>
 		{
