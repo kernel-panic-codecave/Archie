@@ -51,7 +51,7 @@ fun Row(
 	)
 }
 
-private data class RowMeasurePolicy(
+data class RowMeasurePolicy(
     private val horizontalArrangement: Arrangement.Horizontal,
     private val verticalAlignment: Alignment.Vertical,
 ) : RowColumnMeasurePolicy(sumWidth = true, arrangementSpacing = horizontalArrangement.spacing) {

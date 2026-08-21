@@ -75,7 +75,7 @@ class LayoutNode(
             // Rebuild processed-modifier map (merged by type)
             processedModifier = modifier.foldIn(mutableMapOf()) { acc, element ->
                 val existing = acc[element::class]
-                acc[element::class] = if (existing != null) existing.unsafeMergeWith(element) else element
+                acc[element::class] = existing?.unsafeMergeWith(element) ?: element
                 acc
             }
             drawModifiers = modifier.foldIn(mutableListOf()) { acc, element ->
@@ -120,7 +120,7 @@ class LayoutNode(
     val zIndex: Float get() = get<ZIndexModifier>()?.zIndex ?: 0f
 
     /** This node's absolute z-depth, combining its [layer]'s base z with all ancestor [zIndex]es. */
-    val effectiveZ: Float get() = effectiveZ(ComposeContainerScreen.layerBaseZ(layer))
+//    val effectiveZ: Float get() = effectiveZ(ComposeContainerScreen.layerBaseZ(layer))
 
     /** Computes the maximum effective z-depth in this subtree, adding [layerOffset]. */
     fun getMaxZ(layerOffset: Float): Float {
@@ -256,7 +256,7 @@ class LayoutNode(
             if (rootNode.debug) {
                 guiGraphics.pose().pushPose()
                 guiGraphics.pose().translate(0.0, 0.0, 1000.0 + zOffset)
-                renderDebug(x, y, guiGraphics, mouseX, mouseY, partialTick)
+                renderDebug(x, y, guiGraphics, mouseX, mouseY, partialTick, zOffset)
                 guiGraphics.pose().popPose()
             }
 
@@ -298,13 +298,21 @@ class LayoutNode(
 
     // ── Debug overlay ─────────────────────────────────────────────────────
 
-    private fun renderDebug(x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+    private fun renderDebug(
+        x: Int,
+        y: Int,
+        guiGraphics: GuiGraphics,
+        mouseX: Int,
+        mouseY: Int,
+        partialTick: Float,
+        zOffset: Float
+    ) {
         val dx = this.x + x
         val dy = this.y + y
 
         val hoveredChildren = children.toList().filter { it.isBounded(mouseX, mouseY) }
         if (hoveredChildren.isNotEmpty()) {
-            hoveredChildren.forEach { it.renderDebug(dx, dy, guiGraphics, mouseX, mouseY, partialTick) }
+            hoveredChildren.forEach { it.renderDebug(dx, dy, guiGraphics, mouseX, mouseY, partialTick, zOffset) }
             return
         }
         if (!isBounded(mouseX, mouseY)) return
@@ -338,7 +346,7 @@ class LayoutNode(
         val debugLines: List<List<Component>> = buildList {
             add(listOf(Component.literal(nodeName)))
             add(listOf(
-                Component.literal("X:").apply { append(Component.literal("$dx").withColor(0x00FFFF)); append(", Y:"); append(Component.literal("$dy").withColor(0x32CD32)); append(", Z:"); append(Component.literal("$effectiveZ").withColor(0xFF66FF)) },
+                Component.literal("X:").apply { append(Component.literal("$dx").withColor(0x00FFFF)); append(", Y:"); append(Component.literal("$dy").withColor(0x32CD32)); append(", Z:"); append(Component.literal("${effectiveZ(zOffset)}").withColor(0xFF66FF)) },
                 Component.literal("W:").apply { append(Component.literal("$width").withColor(0xFFA500)); append(", H:"); append(Component.literal("$height").withColor(0x87CEEB)); append(", L:"); append(Component.literal("$layer").withColor(0x87CEEB)) },
             ))
             if (extraDebug) {

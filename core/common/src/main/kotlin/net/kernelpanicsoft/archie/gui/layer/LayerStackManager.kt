@@ -24,17 +24,20 @@ import net.kernelpanicsoft.archie.gui.composables.modal.ConfirmDialog
 import net.kernelpanicsoft.archie.gui.composables.modal.ModalChoice
 import net.kernelpanicsoft.archie.gui.composables.modal.PromptDialog
 import net.kernelpanicsoft.archie.gui.layout.Box
+import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
+import net.kernelpanicsoft.archie.gui.layout.Layout
+import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
-import net.kernelpanicsoft.archie.gui.modifiers.appearance.background
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.modifiers.input.onPointerEvent
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
 import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.theme.ThemeData
+import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
 import java.util.*
 import kotlinx.coroutines.delay
@@ -404,14 +407,25 @@ class LayerStackManager(
             spec = AnimationSpec(durationMillis = transitionSpec.durationMillis, easing = transitionSpec.easing),
         )
         var rootModifier = Modifier.fillMaxSize()
-            .background((alpha.coerceIn(0, 255) shl 24))
         if (dismissOnClickOutside) {
             rootModifier = rootModifier.onPointerEvent<UINode>(PointerEventType.PRESS) { _, event ->
                 onDismissRequest()
                 event.consume()
             }
         }
-        Box(modifier = rootModifier, contentAlignment = alignment) {
+        val backdropColor = alpha.coerceIn(0, 255) shl 24
+        val backdropRenderer = object : Renderer {
+            override fun render(node: UINode, x: Int, y: Int, guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+                guiGraphics.fill(x, y, x + node.width, y + node.height, backdropColor)
+                guiGraphics.flush()
+            }
+        }
+        Layout(
+            name = "ModalBackdrop",
+            measurePolicy = remember(alignment) { BoxMeasurePolicy(alignment) },
+            renderer = backdropRenderer,
+            modifier = rootModifier,
+        ) {
             RootContainer(
                 modifier = Modifier
                     .offset(x = 0, y = offsetY)

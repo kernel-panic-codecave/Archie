@@ -51,7 +51,7 @@ fun Column(
 	)
 }
 
-private data class ColumnMeasurePolicy(
+data class ColumnMeasurePolicy(
 	private val verticalArrangement: Arrangement.Vertical,
 	private val horizontalAlignment: Alignment.Horizontal,
 ) : RowColumnMeasurePolicy(

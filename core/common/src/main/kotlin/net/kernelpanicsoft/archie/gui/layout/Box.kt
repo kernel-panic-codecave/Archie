@@ -42,7 +42,7 @@ fun Box(
 	)
 }
 
-internal data class BoxMeasurePolicy(
+data class BoxMeasurePolicy(
     private val alignment: Alignment,
 ) : RowColumnMeasurePolicy() {
     

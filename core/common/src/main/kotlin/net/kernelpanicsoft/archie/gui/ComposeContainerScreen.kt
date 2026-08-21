@@ -8,7 +8,6 @@ import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
-import com.mojang.blaze3d.systems.RenderSystem
 import kotlinx.coroutines.*
 import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
@@ -24,9 +23,12 @@ import net.kernelpanicsoft.archie.gui.layer.LocalLayerManagerOrNull
 import net.kernelpanicsoft.archie.gui.layout.IntCoordinates
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
+import net.kernelpanicsoft.archie.gui.layout.pos
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
+import net.kernelpanicsoft.archie.gui.util.extension.invoke
+import net.kernelpanicsoft.archie.gui.util.extension.pose
 import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
@@ -82,8 +84,31 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 {
     companion object {
         private const val BASE_LAYER_Z = 100f
-        private const val LAYER_Z_STEP = 200f
+
+        /**
+         * Wide enough that a layer's own *highest* real Z push - not just its base - never reaches
+         * into the next layer's own band. The tallest thing any one layer draws is a slot's own
+         * decorations: [SLOT_LAYER_OFFSET] to clear that layer's own compose content, plus vanilla's
+         * own hardcoded `translate(0, 0, 200)` inside `GuiGraphics.renderItemDecorations` (relative
+         * to whatever pose is already active, i.e. stacking on top of [SLOT_LAYER_OFFSET], not
+         * resetting it) for the count-text/durability-bar overlay - confirmed against the decompiled
+         * source, not just vanilla's own visual convention. A 200-wide step left `120 + 200 = 320`
+         * overshooting a 200-wide band by 120, which is exactly what let a base layer's own item
+         * decorations draw *above* an open modal (defeating its own dim overlay) instead of safely
+         * beneath it.
+         */
+        private const val LAYER_Z_STEP = 500f
         private const val SLOT_LAYER_OFFSET = 120f
+
+        /**
+         * [ComposeContainerScreen.renderLabels]'s own Z offset above [layerBaseZ]`(0)` - high enough
+         * to clear every other base-layer element (crucially, [SLOT_LAYER_OFFSET] *and* vanilla's own
+         * further `+200` for slot decorations, both explained on [LAYER_Z_STEP]) that would otherwise
+         * paint over the title/inventory label, while staying under [layerBaseZ]`(1)` so an open modal
+         * - which starts painting there - still correctly covers/dims the label rather than the label
+         * poking through on top of it.
+         */
+        private const val LABEL_LAYER_OFFSET = 450f
 
         /**
          * Extra room past a slot's own 16x16 icon box that [slotClipRect] leaves unclipped, for
@@ -276,30 +301,34 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(guiGraphics, mouseX, mouseY, partialTick)
-        // Modal/dropdown layers draw after the title/inventory labels (real work deferred here
-        // from renderLabels(), see its own override below) and the tooltip, not before - both are
-        // meant to sit above whatever an open modal is showing, not get painted over by it, so
-        // they're the last things painted this frame instead of running where vanilla's own
-        // AbstractContainerScreen.render() would have put them (sandwiched between the slot loop
-        // and the floating dragged-item render, well before this screen's own modal layers ever
-        // get a turn to draw).
-        if (layerManager.layers.size > 1)
-        {
-            renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
-        }
-        RenderSystem.disableDepthTest()
-        guiGraphics.pose().pushPose()
-        guiGraphics.pose().translate(leftPos.toFloat(), topPos.toFloat(), 0f)
-        super.renderLabels(guiGraphics, mouseX, mouseY)
-        guiGraphics.pose().popPose()
-        renderTooltip(guiGraphics, mouseX, mouseY)
+        reconcileHoverState(mouseX.toDouble(), mouseY.toDouble())
+        guiGraphics {
 
-        // See ComposeScreen.renderNodes for why this only runs when the top layer actually
-        // changed (a modal opening or closing), not every frame.
-        if (layerManager.top !== lastTopLayer) {
-            lastTopLayer = layerManager.top
-            clearFocus()
-            setInitialFocus()
+            flush()
+
+            pose {
+                translate(leftPos.toFloat(), topPos.toFloat(), layerBaseZ(0) + LABEL_LAYER_OFFSET)
+                super.renderLabels(guiGraphics, mouseX, mouseY)
+            }
+            flush()
+
+            if (layerManager.layers.size > 1)
+            {
+                renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
+                flush()
+            }
+            pose {
+                translate(0f, 0f, layerBaseZ(layerManager.layers.size - 1))
+                renderTooltip(guiGraphics, mouseX, mouseY)
+            }
+            // See ComposeScreen.renderNodes for why this only runs when the top layer actually
+            // changed (a modal opening or closing), not every frame.
+            if (layerManager.top !== lastTopLayer)
+            {
+                lastTopLayer = layerManager.top
+                clearFocus()
+                setInitialFocus()
+            }
         }
     }
 
@@ -335,12 +364,15 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     /**
      * No-op here - vanilla's own [AbstractContainerScreen.render] calls this sandwiched between
-     * the slot loop and the floating dragged-item render, well before this screen's own modal/
-     * dropdown layers ([renderNodes]) get their own turn to draw. [ContainerPanel][net.kernelpanicsoft.archie.gui.composables.containers.ContainerPanel]
-     * still routes the actual title/inventory text through vanilla's label rendering (positioned
-     * via [titleLabelPos]/[inventoryLabelPos]), so the real call just moves to [render] instead,
-     * after any open modal - otherwise a modal that visually overlaps the label position paints
-     * over it, the same problem [render] also fixes for the tooltip.
+     * the slot loop and the floating dragged-item render, with `RenderSystem.disableDepthTest()`
+     * active for that whole span, so a plain call here can't reliably win against a slot's own
+     * icon/decorations. The real call moves to [render] instead, pinned to the *base* layer's own
+     * Z-band ([layerBaseZ]`(0) + `[LABEL_LAYER_OFFSET]) - high enough to clear the base layer's
+     * own content (slots and their decorations included) so nothing there paints over the label -
+     * and drawn *before* this screen's own modal/dropdown layers ([renderNodes]) get their own
+     * turn, not after, so an open modal covers/dims the label the same ordinary way it covers a
+     * slot icon, through draw order, rather than the label needing to out-rank whatever Z the
+     * modal's own content happens to render at.
      */
     override fun renderLabels(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
     }
@@ -467,34 +499,32 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         val topNode = getTopNode() ?: return super.mouseMoved(mouseX, mouseY)
         processPointerEvent(topNode, mouseX, mouseY, PointerEventType.MOVE)
+        reconcileHoverState(mouseX, mouseY)
+        super.mouseMoved(mouseX, mouseY)
+    }
 
-        processPointerEvent(
-            topNode,
-            mouseX,
-            mouseY,
-            PointerEventType.ENTER
-        ) {
-            it.isBounded(mouseX.toInt(), mouseY.toInt()) && !it.isBounded(
-                lastMouseX.toInt(),
-                lastMouseY.toInt()
-            )
+    /**
+     * Fires ENTER/EXIT for whatever [getTopNode] children actually changed hover state between
+     * [lastMouseX]/[lastMouseY] and [mouseX]/[mouseY] - shared by [mouseMoved] (the normal,
+     * discrete-event path) and [render] (called every frame regardless of whether a `mouseMoved`
+     * event ever fires). The per-frame call from [render] matters because a cursor moving straight
+     * from over a node to outside the game window entirely fires no further `mouseMoved` - there's
+     * nothing left inside the window to move *to* - which otherwise leaves that node's own hover
+     * state (and anything driven by it, e.g. a tooltip or slot highlight) stuck indefinitely,
+     * self-correcting only once the cursor re-enters and triggers a real `mouseMoved` again. See
+     * [ComposeScreen]'s identical [ComposeScreen.reconcileHoverState] for the non-container case.
+     */
+    private fun reconcileHoverState(mouseX: Double, mouseY: Double) {
+        val topNode = getTopNode() ?: return
+        if (mouseX == lastMouseX && mouseY == lastMouseY) return
+        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.ENTER) {
+            it.isBounded(mouseX.toInt(), mouseY.toInt()) && !it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
         }
-
-        processPointerEvent(
-            topNode,
-            mouseX,
-            mouseY,
-            PointerEventType.EXIT
-        ) {
-            !it.isBounded(mouseX.toInt(), mouseY.toInt()) && it.isBounded(
-                lastMouseX.toInt(),
-                lastMouseY.toInt()
-            )
+        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.EXIT) {
+            !it.isBounded(mouseX.toInt(), mouseY.toInt()) && it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
         }
-
         lastMouseX = mouseX
         lastMouseY = mouseY
-        super.mouseMoved(mouseX, mouseY)
     }
 
     override fun mouseScrolled(
