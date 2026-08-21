@@ -18,10 +18,7 @@ import net.kernelpanicsoft.archie.util.sendSystemMessage
 import net.minecraft.core.RegistryAccess
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.TextColor
-import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
-import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
@@ -253,12 +250,16 @@ open class NetworkChannel(private val id: ResourceLocation) {
     /**
      * Sends one or more packets from the server to a list of [players].
      *
-     * @param players The list of target [ServerPlayer]s.
+     * @param players The list of target [ServerPlayer]s. A no-op if empty - skipped before
+     *   [createPayloads] even runs, so this is also safe to call with no client loaded at all (a
+     *   server-only GameTest run, or a dedicated server with nobody online), not just an empty
+     *   nearby-players list on an otherwise-normal server.
      * @param packets The packets to send.
      * @throws IllegalArgumentException if no packets are provided.
      */
     fun <T : Any> toPlayers(players: List<ServerPlayer>, vararg packets: T) {
         require(packets.isNotEmpty()) { "You need to specify one or more packets to send" }
+        if (players.isEmpty()) return
         createPayloads(packets).forEach { NetworkManager.sendToPlayers(players, it) }
     }
 
@@ -311,11 +312,9 @@ open class NetworkChannel(private val id: ResourceLocation) {
         vararg packets: T,
     ) {
         require(packets.isNotEmpty()) { "You need to specify one or more packets to send" }
-        val payloads = createPayloads(packets)
-        level.server.playerList.broadcast(
-            exclude, x, y, z, radius, level.dimension(),
-            makeClientboundPacket(*payloads.toTypedArray()),
-        )
+        val radiusSq = radius * radius
+        val players = level.players().filter { it !== exclude && it.distanceToSqr(x, y, z) <= radiusSq }
+        toPlayers(players, *packets)
     }
 
     /**
@@ -330,11 +329,13 @@ open class NetworkChannel(private val id: ResourceLocation) {
      */
     fun <T : Any> toPlayersTrackingEntity(entity: Entity, self: Boolean = false, vararg packets: T) {
         require(packets.isNotEmpty()) { "You need to specify one or more packets to send" }
-        val payloads = createPayloads(packets)
         val chunk = entity.level().chunkSource as? ServerChunkCache
             ?: throw IllegalStateException("Cannot send clientbound payloads on the client")
-        if (self) chunk.broadcastAndSend(entity, makeClientboundPacket(*payloads.toTypedArray()))
-        else chunk.broadcast(entity, makeClientboundPacket(*payloads.toTypedArray()))
+        val access = entity.level().registryAccess()
+        for (payload in createPayloads(packets)) {
+            val packet = NetworkManager.toPacket(NetworkManager.Side.S2C, payload, access)
+            if (self) chunk.broadcastAndSend(entity, packet) else chunk.broadcast(entity, packet)
+        }
     }
 
     /**
@@ -424,11 +425,6 @@ open class NetworkChannel(private val id: ResourceLocation) {
             SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
         }
         return msg to handler
-    }
-
-    private fun makeClientboundPacket(vararg payloads: CustomPacketPayload): Packet<*> {
-        return if (payloads.size == 1) ClientboundCustomPayloadPacket(payloads.first())
-        else ClientboundBundlePacket(payloads.map { ClientboundCustomPayloadPacket(it) })
     }
 
     /**
