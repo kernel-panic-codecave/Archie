@@ -1,0 +1,37 @@
+{
+  "states": {
+    "default": {
+      "texture": "archie:java/node_frame_task_unobtained",
+      "texture_size": {
+        "width": 26,
+        "height": 26
+      },
+      "width": 26,
+      "height": 26
+    },
+    "unobtained": {
+      "texture": "archie:java/node_frame_task_unobtained"
+    },
+    "obtained": {
+      "texture": "archie:java/node_frame_task_obtained"
+    }
+  },
+  "variants": {
+    "goal": {
+      "unobtained": {
+        "texture": "archie:java/node_frame_goal_unobtained"
+      },
+      "obtained": {
+        "texture": "archie:java/node_frame_goal_obtained"
+      }
+    },
+    "challenge": {
+      "unobtained": {
+        "texture": "archie:java/node_frame_challenge_unobtained"
+      },
+      "obtained": {
+        "texture": "archie:java/node_frame_challenge_obtained"
+      }
+    }
+  }
+}

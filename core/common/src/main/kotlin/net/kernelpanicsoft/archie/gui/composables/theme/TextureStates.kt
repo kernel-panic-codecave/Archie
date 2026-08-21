@@ -28,4 +28,10 @@ object TextureStates {
 
     /** Used when the composable is both activated and focused simultaneously. */
     const val CLICKED_AND_FOCUSED = "clicked_and_focused"
+
+    /** Used when the composable represents progress not yet completed (e.g. [net.kernelpanicsoft.archie.gui.composables.containers.NodeFrame]'s own idle state). */
+    const val UNOBTAINED        = "unobtained"
+
+    /** Used when the composable represents progress that's been completed. */
+    const val OBTAINED          = "obtained"
 }

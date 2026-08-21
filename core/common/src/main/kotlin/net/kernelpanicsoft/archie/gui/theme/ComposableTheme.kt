@@ -68,8 +68,13 @@ data class StatefulTheme(val states: Map<String, ThemeState>)
  */
 @Serializable
 data class ThemePadding(
+    val all: Int = 0,
     val horizontal: Int = 0,
     val vertical: Int = 0,
+    val left: Int = 0,
+    val right: Int = 0,
+    val top: Int = 0,
+    val bottom: Int = 0
 )
 
 /** Raw JSON shape of a theme file, deserialized as-is and resolved by [ThemeResourceListener] into a [ComposableTheme]. */
@@ -185,7 +190,16 @@ fun ComposableTheme.intrinsicSizeModifier(): Modifier {
  * per [ComposableTheme.contentPadding] - a no-op [Modifier] when the theme doesn't declare one.
  */
 fun ComposableTheme.contentPaddingModifier(): Modifier =
-    contentPadding?.let { Modifier.padding(horizontal = it.horizontal, vertical = it.vertical) } ?: Modifier
+    contentPadding?.let {
+        if (it.all != 0)
+            Modifier.padding(all = it.all)
+        else if (it.horizontal != 0 || it.vertical != 0)
+            Modifier.padding(horizontal = it.horizontal, vertical = it.vertical)
+        else if (it.left != 0 || it.right != 0 || it.top != 0 || it.bottom != 0)
+            Modifier.padding(left = it.left, right = it.right, top = it.top, bottom = it.bottom)
+        else
+            Modifier
+    } ?: Modifier
 
 /* ─────────────────────── Reload listener ─────────────────────── */
 
@@ -265,7 +279,7 @@ class ThemeResourceListener :
 
                 val isNineslice = resourceManager.isNineSliceTexture(defaultState.texture)
                 COMPOSABLES[location] = ComposableTheme(isNineslice, states, variants, root.minSize, root.contentPadding)
-                Archie.LOGGER.info(
+                Archie.LOGGER.debug(
                     "Theme \"{}\" loaded ({} states, {} variants, nineslice={}, minSize={})",
                     location, states.size, variants.size, isNineslice, root.minSize,
                 )

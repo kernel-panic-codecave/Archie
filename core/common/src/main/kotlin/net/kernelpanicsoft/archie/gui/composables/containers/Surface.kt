@@ -30,6 +30,13 @@ import net.minecraft.client.gui.GuiGraphics
  * @param modifier         Additional modifiers applied to the layout node.
  * @param texture          The themed texture key to look up via [LocalTheme].
  * @param variant          The theme variant of [texture] to use. See [ThemeVariants].
+ * @param stateName        The [TextureStates] key to look up within [variant] - most callers
+ *   never need to touch this ([TextureStates.DEFAULT], a plain idle surface, covers the common
+ *   case), but a caller with its own non-interactive state axis (e.g. [NodeFrame]'s own
+ *   obtained/unobtained) can select a different sprite per state the same way a themed widget
+ *   like a button already does for its own interactive states.
+ * @param drawOverContent  When `true`, [texture] draws after [content] instead of before, acting
+ *   as an overlaid frame rather than a background - meant for a transparent-centered variant.
  */
 @Composable
 fun Surface(
@@ -37,12 +44,14 @@ fun Surface(
 	modifier: Modifier = Modifier,
 	texture: String = "surface",
 	variant: String = ThemeVariants.DEFAULT,
+	stateName: String = TextureStates.DEFAULT,
+	drawOverContent: Boolean = false,
 	content: @Composable () -> Unit
 ) {
 	val measurePolicy = remember(contentAlignment) { BoxMeasurePolicy(contentAlignment) }
 	val theme = LocalTheme.current
 	val composableTheme = theme.getComposableTheme(texture)
-	val state = composableTheme.getState(TextureStates.DEFAULT, variant)
+	val state = composableTheme.getState(stateName, variant)
 
 	Layout(
 		name = "Surface",
@@ -57,8 +66,20 @@ fun Surface(
 				mouseX: Int,
 				mouseY: Int,
 				partialTick: Float
-			) = guiGraphics {
-				drawThemeState(state, x, y, node.width, node.height)
+			) {
+				if (!drawOverContent) guiGraphics { drawThemeState(state, x, y, node.width, node.height) }
+			}
+
+			override fun renderAfterChildren(
+				node: UINode,
+				x: Int,
+				y: Int,
+				guiGraphics: GuiGraphics,
+				mouseX: Int,
+				mouseY: Int,
+				partialTick: Float
+			) {
+				if (drawOverContent) guiGraphics { drawThemeState(state, x, y, node.width, node.height) }
 			}
 		},
 		modifier = Modifier.debug(state.texture.toString()).then(composableTheme.intrinsicSizeModifier()) then modifier,

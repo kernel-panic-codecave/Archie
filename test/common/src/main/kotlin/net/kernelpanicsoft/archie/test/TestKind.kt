@@ -25,6 +25,10 @@ enum class TestKind(
     TABS(
         title = Component.literal("Tabs"),
         subtitle = Component.literal("Tab container and tabbed screen"),
+    ),
+    TREE(
+        title = Component.literal("Tree"),
+        subtitle = Component.literal("Node tree view test"),
     )
 }
 
