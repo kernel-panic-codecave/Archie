@@ -1,8 +1,7 @@
 package net.kernelpanicsoft.archie.config
 
 import dev.architectury.platform.Mod
-import dev.architectury.platform.Platform
-import net.kernelpanicsoft.archie.APlatform
+import net.kernelpanicsoft.archie.util.isClothConfigLoaded
 import net.kernelpanicsoft.archie.util.onClient
 import net.minecraft.network.chat.Component
 import kotlin.reflect.KClass
@@ -46,15 +45,7 @@ abstract class ConfigContainer(val mod: Mod, val title: Component = Component.li
 
 	internal fun initClient()
 	{
-		// Cloth Config's mod id differs by loader: Fabric allows hyphens ("cloth-config"), while
-		// NeoForge's mod id charset doesn't, so its variant registers as "cloth_config" instead.
-		val clothConfigModId = when (val platform = APlatform.platform)
-		{
-			"fabric" -> "cloth-config"
-			"neoforge" -> "cloth_config"
-			else -> throw UnsupportedOperationException("Unsupported platform: $platform")
-		}
-		if (Platform.isModLoaded(clothConfigModId))
+		if (isClothConfigLoaded)
 			client.initClient()
 	}
 }

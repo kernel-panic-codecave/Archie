@@ -37,6 +37,7 @@ rei = "16.0.788"
 catalogue = "1.21.1-1.11.0"
 menulogue = "1.21.1-1.0.6"
 cloth-config = "15.0.140"
+cloth-basic-math = "0.6.1"
 common-storage-lib = "0.0.5"
 cloth-config-range = "10.0"
 
@@ -102,6 +103,7 @@ menulogue-fabric = { module = "com.mrcrayfish:menulogue-fabric", version.ref = "
 clothConfig-common = { module = "me.shedaniel.cloth:cloth-config", version.ref = "cloth-config"}
 clothConfig-neoforge = { module = "me.shedaniel.cloth:cloth-config-neoforge", version.ref = "cloth-config"}
 clothConfig-fabric = { module = "me.shedaniel.cloth:cloth-config-fabric", version.ref = "cloth-config"}
+cloth-basic-math = { module = "me.shedaniel.cloth:basic-math", version.ref = "cloth-basic-math" }
 
 yacl-common = { module = "dev.isxander:yet-another-config-lib", version.ref = "yacl-common" }
 yacl-neoforge = { module = "dev.isxander:yet-another-config-lib", version.ref = "yacl-neofoege" }

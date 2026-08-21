@@ -6,6 +6,7 @@ import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
 import me.shedaniel.clothconfig2.gui.entries.SubCategoryListEntry
 import me.shedaniel.math.Color
 import net.kernelpanicsoft.archie.config.builder.*
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.util.toMutableEntry
 import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
@@ -465,6 +466,14 @@ class ClientDataSpec(internal val spec: DataSpec)
 		}
 	}
 
+	/**
+	 * Converts Cloth Config's own [Color] to Archie's [KColor], the type [DataSpec.colors]/
+	 * [DataSpec.colorLists]/[DataSpec.colorMaps] actually store - the reverse of `KColor.toClothColor`
+	 * back in [DataSpec], used wherever a Cloth Config widget callback hands back its own native
+	 * [Color] (a save consumer, say) that needs writing into one of those maps.
+	 */
+	private fun Color.toKColor(): KColor = KColor.ofArgb(color.toLong() and 0xFFFFFFFFL)
+
 	internal fun color(
 		id: String,
 		title: Component,
@@ -484,11 +493,11 @@ class ClientDataSpec(internal val spec: DataSpec)
 			resetButtonKey = resetKey ?: resetButtonKey
 			val ret = startColorField(
 				title,
-				spec.colors.getOrPut(id) { default }.color
+				spec.colors.getOrPut(id) { default.toKColor() }.argb
 			)
 				.apply {
 					setSaveConsumer2 {
-						spec.colors[id] = it
+						spec.colors[id] = it.toKColor()
 					}
 					setDefaultValue2 {
 						default
@@ -894,15 +903,15 @@ class ClientDataSpec(internal val spec: DataSpec)
 			resetButtonKey = resetKey ?: resetButtonKey
 			val ret = startColorList(
 				title,
-				spec.colorLists.getOrPut(id) { default },
+				spec.colorLists.getOrPut(id) { default.map { it.toKColor() } }.map { it.toClothColor(alpha) },
 				factory
 			)
 				.apply {
 					setSaveConsumer {
 						spec.colorLists[id] = if (alpha)
-							it.map(Color::ofTransparent)
+							it.map { rawArgb -> KColor.ofArgb(rawArgb.toLong() and 0xFFFFFFFFL) }
 						else
-							it.map(Color::ofOpaque)
+							it.map { rawRgb -> KColor.ofRgb(rawRgb) }
 					}
 					setDefaultValue {
 						default.map { it.color }
@@ -1240,15 +1249,15 @@ class ClientDataSpec(internal val spec: DataSpec)
 				title,
 				spec.colorMaps.getOrPut(
 					id
-				) { default },
+				) { default.mapValues { it.value.toKColor() } }.mapValues { it.value.toClothColor(alpha) },
 				factory
 			)
 				.apply {
 					setSaveConsumer { value ->
 						spec.colorMaps[id] = if (alpha)
-							value.associate { it.toPair() }.mapValues { Color.ofTransparent(it.value) }
+							value.associate { it.toPair() }.mapValues { KColor.ofArgb(it.value.toLong() and 0xFFFFFFFFL) }
 						else
-							value.associate { it.toPair() }.mapValues { Color.ofOpaque(it.value) }
+							value.associate { it.toPair() }.mapValues { KColor.ofRgb(it.value) }
 					}
 					setDefaultValue {
 						default.mapValues { it.value.color }.toList().map { it.toMutableEntry() }

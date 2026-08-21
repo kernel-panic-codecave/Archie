@@ -5,8 +5,9 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.*
-import me.shedaniel.math.Color
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.serialization.SerializationManager
+import net.kernelpanicsoft.archie.util.isClothConfigLoaded
 import net.kernelpanicsoft.archie.util.onClient
 import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
@@ -16,6 +17,19 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
+
+/**
+ * Converts this [KColor] to Cloth Config's own [me.shedaniel.math.Color], for handing off to
+ * [ClientDataSpec]'s Cloth Config UI widget builders (which need the real type, since it's what
+ * Cloth Config's own `ConfigEntryBuilder` methods accept) - top-level and `internal`, rather than
+ * a private member of [DataSpec], so [ClientDataSpec] can use it for the same conversion too.
+ * Only ever called from inside an [isClothConfigLoaded] check (see [DataSpec.color]/[DataSpec.colorList]/
+ * [DataSpec.colorMap]), so this - and the [me.shedaniel.math.Color] reference itself - never
+ * actually executes, and therefore never touches Cloth Config's own types, on a client that
+ * doesn't have it installed.
+ */
+internal fun KColor.toClothColor(alpha: Boolean): me.shedaniel.math.Color =
+	if (alpha) me.shedaniel.math.Color.ofTransparent(argb) else me.shedaniel.math.Color.ofOpaque(rgb)
 
 /**
  * A group of config fields, declared by subclassing this and adding fields with the
@@ -52,7 +66,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	internal val specs: MutableMap<String, DataSpec> = mutableMapOf()
 	internal val registries: MutableMap<String, ResourceLocation> = mutableMapOf()
 	internal val keycodes: MutableMap<String, CommonKeyCode> = mutableMapOf()
-	internal val colors: MutableMap<String, Color> = mutableMapOf()
+	internal val colors: MutableMap<String, KColor> = mutableMapOf()
 	internal val enums: MutableMap<String, Enum<*>> = mutableMapOf()
 	internal val selectors: MutableMap<String, Any> = mutableMapOf()
 	internal val intLists: MutableMap<String, List<Int>> = mutableMapOf()
@@ -63,7 +77,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	internal val specLists: MutableMap<String, List<DataSpec>> = mutableMapOf()
 	internal val registryLists: MutableMap<String, List<ResourceLocation>> = mutableMapOf()
 	internal val keycodeLists: MutableMap<String, List<CommonKeyCode>> = mutableMapOf()
-	internal val colorLists: MutableMap<String, List<Color>> = mutableMapOf()
+	internal val colorLists: MutableMap<String, List<KColor>> = mutableMapOf()
 	internal val intMaps: MutableMap<String, Map<String, Int>> = mutableMapOf()
 	internal val longMaps: MutableMap<String, Map<String, Long>> = mutableMapOf()
 	internal val floatMaps: MutableMap<String, Map<String, Float>> = mutableMapOf()
@@ -72,7 +86,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	internal val specMaps: MutableMap<String, Map<String, DataSpec>> = mutableMapOf()
 	internal val registryMaps: MutableMap<String, Map<String, ResourceLocation>> = mutableMapOf()
 	internal val keycodeMaps: MutableMap<String, Map<String, CommonKeyCode>> = mutableMapOf()
-	internal val colorMaps: MutableMap<String, Map<String, Color>> = mutableMapOf()
+	internal val colorMaps: MutableMap<String, Map<String, KColor>> = mutableMapOf()
 
 	/**
 	 * Whether this category is currently active. When `false`, Cloth Config hides/disables the
@@ -520,7 +534,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 		}
 
 	/**
-	 * Declares a [Color] (ARGB) config field, rendered as a color picker. See [boolean] for the
+	 * Declares a [KColor] (ARGB) config field, rendered as a color picker. See [boolean] for the
 	 * remaining parameter semantics.
 	 *
 	 * @param alpha Whether the picker allows editing the alpha channel.
@@ -529,10 +543,10 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 		title: Component,
 		comment: Component? = null,
 		alpha: Boolean = false,
-		default: Color = if (alpha) Color.ofTransparent(-1) else Color.ofOpaque(-1),
+		default: KColor = KColor.WHITE,
 		resetKey: Component? = null,
 		needsRestart: Boolean = false
-	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, Color>> =
+	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, KColor>> =
 		PropertyDelegateProvider { _, property ->
 			val id = property.name.toSnakeCase()
 			if (comment != null)
@@ -540,21 +554,22 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 				comments[id] = comment.string
 			}
 			onClient {
-				client.color(id, title, comment, alpha, default, resetKey)
+				if (isClothConfigLoaded)
+					client.color(id, title, comment, alpha, default.toClothColor(alpha), resetKey)
 			}
 			types[id] = FieldType.Color
 			colors.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Color>
+			object : ReadWriteProperty<DataSpec, KColor>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
 					property: KProperty<*>
-				): Color = colors.getOrPut(id) { default }
+				): KColor = colors.getOrPut(id) { default }
 
 				override fun setValue(
 					thisRef: DataSpec,
 					property: KProperty<*>,
-					value: Color
+					value: KColor
 				) { colors[id] = value }
 			}
 		}
@@ -932,16 +947,16 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 		}
 
-	/** Declares a `List<Color>` config field. See [color] for parameter semantics. */
+	/** Declares a `List<KColor>` config field. See [color] for parameter semantics. */
 	protected fun colorList(
 		title: Component,
 		comment: Component? = null,
 		alpha: Boolean = false,
-		default: List<Color> = listOf(),
-		factory: () -> Color = { if (alpha) Color.ofTransparent(-1) else Color.ofOpaque(-1) },
+		default: List<KColor> = listOf(),
+		factory: () -> KColor = { KColor.WHITE },
 		resetKey: Component? = null,
 		needsRestart: Boolean = false
-	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, List<Color>>> =
+	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, List<KColor>>> =
 		PropertyDelegateProvider { _, property ->
 			val id = property.name.toSnakeCase()
 			if (comment != null)
@@ -949,21 +964,22 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 				comments[id] = comment.string
 			}
 			onClient {
-				client.colorList(id, title, comment, alpha, default, factory, resetKey)
+				if (isClothConfigLoaded)
+					client.colorList(id, title, comment, alpha, default.map { it.toClothColor(alpha) }, { factory().toClothColor(alpha) }, resetKey)
 			}
 			types[id] = FieldType.ColorList
 			colorLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<Color>>
+			object : ReadWriteProperty<DataSpec, List<KColor>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
 					property: KProperty<*>
-				): List<Color> = colorLists.getOrPut(id) { default }
+				): List<KColor> = colorLists.getOrPut(id) { default }
 
 				override fun setValue(
 					thisRef: DataSpec,
 					property: KProperty<*>,
-					value: List<Color>
+					value: List<KColor>
 				) { colorLists[id] = value }
 			}
 		}
@@ -1252,16 +1268,16 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 		}
 
-	/** Declares a `Map<String, Color>` config field. See [color] for parameter semantics. */
+	/** Declares a `Map<String, KColor>` config field. See [color] for parameter semantics. */
 	protected fun colorMap(
 		title: Component,
 		comment: Component? = null,
 		alpha: Boolean = false,
-		default: Map<String, Color> = mapOf(),
-		factory: () -> Color = { if (alpha) Color.ofTransparent(-1) else Color.ofOpaque(-1) },
+		default: Map<String, KColor> = mapOf(),
+		factory: () -> KColor = { KColor.WHITE },
 		resetKey: Component? = null,
 		needsRestart: Boolean = false
-	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, Map<String, Color>>> =
+	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, Map<String, KColor>>> =
 	PropertyDelegateProvider { _, property ->
 		val id = property.name.toSnakeCase()
 		if (comment != null)
@@ -1269,21 +1285,22 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			comments[id] = comment.string
 		}
 		onClient {
-			client.colorMap(id, title, comment, alpha, default, factory, resetKey)
+			if (isClothConfigLoaded)
+				client.colorMap(id, title, comment, alpha, default.mapValues { it.value.toClothColor(alpha) }, { factory().toClothColor(alpha) }, resetKey)
 		}
 		types[id] = FieldType.ColorMap
 		colorMaps.putIfAbsent(id, default)
-		object : ReadWriteProperty<DataSpec, Map<String, Color>>
+		object : ReadWriteProperty<DataSpec, Map<String, KColor>>
 		{
 			override fun getValue(
 				thisRef: DataSpec,
 				property: KProperty<*>
-			): Map<String, Color> = colorMaps.getOrPut(id) { default }
+			): Map<String, KColor> = colorMaps.getOrPut(id) { default }
 
 			override fun setValue(
 				thisRef: DataSpec,
 				property: KProperty<*>,
-				value: Map<String, Color>
+				value: Map<String, KColor>
 			) { colorMaps[id] = value }
 		}
 	}

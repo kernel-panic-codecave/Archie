@@ -10,6 +10,7 @@ import kotlinx.serialization.modules.SerializersModule
 import me.shedaniel.clothconfig2.api.Modifier
 import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import me.shedaniel.math.Color
+import net.kernelpanicsoft.archie.util.isClothConfigLoaded
 import net.kernelpanicsoft.archie.util.onClient
 
 /* ------------------ TypeAliases ------------------ */
@@ -122,13 +123,21 @@ object ColorSerializer : KSerializer<Color>
  * A [SerializersModule] that registers Archie's Cloth Config-related type serializers
  * ([ModifierKeyCodeSerializer], [ColorSerializer]) as contextual serializers.
  *
- * [ModifierKeyCodeSerializer] is only registered on the physical client (via [onClient]), since
- * [ModifierKeyCode] is a client-only Cloth Config type that a dedicated server shouldn't
- * class-load; [ColorSerializer] is registered on both sides.
+ * [me.shedaniel.math.Color] is pulled in transitively through `cloth-config`, but Archie's own
+ * config system exposes it directly in its own public API (unlike [ModifierKeyCode], which stays
+ * behind [net.kernelpanicsoft.archie.config.CommonKeyCode]) - so `basic-math` (the small library
+ * that actually declares [me.shedaniel.math.Color]) is bundled for real (see each module's own
+ * `build.gradle.kts`) rather than left to Cloth Config's own optional presence, and
+ * [ColorSerializer] is registered unconditionally on both sides. [ModifierKeyCode] has no such
+ * bundled fallback - it's genuinely Cloth Config's own type, with no reason to touch it unless
+ * Cloth Config's own UI integration is in play - so [ModifierKeyCodeSerializer] stays behind both
+ * [onClient] (a dedicated server shouldn't class-load it) *and* [isClothConfigLoaded] (a client
+ * without Cloth Config installed shouldn't either).
  */
 val BuiltInSerializersModule = SerializersModule {
-	onClient {
-		contextual(ModifierKeyCode::class, ModifierKeyCodeSerializer)
-	}
 	contextual(Color::class, ColorSerializer)
+	onClient {
+		if (isClothConfigLoaded)
+			contextual(ModifierKeyCode::class, ModifierKeyCodeSerializer)
+	}
 }

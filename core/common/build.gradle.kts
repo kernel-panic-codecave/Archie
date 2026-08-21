@@ -45,6 +45,14 @@ dependencies {
 
 	modApi(libs.rei.common)
 	modCompileOnly(libs.clothConfig.common)
+	// Cloth Config's own transitive dependency, kept visible at compile time only (like Cloth
+	// Config itself) since the config system exposes `Color` directly in its own public API -
+	// NOT bundled: Cloth Config's own distributed jar already jar-in-jars this and exports
+	// `me.shedaniel.math` itself, so embedding a second copy makes NeoForge's ModLauncher refuse
+	// to even build its module layer ("Modules basic.math and cloth_config export package
+	// me.shedaniel.math") the moment both are present - confirmed by actually hitting that crash.
+	// [ColorSerializer]/[SColor] stay gated behind isClothConfigLoaded instead, same as ModifierKeyCode.
+	compileOnlyApi(libs.cloth.basic.math)
 	modApi(libs.architectury.common)
 	modApi(libs.storage.common)
 	modApi(libs.storage.resources.common)

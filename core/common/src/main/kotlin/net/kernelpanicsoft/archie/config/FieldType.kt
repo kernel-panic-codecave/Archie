@@ -7,8 +7,8 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
 import net.kernelpanicsoft.archie.serialization.DeferredListSerializer
 import net.kernelpanicsoft.archie.serialization.DeferredMapSerializer
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.serialization.SerializationManager
-import net.kernelpanicsoft.archie.serialization.serializers.ColorSerializer
 import net.kernelpanicsoft.archie.serialization.serializers.ResourceLocationSerializer
 import net.minecraft.resources.ResourceLocation
 import kotlin.reflect.KClass
@@ -75,9 +75,9 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<CommonKeyCode> = CommonKeyCode.serializer()
 	}
 
-	data object Color : FieldType<me.shedaniel.math.Color>()
+	data object Color : FieldType<KColor>()
 	{
-		override val serializer: KSerializer<me.shedaniel.math.Color> = ColorSerializer
+		override val serializer: KSerializer<KColor> = KColor.serializer()
 	}
 
 	data class EnumSelector<T : Enum<T>>(val kClass: KClass<T>) : FieldType<T>()
@@ -137,9 +137,9 @@ internal sealed class FieldType<T>
 			CommonKeyCode.serializer())
 	}
 
-	data object ColorList : FieldType<List<me.shedaniel.math.Color>>()
+	data object ColorList : FieldType<List<KColor>>()
 	{
-		override val serializer: KSerializer<List<me.shedaniel.math.Color>> = ListSerializer(ColorSerializer)
+		override val serializer: KSerializer<List<KColor>> = ListSerializer(KColor.serializer())
 	}
 
 	data object IntMap : FieldType<Map<kotlin.String, kotlin.Int>>()
@@ -184,8 +184,8 @@ internal sealed class FieldType<T>
 		override val serializer: KSerializer<Map<kotlin.String, CommonKeyCode>> = MapSerializer(kotlin.String.serializer(), CommonKeyCode.serializer())
 	}
 
-	data object ColorMap : FieldType<Map<kotlin.String, me.shedaniel.math.Color>>()
+	data object ColorMap : FieldType<Map<kotlin.String, KColor>>()
 	{
-		override val serializer: KSerializer<Map<kotlin.String, me.shedaniel.math.Color>> = MapSerializer(kotlin.String.serializer(), ColorSerializer)
+		override val serializer: KSerializer<Map<kotlin.String, KColor>> = MapSerializer(kotlin.String.serializer(), KColor.serializer())
 	}
 }
