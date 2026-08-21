@@ -33,7 +33,7 @@ import kotlin.reflect.KProperty
  */
 abstract class ADeferredRegistryHolder<T> private constructor(
 	private val mod: Mod,
-	registryKey: ResourceKey<Registry<T>>,
+	private val registryKey: ResourceKey<Registry<T>>,
 	private val map: MutableMap<ResourceLocation, RegistrySupplier<out T>>
 ) :
 	Map<ResourceLocation, RegistrySupplier<out T>> by map
@@ -44,15 +44,16 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 
 	/**
 	 * Registers the underlying [DeferredRegister], then schedules [initClient] to run on the
-	 * client, at the earliest point registration APIs that depend on registries already being
-	 * populated (e.g. Architectury's `MenuRegistry.registerScreenFactory`) are safe to call - see
-	 * [scheduleEarlyClientRegistration]. Must be called once during mod initialization.
+	 * client, at the earliest point registration APIs that depend on [registryKey]'s registry
+	 * already being populated (e.g. Architectury's `MenuRegistry.registerScreenFactory`, or
+	 * registering a renderer for a `BlockEntityType` this holder just registered) are safe to
+	 * call - see [scheduleEarlyClientRegistration]. Must be called once during mod initialization.
 	 */
 	fun init()
 	{
 		registry.register()
 		onClient {
-			scheduleEarlyClientRegistration(mod) {
+			scheduleEarlyClientRegistration(mod, registryKey) {
 				initClient()
 			}
 		}
