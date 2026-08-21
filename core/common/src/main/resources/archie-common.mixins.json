@@ -5,6 +5,7 @@
   "minVersion": "0.8",
   "remap": false,
   "client": [
+    "client.ModelBakeryMixin",
     "client.gui.AbstractContainerScreenDepthMixin",
     "client.gui.AbstractContainerScreenMixin",
     "client.gui.GuiGraphicsMixin"
@@ -12,6 +13,6 @@
   "mixins": [
   ],
   "injectors": {
-    "defaultRequire": 1
+	"defaultRequire": 1
   }
 }
