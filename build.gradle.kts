@@ -115,6 +115,10 @@ subprojects {
 		})
 
 		compileOnly("org.jetbrains:annotations:24.1.0")
+
+		// Gradle 9 stopped bundling its own copy of the JUnit Platform launcher for
+		// useJUnitPlatform() - every module needs this on the test runtime classpath now.
+		"testRuntimeOnly"(rootProject.libs.junit.platform.launcher)
 	}
 
 	// One MavenPublication per module, published to kernelpanicsoft.net's Reposilite - archie-core/

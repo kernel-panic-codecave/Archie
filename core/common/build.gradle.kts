@@ -61,7 +61,7 @@ dependencies {
 tasks {
 	base.archivesName.set(base.archivesName.get() + "-common")
 
-	val verifyGuiSpriteAssets by registering {
+	val verifyGuiSpriteAssets = register("verifyGuiSpriteAssets") {
 		group = "verification"
 		description = "Verifies GUI sprite metadata files have matching PNG assets."
 
