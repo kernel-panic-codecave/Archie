@@ -1,3 +1,4 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
 import net.kernelpanicsoft.archie.plugin.runtimeLibrary
@@ -12,8 +13,17 @@ architectury {
 	fabric()
 }
 
+// Stonecutter's sibling-lookup API (node.sibling(branchName)) replaces the old static
+// project(":archie-core-common") reference every one of these was hardcoded to before Stonecutter.
+// ProjectNode.project resolves straight to the sibling's Gradle Project - confirmed against
+// Stonecutter 0.9.7's own sources (GradleMember.project), not just the older reference template.
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
 actualizer {
-	actualizes(project(":archie-core-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -26,7 +36,7 @@ configurations {
 }
 
 loom {
-	accessWidenerPath.set(project(":archie-core-common").loom.accessWidenerPath)
+	accessWidenerPath.set(common.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
@@ -75,8 +85,17 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	runtimeLibrary(libs.kotlinx.coroutines.test)
 
-	"common"(project(":archie-core-common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":archie-core-common", "transformProductionFabric")) { isTransitive = false }
+	// Depends directly on common's own "jar" task output (a real zip) rather than through a
+	// project(path, configuration) reference or Loom's common()/transformProductionX mechanism -
+	// both produce a circular task dependency / broken variant lookup under Stonecutter's nested
+	// per-version project paths (confirmed live; not present pre-Stonecutter). A raw SourceSetOutput
+	// FileCollection (plain class/resource directories) almost works the same way, but breaks
+	// shadowJar - Shadow's copy action expects zip-safe entries, not directories, and throws
+	// MissingPropertyException: No such property: mode. Safe here since fabric and neoforge already
+	// share one mapping namespace (officialMojangMappings), so transformProductionX's per-platform
+	// remap was never doing anything for this project anyway.
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {
@@ -91,7 +110,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":archie-core-common").sourceSets.main.get().resources) {
+		from(common.sourceSets.main.get().resources) {
 			include("assets/archie/**")
 			include("data/archie/**")
 			include("archie-common.mixins.json")
@@ -124,11 +143,11 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":archie-core-common").sourceSets.main.get().output)
+		from(common.sourceSets.main.get().output)
 	}
 
 	sourcesJar {
-		val commonSources = project(":archie-core-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

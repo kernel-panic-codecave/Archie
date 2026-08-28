@@ -51,7 +51,7 @@ quilt-parsers = "0.2.1"
 knbt = "0.11.4"
 tomlkt = "0.3.7"
 json5k = "0.3.0"
-shadow = "8.1.1"
+shadow = "9.6.1"
 compose = "1.7.1"
 dokka-mkdocs = "0.6.1"
 junit = "5.11.4"
@@ -138,7 +138,7 @@ architectury = { id = "architectury-plugin", version.ref = "architectury-plugin"
 architectury-loom = { id = "dev.architectury.loom", version.ref = "architectury-loom" }
 architectury-kotlin = { id = "net.kernelpanicsoft.architectury.kotlin", version.ref = "architectury-kotlin" }
 
-shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 modfusioner = { id = "com.hypherionmc.modutils.modfusioner", version.ref = "modfusioner" }
 modpublisher = { id = "com.hypherionmc.modutils.modpublisher", version.ref = "modpublisher" }
 

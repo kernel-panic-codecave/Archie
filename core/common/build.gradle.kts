@@ -21,9 +21,15 @@ val sharedProperties = kotlin.runCatching {
 val String.prop: String?
 	get() = sharedProperties?.get(this)?.toString()
 
+// Stonecutter's real projectDir for a node is its `versions/<version>/` folder, two levels below
+// this branch's own directory (where the shared `src/` this build script's paths mean actually
+// lives) - branchDir undoes that so plain file(...)-style paths below resolve correctly.
+val branchDir = projectDir.parentFile.parentFile
+
 loom {
-	accessWidenerPath = file("src/main/resources/${"mod_id".prop}.accesswidener")
+	accessWidenerPath = branchDir.resolve("src/main/resources/${"mod_id".prop}.accesswidener")
 }
+
 
 dependencies {
 	compileOnly(kotlin("reflect"))

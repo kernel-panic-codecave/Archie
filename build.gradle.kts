@@ -46,6 +46,10 @@ version = "mod_version".prop ?: "0.0.1-SNAPSHOT"
 group = "mod_group".prop ?: "net.kernelpanicsoft"
 
 subprojects {
+	// Stonecutter's tree/branch anchors (e.g. `:core`) are synthetic container projects with real
+	// leaf projects nested under them - they must not get build plugins applied to them directly.
+	if (subprojects.isNotEmpty()) return@subprojects
+
 	apply(plugin = "dev.architectury.loom")
 	apply(plugin = "net.kernelpanicsoft.actualizer")
 
@@ -162,6 +166,11 @@ subprojects {
 }
 
 allprojects {
+	// Stonecutter's tree/branch anchors (e.g. `:core`) are synthetic container projects with real
+	// leaf projects nested under them - they must not get build plugins applied to them directly.
+	// The true root project still needs this block (e.g. for its own `publish` task).
+	if (this != rootProject && subprojects.isNotEmpty()) return@allprojects
+
 	apply(plugin = "java")
 	apply(plugin = "org.jetbrains.kotlin.jvm")
 	apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
@@ -246,17 +255,17 @@ publisher {
 	}
 }
 
-dependencies {
-	dokka(project(":archie-core-common")) { isTransitive = false }
-	dokka(project(":archie-core-fabric")) { isTransitive = false }
-	dokka(project(":archie-core-neoforge")) { isTransitive = false }
-	dokka(project(":archie-datagen-common")) { isTransitive = false }
-	dokka(project(":archie-datagen-fabric")) { isTransitive = false }
-	dokka(project(":archie-datagen-neoforge")) { isTransitive = false }
-	dokka(project(":archie-gametest-common")) { isTransitive = false }
-	dokka(project(":archie-gametest-fabric")) { isTransitive = false }
-	dokka(project(":archie-gametest-neoforge")) { isTransitive = false }
-}
+// dependencies {
+// 	dokka(project(":archie-core-common")) { isTransitive = false } // TODO: fix paths for Stonecutter's generated projects
+// 	dokka(project(":archie-core-fabric")) { isTransitive = false }
+// 	dokka(project(":archie-core-neoforge")) { isTransitive = false }
+// 	dokka(project(":archie-datagen-common")) { isTransitive = false }
+// 	dokka(project(":archie-datagen-fabric")) { isTransitive = false }
+// 	dokka(project(":archie-datagen-neoforge")) { isTransitive = false }
+// 	dokka(project(":archie-gametest-common")) { isTransitive = false }
+// 	dokka(project(":archie-gametest-fabric")) { isTransitive = false }
+// 	dokka(project(":archie-gametest-neoforge")) { isTransitive = false }
+// }
 
 tasks {
 	build {

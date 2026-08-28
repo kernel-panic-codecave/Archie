@@ -1,7 +1,3 @@
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
-rootProject.name = "Archie"
-
 pluginManagement {
 	repositories {
 		maven("https://maven.fabricmc.net/")
@@ -22,13 +18,25 @@ pluginManagement {
 	}
 }
 
-includeModule("core")
+plugins {
+	id("dev.kikugie.stonecutter") version "0.9.7"
+}
 
-includeModule("datagen")
+// Validation slice: only `core` is Stonecutter-managed for now. datagen/gametest/test stay on the
+// old includeModule() scheme until this is proven out - see the migration plan.
+stonecutter {
+	create("core") {
+		branch("common") { versions("1.21.1") }
+		branch("fabric") { versions("1.21.1") }
+		branch("neoforge") { versions("1.21.1") }
+	}
+}
 
-includeModule("gametest")
+rootProject.name = "Archie"
 
-includeModule("test")
+// includeModule("datagen")
+// includeModule("gametest")
+// includeModule("test")
 
 fun includeModulePlatform(name: String, platform: String) {
 	include("$name/$platform")

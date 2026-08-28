@@ -1,3 +1,4 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
 import net.kernelpanicsoft.archie.plugin.runtimeLibrary
@@ -12,8 +13,15 @@ architectury {
 	neoForge()
 }
 
+// See core/fabric/build.gradle.kts for why this goes through node.sibling() rather than a
+// hardcoded project path.
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
 actualizer {
-	actualizes(project(":archie-core-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -31,7 +39,7 @@ configurations {
 }
 
 loom {
-	accessWidenerPath.set(project(":archie-core-common").loom.accessWidenerPath)
+	accessWidenerPath.set(common.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
@@ -40,7 +48,7 @@ loom {
 			// compilation - plain Java files in archie-core-common (e.g. mixin classes with no
 			// actual/expect involvement) never get copied in, so they're invisible to FML's
 			// dev-mode module layer unless their sourceSet is also registered here directly.
-			sourceSet(project(":archie-core-common").sourceSets.main.get())
+			sourceSet(common.sourceSets.main.get())
 		}
 	}
 
@@ -92,8 +100,10 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	runtimeLibrary(libs.kotlinx.coroutines.test)
 
-	"common"(project(":archie-core-common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":archie-core-common", "transformProductionNeoForge")) { isTransitive = false }
+	// See core/fabric/build.gradle.kts for why this depends on common's "jar" task output directly
+	// rather than through a project(path, configuration) reference or a raw SourceSetOutput.
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {
@@ -108,7 +118,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":archie-core-common").sourceSets.main.get().resources) {
+		from(common.sourceSets.main.get().resources) {
 			include("assets/archie/**")
 			include("data/archie/**")
 			include("archie-common.mixins.json")
@@ -142,11 +152,11 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":archie-core-common").sourceSets.main.get().output)
+		from(common.sourceSets.main.get().output)
 	}
 
 	sourcesJar {
-		val commonSources = project(":archie-core-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })
