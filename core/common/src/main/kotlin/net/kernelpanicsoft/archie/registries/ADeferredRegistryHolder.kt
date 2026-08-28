@@ -49,7 +49,7 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 	 * registering a renderer for a `BlockEntityType` this holder just registered) are safe to
 	 * call - see [scheduleEarlyClientRegistration]. Must be called once during mod initialization.
 	 */
-	fun init()
+	open fun init()
 	{
 		registry.register()
 		onClient {
@@ -76,7 +76,7 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 	protected fun <R : T> register(id: String, supplier: () -> R): RegistrySupplier<R>
 	{
 		val ret = registry.register(id, supplier)
-		map[ret.registryId] = ret
+		map[ret.id] = ret
 		return ret
 	}
 
@@ -84,7 +84,7 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 	protected fun <R : T> register(id: ResourceLocation, supplier: () -> R): RegistrySupplier<R>
 	{
 		val ret = registry.register(id, supplier)
-		map[ret.registryId] = ret
+		map[ret.id] = ret
 		return ret
 	}
 }
