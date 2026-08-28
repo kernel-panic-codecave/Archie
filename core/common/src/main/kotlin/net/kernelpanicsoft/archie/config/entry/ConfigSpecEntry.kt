@@ -2,7 +2,6 @@ package net.kernelpanicsoft.archie.config.entry
 
 import com.google.common.collect.Lists
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
-import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.kernelpanicsoft.archie.util.minecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
@@ -10,19 +9,22 @@ import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.narration.NarratableEntry
+import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import java.util.*
 
 /**
  * Cloth Config list entry rendering a single "Edit" button for [value] that, when clicked, opens
- * `value.client.buildConfig(...)` - i.e. navigates from a container's screen into that
- * [ConfigSpec]'s own screen. Built by `ConfigFieldBuilder`.
+ * the screen [openScreen] builds for it - e.g. navigating from a container's screen into a
+ * [net.kernelpanicsoft.archie.config.ConfigSpec]'s own screen, or into a [net.kernelpanicsoft.archie.config.ConfigGroup]'s
+ * subscreen. Built by `ConfigFieldBuilder`.
  */
-class ConfigSpecEntry<T : ConfigSpec>(
+class ConfigSpecEntry<T : Any>(
 	fieldName: Component,
 	buttonText: Component,
 	value: T,
-	requiresRestart: Boolean
+	requiresRestart: Boolean,
+	private val openScreen: (Screen) -> Screen,
 ) : AbstractConfigListEntry<T>(fieldName, requiresRestart)
 {
 	private var value: T
@@ -35,7 +37,7 @@ class ConfigSpecEntry<T : ConfigSpec>(
 		this.buttonWidget = Button.builder(
 			buttonText
 		) {
-			configScreen?.let {minecraftClient.setScreen(value.client.buildConfig(it))}
+			configScreen?.let { minecraftClient.setScreen(openScreen(it)) }
 		}
 			.bounds(0, 0, 150, 20).build()
 		this.widgets =

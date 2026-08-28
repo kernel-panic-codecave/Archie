@@ -4,6 +4,10 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.serializer
 import net.kernelpanicsoft.archie.serialization.DeferredListSerializer
 import net.kernelpanicsoft.archie.serialization.DeferredMapSerializer
@@ -92,6 +96,21 @@ internal sealed class FieldType<T>
 	{
 		@Suppress("UNCHECKED_CAST")
 		override val serializer: KSerializer<T> = SerializationManager.module.serializer(kClass.createType()) as KSerializer<T>
+	}
+
+	/** A field that stores one of [options] (a [ConfigSpec]) by its [ConfigSpec.id] rather than its data. See [DataSpec.configRef]. */
+	data class ConfigRef<T : ConfigSpec>(val options: List<T>, val default: T) : FieldType<T>()
+	{
+		override val serializer: KSerializer<T> = object : KSerializer<T>
+		{
+			override val descriptor = PrimitiveSerialDescriptor("ConfigRef", PrimitiveKind.STRING)
+			override fun serialize(encoder: Encoder, value: T) = encoder.encodeString(value.id)
+			override fun deserialize(decoder: Decoder): T
+			{
+				val id = decoder.decodeString()
+				return options.find { it.id == id } ?: default
+			}
+		}
 	}
 
 	data object IntList : FieldType<List<kotlin.Int>>()

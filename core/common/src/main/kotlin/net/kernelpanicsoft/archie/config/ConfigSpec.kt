@@ -15,13 +15,17 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.*
 import net.kernelpanicsoft.archie.config.ConfigSpec.Server.Companion.CONFIG_DIR
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.util.foldEnv
 import net.kernelpanicsoft.archie.util.isClient
 import net.kernelpanicsoft.archie.util.rem
+import net.kernelpanicsoft.archie.util.sendSystemMessage
 import net.minecraft.network.chat.Component
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.storage.LevelResource
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.function.Predicate
 import kotlin.reflect.KClass
@@ -52,7 +56,7 @@ import kotlin.reflect.full.isSubclassOf
  * register the network channel. Defaults to the snake-cased [title].
  */
 @Suppress("unused")
-sealed class ConfigSpec(val type: Type, val mod: Mod, val title: Component, val id: String = title.string.toSnakeCase())
+sealed class ConfigSpec(val type: Type, val mod: Mod, override val title: Component, override val id: String = title.string.toSnakeCase()) : ConfigNode
 {
 	internal val channel = NetworkChannel(mod % id)
 	/** Client-side mirror of this spec, used to build the Cloth Config UI screen. */
@@ -83,15 +87,41 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, val title: Component, val 
 		else -> throw UnsupportedOperationException("Unsupported platform: $platform")
 	}
 
-	/** Path of the config file, relative to the game's config directory, without extension. */
-	open val filename: String = "${mod.modId}/${id}"
+	/**
+	 * Path segments this spec is nested under, assigned top-down when a [ConfigGroup]/[ConfigContainer]
+	 * discovers it. Left empty for an entry of a [ConfigSpecCollection], whose [configFolder] is
+	 * pointed directly at its resolved directory instead (see [filenamePrefixed]).
+	 */
+	internal var pathSegments: List<String> = emptyList()
 
-	/** Whether [load] has run at least once. */
+	/** When `false`, [filename] is just [id] with no [mod]/[pathSegments] prefix - set by [ConfigSpecCollection] on its entries. */
+	internal var filenamePrefixed: Boolean = true
+
+	/**
+	 * Set by [ConfigSpecCollection.createEntry] on an entry it creates - tells [init] to skip this
+	 * instance's own standalone [registerSync]/[NetworkChannel.register] (a new payload type per
+	 * entry can't be negotiated after the server has already accepted connections), since a
+	 * synchronized collection instead syncs all its entries over one shared channel.
+	 */
+	internal var partOfCollection: Boolean = false
+
+	/**
+	 * Set by [ConfigSpecCollection.createEntry] on a synchronized collection's entry: routes this
+	 * entry's client -> server save through the collection's shared channel instead of this
+	 * instance's own (unregistered, since [partOfCollection]) one. Consulted by `ClientConfigSpec`.
+	 */
+	internal var collectionSync: (() -> Unit)? = null
+
+	/** Path of the config file, relative to [configFolder], without extension. */
+	open val filename: String
+		get() = if (filenamePrefixed) (listOf(mod.modId) + pathSegments + id).joinToString("/") else id
+
+	/** Whether [load] has run at least once, or (for a synced spec) a value has been received from the server. */
 	var isLoaded: Boolean = false
-		protected set
+		internal set
 
 	var configFolder: Path = Platform.getConfigFolder()
-		protected set
+		internal set
 
 	private var isEventsRegistered: Boolean = false
 
@@ -120,11 +150,12 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, val title: Component, val 
 		}
 		categoriesMap.values.forEach { cat ->
 			cat.init()
+			cat.registerSpecCollectionNetworking(this)
+			cat.wireAccessPredicate(this)
 		}
-		if (synchronized && !isEventsRegistered)
+		if (synchronized && !isEventsRegistered && !partOfCollection)
 		{
-			channel.configServerbound(this)
-			channel.configClientbound(this)
+			registerSync()
 			channel.register()
 			foldEnv(
 				client = {
@@ -145,11 +176,61 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, val title: Component, val 
 	}
 
 
-	/** Reads the config file via [fileSerializer], creating it with defaults if absent, and marks [isLoaded]. */
-	fun load() = fileSerializer.load(this, configFolder).also { isLoaded = true }
+	/**
+	 * Reads the config file via [fileSerializer], creating it with defaults if absent, marks
+	 * [isLoaded], and attaches/scans every [DataSpec.configSpecList]/[DataSpec.configSpecMap]
+	 * field reachable from [categories] - deferred to here, rather than [init], since [configFolder]
+	 * isn't final until just before this runs (a [Server] spec only repoints it at the per-world
+	 * folder right before calling [load]).
+	 */
+	fun load() = fileSerializer.load(this, configFolder).also {
+		isLoaded = true
+		categoriesMap.values.forEach { cat -> cat.attachSpecCollections(this) }
+	}
 
 	/** Writes the current values of every field in [categories] to the config file via [fileSerializer]. */
 	fun save() = fileSerializer.save(this, configFolder)
+
+	/** Deletes this spec's file. Used by [ConfigSpecCollection.remove] on one of its entries. */
+	internal fun deleteFile()
+	{
+		Files.deleteIfExists(fileSerializer.configPath(this, configFolder))
+		isLoaded = false
+	}
+
+	/**
+	 * Wires this [synchronized] spec's sync packets on [channel]: a server-bound edit that's
+	 * only decoded (applying it to this live singleton, since [serializer]'s factory always
+	 * returns `this`) after [Player.hasPermissions] passes - an unprivileged client's edit is
+	 * never applied, just rejected with a message and corrected back to the current value - and a
+	 * client-bound push that decodes and saves unconditionally, trusting the server.
+	 */
+	@Suppress("UNCHECKED_CAST")
+	private fun registerSync()
+	{
+		val klass = this::class as KClass<ConfigSpec>
+		channel.serverboundLazy(klass, serializer) { decode, ctx ->
+			val player = ctx.player
+			if (player.hasPermissions(3))
+			{
+				decode()
+				save()
+				channel.toAllPlayers(this)
+			}
+			else
+			{
+				player.sendSystemMessage {
+					style {
+						color = KColor.RED.toTextColor()
+						underlined = true
+					}
+					translate("archie.networking.config.no_permissions")
+				}
+				channel.toPlayer(player as ServerPlayer, this)
+			}
+		}
+		channel.clientbound(klass, serializer) { config, _ -> config.isLoaded = true; config.save() }
+	}
 
 	/** Serializes/deserializes a [ConfigSpec] by delegating each entry of [categoriesMap] to its own [DataSpec.serializer]. */
 	internal class ConfigSerializer(val factory: () -> ConfigSpec) : KSerializer<ConfigSpec>
@@ -288,7 +369,7 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, val title: Component, val 
 
 		companion object
 		{
-			private val CONFIG_DIR = LevelResource("serverconfig")
+			internal val CONFIG_DIR = LevelResource("serverconfig")
 		}
 	}
 

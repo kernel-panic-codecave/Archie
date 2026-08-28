@@ -11,8 +11,10 @@ class ClientConfigSpec(internal var spec: ConfigSpec)
 	/**
 	 * Builds a fresh Cloth Config [ConfigBuilder] for [spec]: one category per enabled entry of
 	 * [ConfigSpec.categoriesMap]. Saving writes locally via [ConfigSpec.save] for
-	 * [ConfigSpec.Type.COMMON]/[ConfigSpec.Type.CLIENT]/[ConfigSpec.Type.STARTUP] specs, or sends
-	 * the edited config to the server over [ConfigSpec.channel] for [ConfigSpec.Type.SERVER] specs.
+	 * [ConfigSpec.Type.COMMON]/[ConfigSpec.Type.CLIENT]/[ConfigSpec.Type.STARTUP] specs, or for
+	 * [ConfigSpec.Type.SERVER] specs, sends the edited config to the server - over a
+	 * [ConfigSpecCollection]'s shared channel if [spec] is one of its entries
+	 * ([ConfigSpec.collectionSync]), or over [ConfigSpec.channel] directly otherwise.
 	 */
 	fun buildConfig(parent: Screen): Screen
 	{
@@ -24,7 +26,7 @@ class ClientConfigSpec(internal var spec: ConfigSpec)
 					ConfigSpec.Type.COMMON,
 					ConfigSpec.Type.CLIENT,
 					ConfigSpec.Type.STARTUP -> spec.save()
-					ConfigSpec.Type.SERVER -> spec.channel.toServer(spec)
+					ConfigSpec.Type.SERVER -> spec.collectionSync?.invoke() ?: spec.channel.toServer(spec)
 				}
 			}
 			spec.categoriesMap.values.forEach { value ->

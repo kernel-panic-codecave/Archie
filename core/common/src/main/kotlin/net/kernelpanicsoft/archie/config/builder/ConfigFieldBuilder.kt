@@ -1,22 +1,24 @@
 package net.kernelpanicsoft.archie.config.builder
 
 import me.shedaniel.clothconfig2.impl.builders.AbstractFieldBuilder
-import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.kernelpanicsoft.archie.config.entry.ConfigSpecEntry
+import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
 
 /**
  * Cloth Config field builder producing a [ConfigSpecEntry] - a single "Edit" button field that
- * navigates into [value]'s own config screen. Built via `ConfigEntryBuilder.startConfigField`,
- * used by [net.kernelpanicsoft.archie.config.ClientConfigContainer] to let a container screen with
- * multiple [ConfigSpec]s drill down into each one.
+ * navigates into whatever screen [openScreen] builds for [value]. Built via
+ * `ConfigEntryBuilder.startConfigField`/`startScreenField`, used by
+ * [net.kernelpanicsoft.archie.config.ClientConfigContainer] and [net.kernelpanicsoft.archie.config.ClientConfigGroup]
+ * to let a container/group screen drill down into each of its children.
  */
-class ConfigFieldBuilder<T : ConfigSpec>(
+class ConfigFieldBuilder<T : Any>(
 	resetButtonKey: Component,
 	fieldNameKey: Component,
-	private val value: T
+	private val value: T,
+	private val openScreen: (Screen) -> Screen,
 ) : AbstractFieldBuilder<T, ConfigSpecEntry<T>, ConfigFieldBuilder<T>>(
 	resetButtonKey, fieldNameKey
 )
@@ -30,7 +32,8 @@ class ConfigFieldBuilder<T : ConfigSpec>(
 			fieldNameKey,
 			buttonText,
 			value,
-			requiresRestart
+			requiresRestart,
+			openScreen,
 		)
 		entry.setErrorSupplier {
 			Optional.ofNullable(errorSupplier?.apply(entry.value)?.getOrNull())

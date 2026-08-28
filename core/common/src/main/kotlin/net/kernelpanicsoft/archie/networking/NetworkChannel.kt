@@ -8,16 +8,10 @@ import dev.architectury.utils.EnvExecutor
 import dev.architectury.utils.GameInstance
 import kotlinx.coroutines.Runnable
 import kotlinx.serialization.*
-import net.kernelpanicsoft.archie.config.ConfigSpec
-import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.serializers.SResourceLocation
 import net.kernelpanicsoft.archie.serialization.streamCodec
-import net.kernelpanicsoft.archie.util.foldEnv
-import net.kernelpanicsoft.archie.util.sendSystemMessage
 import net.minecraft.core.RegistryAccess
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.TextColor
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerChunkCache
@@ -73,7 +67,10 @@ internal val PayloadCodec = Payload.serializer().streamCodec
  * A single [NetworkChannel] can handle any number of server-bound and client-bound packet
  * types. All packets are serialized with CBOR via kotlinx.serialization.
  *
- * Packet classes **must** be Kotlin data classes annotated with `@Serializable`.
+ * Packet classes **must** be Kotlin data classes annotated with `@Serializable` when registered
+ * via the reflective [serverbound]/[clientbound] overloads; pass an explicit [KSerializer]
+ * instead (see the two-argument-serializer overloads, or [serverboundLazy]) for a type that
+ * can't carry that annotation.
  *
  * ### Example
  * ```kotlin
@@ -103,14 +100,15 @@ open class NetworkChannel(private val id: ResourceLocation) {
     private val serverClasses = mutableListOf<KClass<*>>()
     private val clientClasses = mutableListOf<KClass<*>>()
 
-    private val serverConfigs = mutableListOf<ConfigSpec>()
-    private val clientConfigs = mutableListOf<ConfigSpec>()
+    private val serverSerializers = mutableListOf<KSerializer<Any>>()
+    private val clientSerializers = mutableListOf<KSerializer<Any>>()
 
-    private val serverboundHandlers = mutableListOf<PacketHandler<*>>()
-    private val clientboundHandlers = mutableListOf<PacketHandler<*>>()
+    private val serverboundHandlers = mutableListOf<(ByteArray, IPacketContext) -> Unit>()
+    private val clientboundHandlers = mutableListOf<(ByteArray, IPacketContext) -> Unit>()
 
     /**
-     * Registers a server-bound packet type and its handler.
+     * Registers a server-bound packet type and its handler, decoding with [klass]'s own
+     * `@Serializable`-generated [KSerializer].
      *
      * The handler is invoked on the server when a client sends a packet of class [klass].
      *
@@ -121,10 +119,9 @@ open class NetworkChannel(private val id: ResourceLocation) {
      */
     fun <T : Any> serverbound(klass: KClass<T>, handler: PacketHandler<T>) {
         require(klass.isData) { "Only data classes can be used as packets" }
-        require(klass.serializerOrNull() != null) { "Data class doesn't have a serializer. Did you forget to add @Serializable?" }
-        require(serverClasses.find { it == klass } == null) { "Packet is already registered" }
-        serverboundHandlers.add(handler)
-        serverClasses.add(klass)
+        val serializer = klass.serializerOrNull()
+            ?: throw IllegalArgumentException("Data class doesn't have a serializer. Did you forget to add @Serializable?")
+        serverbound(klass, serializer, handler)
     }
 
     /**
@@ -140,7 +137,41 @@ open class NetworkChannel(private val id: ResourceLocation) {
     inline fun <reified T : Any> serverbound(noinline handler: PacketHandler<T>) = serverbound(T::class, handler)
 
     /**
-     * Registers a client-bound packet type and its handler.
+     * Registers a server-bound packet type and its handler with an explicit [serializer], for a
+     * type that can't carry `@Serializable` (e.g. a Kotlin `object` singleton with a hand-built
+     * [KSerializer]). The payload is always decoded before [handler] runs; use [serverboundLazy]
+     * instead when decoding must be conditional on something the handler checks first.
+     *
+     * @throws IllegalArgumentException if [klass] is already registered.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> serverbound(klass: KClass<T>, serializer: KSerializer<T>, handler: PacketHandler<T>) {
+        require(serverClasses.find { it == klass } == null) { "Packet is already registered" }
+        serverClasses.add(klass)
+        serverSerializers.add(serializer as KSerializer<Any>)
+        serverboundHandlers.add { bytes, ctx -> handler(SerializationManager.cbor.decodeFromByteArray(serializer, bytes), ctx) }
+    }
+
+    /**
+     * Registers a server-bound packet type whose handler controls exactly when (or whether) the
+     * payload gets decoded, unlike [serverbound] (the two-argument-serializer overload), which
+     * always decodes before invoking its handler. Useful when decoding unconditionally would have
+     * a side effect that must stay conditional on something only the handler can check (e.g. a
+     * permission check that must happen before an edit is applied).
+     *
+     * @throws IllegalArgumentException if [klass] is already registered.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> serverboundLazy(klass: KClass<T>, serializer: KSerializer<T>, handler: (decode: () -> T, IPacketContext) -> Unit) {
+        require(serverClasses.find { it == klass } == null) { "Packet is already registered" }
+        serverClasses.add(klass)
+        serverSerializers.add(serializer as KSerializer<Any>)
+        serverboundHandlers.add { bytes, ctx -> handler({ SerializationManager.cbor.decodeFromByteArray(serializer, bytes) }, ctx) }
+    }
+
+    /**
+     * Registers a client-bound packet type and its handler, decoding with [klass]'s own
+     * `@Serializable`-generated [KSerializer].
      *
      * The handler is invoked on the client when the server sends a packet of class [klass].
      *
@@ -151,10 +182,9 @@ open class NetworkChannel(private val id: ResourceLocation) {
      */
     fun <T : Any> clientbound(klass: KClass<T>, handler: PacketHandler<T>) {
         require(klass.isData) { "Only data classes can be used as packets." }
-        require(klass.serializerOrNull() != null) { "Data class doesn't have a serializer. Did you forget to add @Serializable?" }
-        require(clientClasses.find { it == klass } == null) { "Packet is already registered" }
-        clientboundHandlers.add(handler)
-        clientClasses.add(klass)
+        val serializer = klass.serializerOrNull()
+            ?: throw IllegalArgumentException("Data class doesn't have a serializer. Did you forget to add @Serializable?")
+        clientbound(klass, serializer, handler)
     }
 
     /**
@@ -170,50 +200,19 @@ open class NetworkChannel(private val id: ResourceLocation) {
     inline fun <reified T : Any> clientbound(noinline handler: PacketHandler<T>) = clientbound(T::class, handler)
 
     /**
-     * Registers [spec] as a server-bound "save my changes" packet: when the server receives one,
-     * it is decoded with [spec]'s own [kotlinx.serialization.KSerializer] (via
-     * [net.kernelpanicsoft.archie.config.ConfigSpec.serializer]) rather than the reflective one
-     * used for ordinary packet classes, since a `ConfigSpec` singleton isn't itself
-     * `@Serializable`. The permission check, in-memory decode (mutating [spec]'s fields directly),
-     * and broadcast-or-reject all happen in `decodeDispatchData`, before the handler registered
-     * here ever runs - that handler is the one place that actually persists the result, calling
-     * [net.kernelpanicsoft.archie.config.ConfigSpec.save] to write it to disk. No-op if [spec] is
-     * already registered.
+     * Registers a client-bound packet type and its handler with an explicit [serializer], for a
+     * type that can't carry `@Serializable`. See the server-bound overload of the same shape for
+     * why this exists.
      *
-     * Internal: used by [net.kernelpanicsoft.archie.config.ConfigSpec.init] to wire up
-     * server/client config sync. Not part of the public packet API.
+     * @throws IllegalArgumentException if [klass] is already registered.
      */
-    internal fun <T : ConfigSpec> configServerbound(klass: KClass<out T>, spec: T)
-    {
-        if (spec in serverConfigs) return
-        serverConfigs.add(spec)
-        serverboundHandlers.add { config: T, context -> config.save() }
-        serverClasses.add(klass)
-    }
-
-    internal inline fun <reified T : ConfigSpec> configServerbound(spec: T) = configServerbound(spec::class, spec)
-
-    /**
-     * Registers [spec] as a client-bound config-sync packet: when the client receives one, it is
-     * decoded with [spec]'s own [kotlinx.serialization.KSerializer] and saved locally via
-     * [net.kernelpanicsoft.archie.config.ConfigSpec.save]. Used to push a
-     * [net.kernelpanicsoft.archie.config.ConfigSpec.Server] config's values to a joining player.
-     * No-op if [spec] is already registered.
-     *
-     * Internal: used by [net.kernelpanicsoft.archie.config.ConfigSpec.init] to wire up
-     * server/client config sync. Not part of the public packet API.
-     */
-    internal fun <T : ConfigSpec> configClientbound(klass: KClass<out T>, spec: T)
-    {
-        if (spec in clientConfigs) return
-        clientConfigs.add(spec)
-        clientboundHandlers.add { config: T, context ->
-            config.save()
-        }
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> clientbound(klass: KClass<T>, serializer: KSerializer<T>, handler: PacketHandler<T>) {
+        require(clientClasses.find { it == klass } == null) { "Packet is already registered" }
         clientClasses.add(klass)
+        clientSerializers.add(serializer as KSerializer<Any>)
+        clientboundHandlers.add { bytes, ctx -> handler(SerializationManager.cbor.decodeFromByteArray(serializer, bytes), ctx) }
     }
-
-    internal inline fun <reified T : ConfigSpec> configClientbound(spec: T) = configClientbound(spec::class, spec)
 
     /**
      * Sends one or more packets from the client to the server.
@@ -228,7 +227,7 @@ open class NetworkChannel(private val id: ResourceLocation) {
             createPayload(
                 packet = it,
                 classes = serverClasses,
-                configs = serverConfigs,
+                serializers = serverSerializers,
                 payloadId = id.withSuffix("_client"),
                 missingMessage = "Trying to send a packet to server but it hasn't registered the packet and its handler",
             )
@@ -348,83 +347,43 @@ open class NetworkChannel(private val id: ResourceLocation) {
     fun <T : Any> toPlayersTrackingChunk(level: ServerLevel, pos: ChunkPos, vararg packets: T) =
         toPlayers(level.chunkSource.chunkMap.getPlayers(pos, false), *packets)
 
-    @Suppress("UNCHECKED_CAST")
     private fun <T : Any> createPayloads(packets: Array<out T>): List<Payload> {
         return packets.map {
             createPayload(
                 packet = it,
                 classes = clientClasses,
-                configs = clientConfigs,
+                serializers = clientSerializers,
                 payloadId = id.withSuffix("_server"),
                 missingMessage = "Trying to send a packet to clients but client hasn't registered the packet and its handler",
             )
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     private fun <T : Any> createPayload(
         packet: T,
         classes: List<KClass<*>>,
-        configs: List<ConfigSpec>,
+        serializers: List<KSerializer<Any>>,
         payloadId: ResourceLocation,
         missingMessage: String,
     ): Payload {
-        val klass = classes.find { it == packet::class } as? KClass<T>
-            ?: throw IllegalStateException(missingMessage)
-        val index = classes.indexOf(klass)
-        val config = configs.find { it::class == klass }
-        val bytes = if (config != null) {
-            SerializationManager.cbor.encodeToByteArray(config.serializer, packet as ConfigSpec)
-        }
-        else {
-            SerializationManager.cbor.encodeToByteArray(klass.serializer(), packet)
-        }
+        val index = classes.indexOfFirst { it == packet::class }
+        if (index < 0) throw IllegalStateException(missingMessage)
+        val bytes = SerializationManager.cbor.encodeToByteArray(serializers[index], packet)
         return Payload(payloadId, index, bytes)
     }
 
-    @Suppress("UNCHECKED_CAST")
     private fun decodeDispatchData(
         payload: Payload,
-        classes: List<KClass<*>>,
-        handlers: List<PacketHandler<*>>,
-        configs: List<ConfigSpec>,
-        missingClassMessage: String,
+        handlers: List<(ByteArray, IPacketContext) -> Unit>,
         missingHandlerMessage: String,
-        ctx: NetworkManager.PacketContext
-    ): Pair<Any, PacketHandler<Any>> {
-        val klass = classes.getOrNull(payload.index)
-            ?: throw NoSuchElementException(missingClassMessage)
-        val handler = handlers.getOrNull(payload.index) as? PacketHandler<Any>
+        ctx: NetworkManager.PacketContext,
+    ) {
+        val handler = handlers.getOrNull(payload.index)
             ?: throw NoSuchElementException(missingHandlerMessage)
-        val config = configs.find { it::class == klass }
-        val msg = if (config != null) {
-            foldEnv(
-                client = {
-                    SerializationManager.cbor.decodeFromByteArray(config.serializer, payload.data)
-                },
-                server = {
-                    if (ctx.player.hasPermissions(3))
-                    {
-	                    SerializationManager.cbor.decodeFromByteArray(config.serializer, payload.data)
-                        toAllPlayers(config)
-                        config
-                    } else
-                    {
-                        ctx.player.sendSystemMessage {
-                            style {
-                                color = KColor.RED.toTextColor()
-                                underlined = true
-                            }
-                            translate("archie.networking.config.no_permissions")
-                        }
-                        toPlayer(ctx.player as ServerPlayer, config)
-                        config
-                    }
-                })
-        } else {
-            SerializationManager.cbor.decodeFromByteArray(klass.serializer(), payload.data)
-        }
-        return msg to handler
+        handler(payload.data, object : IPacketContext {
+            override val player: Player get() = ctx.player
+            override val registryAccess: RegistryAccess get() = ctx.registryAccess()
+        })
     }
 
     /**
@@ -433,7 +392,6 @@ open class NetworkChannel(private val id: ResourceLocation) {
      * Must be called once during mod initialization (before any packets are sent or received).
      * Both [serverbound] and [clientbound] handlers should be registered before calling this.
      */
-    @Suppress("UNCHECKED_CAST")
     fun register() {
         EnvExecutor.runInEnv(Env.SERVER) {
             Runnable {
@@ -443,40 +401,23 @@ open class NetworkChannel(private val id: ResourceLocation) {
         EnvExecutor.runInEnv(Env.CLIENT) {
             Runnable {
                 NetworkManager.registerReceiver(NetworkManager.Side.S2C, serverPacketId, PayloadCodec) { payload, ctx ->
-                    val (msg, handler) = decodeDispatchData(
+                    decodeDispatchData(
                         payload = payload,
-                        classes = clientClasses,
                         handlers = clientboundHandlers,
-                        configs = clientConfigs,
-                        missingClassMessage = "No class was found on the clientside. Did you forget to do clientbound?",
                         missingHandlerMessage = "No handler was found on the clientside. Did you forget to do clientbound?",
-                        ctx = ctx
+                        ctx = ctx,
                     )
-	                handler(msg, object : IPacketContext
-	                {
-	                    override val player: Player get() = ctx.player
-	                    override val registryAccess: RegistryAccess get() = ctx.registryAccess()
-	                })
                 }
             }
         }
 
-
         NetworkManager.registerReceiver(NetworkManager.Side.C2S, clientPacketId, PayloadCodec) { payload, ctx ->
-            val (msg, handler) = decodeDispatchData(
+            decodeDispatchData(
                 payload = payload,
-                classes = serverClasses,
                 handlers = serverboundHandlers,
-                configs = serverConfigs,
-                missingClassMessage = "No class was found on the serverside. Did you forget to do serverbound?",
                 missingHandlerMessage = "No handler was found on the serverside. Did you forget to do serverbound?",
-                ctx = ctx
+                ctx = ctx,
             )
-	        handler(msg, object : IPacketContext
-	        {
-	            override val player: Player get() = ctx.player
-	            override val registryAccess: RegistryAccess get() = ctx.registryAccess()
-	        })
         }
     }
 }

@@ -388,6 +388,46 @@ class ClientDataSpec(internal val spec: DataSpec)
 
 	}
 
+	/** Queues [collection]'s native add/remove list/map field. See [DataSpec.configSpecList]/[DataSpec.configSpecMap]. */
+	internal fun <T : ConfigSpec> configSpecCollection(collection: ConfigSpecCollection<T>)
+	{
+		builders.add { buildCollectionEntry(collection) }
+	}
+
+	internal fun <T : ConfigSpec> configRef(
+		id: String,
+		title: Component,
+		comment: Component? = null,
+		options: List<T>,
+		default: T,
+		resetKey: Component? = null,
+		needsRestart: Boolean = false
+	)
+	{
+		if (comment != null)
+		{
+			comment(comment)
+		}
+		builders.add {
+			val reset = resetButtonKey
+			resetButtonKey = resetKey ?: resetButtonKey
+			val current = options.find { it.id == spec.configRefs.getOrPut(id) { default.id } } ?: default
+			val ret = startConfigRefField(title, options, current)
+				.apply {
+					saveConsumer = Consumer {
+						spec.configRefs[id] = it.id
+					}
+					defaultValue = Supplier {
+						default
+					}
+					requireRestart(needsRestart)
+				}
+				.build()
+			resetButtonKey = reset
+			ret
+		}
+	}
+
 	internal fun <T : Any, R : T> registry(
 		id: String,
 		title: Component,

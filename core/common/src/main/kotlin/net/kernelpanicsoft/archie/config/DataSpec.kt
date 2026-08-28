@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.peanuuutz.tomlkt.TomlComment
 import kotlin.properties.PropertyDelegateProvider
+import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -69,6 +70,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	internal val colors: MutableMap<String, KColor> = mutableMapOf()
 	internal val enums: MutableMap<String, Enum<*>> = mutableMapOf()
 	internal val selectors: MutableMap<String, Any> = mutableMapOf()
+	internal val configRefs: MutableMap<String, String> = mutableMapOf()
 	internal val intLists: MutableMap<String, List<Int>> = mutableMapOf()
 	internal val longLists: MutableMap<String, List<Long>> = mutableMapOf()
 	internal val floatLists: MutableMap<String, List<Float>> = mutableMapOf()
@@ -89,6 +91,14 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	internal val colorMaps: MutableMap<String, Map<String, KColor>> = mutableMapOf()
 
 	/**
+	 * [ConfigSpecList]/[ConfigSpecMap] fields declared via [configSpecList]/[configSpecMap] - kept
+	 * separate from [types] since each is backed by its own directory of files, not a value
+	 * serialized inline into this spec's own file. Attached (given a [ConfigSpecCollection.baseFolder]
+	 * and scanned) by the owning [ConfigSpec] during its own [ConfigSpec.init].
+	 */
+	internal val specCollections: MutableMap<String, ConfigSpecCollection<*>> = linkedMapOf()
+
+	/**
 	 * Whether this category is currently active. When `false`, Cloth Config hides/disables the
 	 * category's fields in the UI. Override with a `get()` that reads another field (e.g. a
 	 * parent toggle) to make this category conditional.
@@ -107,7 +117,36 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 		}
 	}
 
+	/**
+	 * Gates every field declared on this [DataSpec] (and, once wired, its [CategorySpec.subcategories]
+	 * and nested `spec`/`specList`/`specMap` values) - denies access until wired, by
+	 * [ConfigSpec.init], to the owning [ConfigSpec.predicate]. Reading/writing a field while this
+	 * returns `false` throws (e.g. a [ConfigSpec.Client]'s fields on a dedicated server, or any
+	 * field before its config has loaded) rather than silently returning a stale default.
+	 */
 	internal var accessPredicate: () -> Boolean = { false }
+
+	/** Wraps a field delegate so every read/write checks [accessPredicate] first. See the field-declaring functions below. */
+	private fun <T> ReadWriteProperty<DataSpec, T>.gated(): ReadWriteProperty<DataSpec, T> = object : ReadWriteProperty<DataSpec, T>
+	{
+		override fun getValue(thisRef: DataSpec, property: KProperty<*>): T
+		{
+			check(thisRef.accessPredicate()) { "Cannot read '${property.name}' on '${thisRef.title.string}' - not available on this side, or not loaded yet" }
+			return this@gated.getValue(thisRef, property)
+		}
+
+		override fun setValue(thisRef: DataSpec, property: KProperty<*>, value: T)
+		{
+			check(thisRef.accessPredicate()) { "Cannot write '${property.name}' on '${thisRef.title.string}' - not available on this side, or not loaded yet" }
+			this@gated.setValue(thisRef, property, value)
+		}
+	}
+
+	/** [gated], for a read-only field ([configSpecList]/[configSpecMap]). */
+	private fun <T> ReadOnlyProperty<DataSpec, T>.gatedReadOnly(): ReadOnlyProperty<DataSpec, T> = ReadOnlyProperty { thisRef, property ->
+		check(thisRef.accessPredicate()) { "Cannot read '${property.name}' on '${thisRef.title.string}' - not available on this side, or not loaded yet" }
+		this@gatedReadOnly.getValue(thisRef, property)
+	}
 
 	/**
 	 * Declares a `Boolean` config field, e.g. `val/var enableFeature by boolean(...)`.
@@ -142,7 +181,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Boolean
 			booleans.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Boolean>
+			val delegate = object : ReadWriteProperty<DataSpec, Boolean>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -155,6 +194,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Boolean
 				) { booleans[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares an `Int` config field. See [boolean] for parameter semantics. */
@@ -176,7 +216,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Int
 			ints.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Int>
+			val delegate = object : ReadWriteProperty<DataSpec, Int>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -189,6 +229,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Int
 				) { ints[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Long` config field. See [boolean] for parameter semantics. */
@@ -210,7 +251,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Long
 			longs.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Long>
+			val delegate = object : ReadWriteProperty<DataSpec, Long>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -223,6 +264,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Long
 				) { longs[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -253,7 +295,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Int
 			ints.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Int>
+			val delegate = object : ReadWriteProperty<DataSpec, Int>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -266,6 +308,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Int
 				) { ints[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Long` config field rendered as a slider. See [intSlider] for parameter semantics. */
@@ -289,7 +332,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Long
 			longs.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Long>
+			val delegate = object : ReadWriteProperty<DataSpec, Long>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -302,6 +345,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Long
 				) { longs[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Float` config field. See [boolean] for parameter semantics. */
@@ -323,7 +367,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Float
 			floats.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Float>
+			val delegate = object : ReadWriteProperty<DataSpec, Float>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -336,6 +380,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Float
 				) { floats[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Double` config field. See [boolean] for parameter semantics. */
@@ -357,7 +402,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Double
 			doubles.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Double>
+			val delegate = object : ReadWriteProperty<DataSpec, Double>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -370,6 +415,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Double
 				) { doubles[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `String` config field. See [boolean] for parameter semantics. */
@@ -391,7 +437,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.String
 			strings.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, String>
+			val delegate = object : ReadWriteProperty<DataSpec, String>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -404,6 +450,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: String
 				) { strings[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -435,7 +482,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Spec { factory() } as FieldType<T>
 			(specs as MutableMap<String, T>).putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, T>
+			val delegate = object : ReadWriteProperty<DataSpec, T>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -448,6 +495,100 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: T
 				) { specs[id] = value }
 			}
+			delegate.gated()
+		}
+
+	/**
+	 * Declares a directory-backed, runtime-managed list of [ConfigSpec] files as a field, rendered
+	 * as a native Cloth Config add/remove list - see [ConfigSpecList]. Unlike other fields, the
+	 * exposed value is the [ConfigSpecList] itself (so callers can use [ConfigSpecList.add]/
+	 * [ConfigSpecList.remove]/[ConfigSpecList.entries]), not a plain `List<T>`, and it isn't part
+	 * of this spec's own serialized file - it's populated once the owning config initializes.
+	 *
+	 * @param directory Subfolder (next to the owning config's own file) this field's entries live
+	 * in. Defaults to the property's own id.
+	 * @param synchronized See [ConfigSpecCollection.synchronized] - only meaningful when the
+	 * owning [ConfigSpec] is itself a [ConfigSpec.Server].
+	 * @param factory Builds a new/loading entry for the given entry id (its filename).
+	 */
+	protected fun <T : ConfigSpec> configSpecList(
+		title: Component,
+		directory: String? = null,
+		synchronized: Boolean = false,
+		factory: (entryId: String) -> T,
+	): PropertyDelegateProvider<DataSpec, ReadOnlyProperty<DataSpec, ConfigSpecList<T>>> =
+		PropertyDelegateProvider { _, property ->
+			val id = property.name.toSnakeCase()
+			val collection = ConfigSpecList(title, id, directory ?: id, synchronized, factory)
+			specCollections[id] = collection
+			onClient { client.configSpecCollection(collection) }
+			ReadOnlyProperty<DataSpec, ConfigSpecList<T>> { _, _ -> collection }.gatedReadOnly()
+		}
+
+	/** Declares a directory-backed, runtime-managed map of [ConfigSpec] files as a field. See [configSpecList] for the remaining semantics. */
+	protected fun <T : ConfigSpec> configSpecMap(
+		title: Component,
+		directory: String? = null,
+		synchronized: Boolean = false,
+		factory: (entryId: String) -> T,
+	): PropertyDelegateProvider<DataSpec, ReadOnlyProperty<DataSpec, ConfigSpecMap<T>>> =
+		PropertyDelegateProvider { _, property ->
+			val id = property.name.toSnakeCase()
+			val collection = ConfigSpecMap(title, id, directory ?: id, synchronized, factory)
+			specCollections[id] = collection
+			onClient { client.configSpecCollection(collection) }
+			ReadOnlyProperty<DataSpec, ConfigSpecMap<T>> { _, _ -> collection }.gatedReadOnly()
+		}
+
+	/**
+	 * Declares a field that references one of a fixed set of statically-declared [options] -
+	 * a [ConfigSpec], not a plain value - stored as that option's [ConfigSpec.id] rather than a
+	 * copy of its data. The UI renders it like [selector] (cycles through [options] by title) plus
+	 * an "Edit" button (like [ConfigSpecEntry][net.kernelpanicsoft.archie.config.entry.ConfigSpecEntry])
+	 * opening the currently-selected option's own screen. See [boolean] for the remaining parameter
+	 * semantics.
+	 *
+	 * @param options The fixed set of configs this field can point at.
+	 * @param default Used until a stored value overrides it, and as the fallback if a stored id no
+	 * longer matches any of [options] (e.g. one was removed by a mod update).
+	 */
+	protected fun <T : ConfigSpec> configRef(
+		title: Component,
+		comment: Component? = null,
+		options: List<T>,
+		default: T,
+		resetKey: Component? = null,
+		needsRestart: Boolean = false,
+	): PropertyDelegateProvider<DataSpec, ReadWriteProperty<DataSpec, T>> =
+		PropertyDelegateProvider { _, property ->
+			val id = property.name.toSnakeCase()
+			if (comment != null)
+			{
+				comments[id] = comment.string
+			}
+			onClient {
+				client.configRef(id, title, comment, options, default, resetKey)
+			}
+			types[id] = FieldType.ConfigRef(options, default)
+			configRefs.putIfAbsent(id, default.id)
+			val delegate = object : ReadWriteProperty<DataSpec, T>
+			{
+				override fun getValue(
+					thisRef: DataSpec,
+					property: KProperty<*>
+				): T
+				{
+					val currentId = configRefs.getOrPut(id) { default.id }
+					return options.find { it.id == currentId } ?: default
+				}
+
+				override fun setValue(
+					thisRef: DataSpec,
+					property: KProperty<*>,
+					value: T
+				) { configRefs[id] = value.id }
+			}
+			delegate.gated()
 		}
 
 	/**
@@ -478,7 +619,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Registry
 			registries.putIfAbsent(id, registry.getKey(default)!!)
-			object : ReadWriteProperty<DataSpec, R>
+			val delegate = object : ReadWriteProperty<DataSpec, R>
 			{
 				@Suppress("UNCHECKED_CAST")
 				override fun getValue(
@@ -494,6 +635,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: R
 				) { registries[id] = registry.getKey(value)!! }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -518,7 +660,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.KeyCode
 			keycodes.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, CommonKeyCode>
+			val delegate = object : ReadWriteProperty<DataSpec, CommonKeyCode>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -531,6 +673,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: CommonKeyCode
 				) { keycodes[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -559,7 +702,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Color
 			colors.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, KColor>
+			val delegate = object : ReadWriteProperty<DataSpec, KColor>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -572,6 +715,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: KColor
 				) { colors[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -601,7 +745,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.EnumSelector(kclass)
 			enums.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, T>
+			val delegate = object : ReadWriteProperty<DataSpec, T>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -614,6 +758,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: T
 				) { enums[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -645,7 +790,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.Selector(kclass)
 			selectors.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, T>
+			val delegate = object : ReadWriteProperty<DataSpec, T>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -658,6 +803,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: T
 				) { selectors[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<Int>` config field. See [boolean] for parameter semantics. */
@@ -679,7 +825,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.IntList
 			intLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<Int>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<Int>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -692,6 +838,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<Int>
 				) { intLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<Long>` config field. See [boolean] for parameter semantics. */
@@ -713,7 +860,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.LongList
 			longLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<Long>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<Long>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -726,6 +873,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<Long>
 				) { longLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<Float>` config field. See [boolean] for parameter semantics. */
@@ -747,7 +895,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.FloatList
 			floatLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<Float>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<Float>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -760,6 +908,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<Float>
 				) { floatLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<Double>` config field. See [boolean] for parameter semantics. */
@@ -781,7 +930,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.DoubleList
 			doubleLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<Double>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<Double>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -794,6 +943,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<Double>
 				) { doubleLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<String>` config field. See [boolean] for parameter semantics. */
@@ -815,7 +965,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.StringList
 			stringLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<String>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<String>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -828,6 +978,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<String>
 				) { stringLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List` of nested [DataSpec] entries. See [spec] for parameter semantics. */
@@ -851,7 +1002,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.SpecList(factory) as FieldType<List<T>>
 			specLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<T>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<T>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -864,6 +1015,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<T>
 				) { specLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -894,7 +1046,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.RegistryList
 			registryLists.putIfAbsent(id, default.map { registry.getKey(it)!! })
-			object : ReadWriteProperty<DataSpec, List<R>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<R>>
 			{
 				@Suppress("UNCHECKED_CAST")
 				override fun getValue(
@@ -910,6 +1062,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<R>
 				) { registryLists[id] = value.map { registry.getKey(it)!! } }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<CommonKeyCode>` config field. See [keycode] for parameter semantics. */
@@ -932,7 +1085,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.KeyCodeList
 			keycodeLists.putIfAbsent(id, default )
-			object : ReadWriteProperty<DataSpec, List<CommonKeyCode>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<CommonKeyCode>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -945,6 +1098,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<CommonKeyCode>
 				) { keycodeLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `List<KColor>` config field. See [color] for parameter semantics. */
@@ -969,7 +1123,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.ColorList
 			colorLists.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, List<KColor>>
+			val delegate = object : ReadWriteProperty<DataSpec, List<KColor>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -982,6 +1136,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: List<KColor>
 				) { colorLists[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, Int>` config field. See [boolean] for parameter semantics. */
@@ -1003,7 +1158,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.IntMap
 			intMaps.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, Int>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, Int>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1016,6 +1171,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, Int>
 				) { intMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, Long>` config field. See [boolean] for parameter semantics. */
@@ -1037,7 +1193,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.LongMap
 			longMaps.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, Long>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, Long>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1050,6 +1206,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, Long>
 				) { longMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, Float>` config field. See [boolean] for parameter semantics. */
@@ -1071,7 +1228,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.FloatMap
 			floatMaps.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, Float>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, Float>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1084,6 +1241,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, Float>
 				) { floatMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, Double>` config field. See [boolean] for parameter semantics. */
@@ -1105,7 +1263,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.DoubleMap
 			doubleMaps.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, Double>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, Double>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1118,6 +1276,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, Double>
 				) { doubleMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, String>` config field. See [boolean] for parameter semantics. */
@@ -1139,7 +1298,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.StringMap
 			stringMaps.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, String>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, String>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1152,6 +1311,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, String>
 				) { stringMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map` of nested [DataSpec] entries. See [spec] for parameter semantics. */
@@ -1175,7 +1335,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.SpecMap(factory) as FieldType<Map<String, T>>
 			(specMaps as MutableMap<String, Map<String, T>>).putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, T>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, T>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1188,6 +1348,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, T>
 				) { specMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/**
@@ -1215,7 +1376,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.RegistryMap
 			registryMaps.putIfAbsent(id, default.mapValues { registry.getKey(it.value)!! })
-			object : ReadWriteProperty<DataSpec, Map<String, R>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, R>>
 			{
 				@Suppress("UNCHECKED_CAST")
 				override fun getValue(
@@ -1231,6 +1392,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, R>
 				) { registryMaps[id] = value.mapValues { registry.getKey(it.value)!! } }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, CommonKeyCode>` config field. See [keycode] for parameter semantics. */
@@ -1253,7 +1415,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 			}
 			types[id] = FieldType.KeyCodeMap
 			keycodeMaps.putIfAbsent(id, default)
-			object : ReadWriteProperty<DataSpec, Map<String, CommonKeyCode>>
+			val delegate = object : ReadWriteProperty<DataSpec, Map<String, CommonKeyCode>>
 			{
 				override fun getValue(
 					thisRef: DataSpec,
@@ -1266,6 +1428,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 					value: Map<String, CommonKeyCode>
 				) { keycodeMaps[id] = value }
 			}
+			delegate.gated()
 		}
 
 	/** Declares a `Map<String, KColor>` config field. See [color] for parameter semantics. */
@@ -1290,7 +1453,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 		}
 		types[id] = FieldType.ColorMap
 		colorMaps.putIfAbsent(id, default)
-		object : ReadWriteProperty<DataSpec, Map<String, KColor>>
+		val delegate = object : ReadWriteProperty<DataSpec, Map<String, KColor>>
 		{
 			override fun getValue(
 				thisRef: DataSpec,
@@ -1303,6 +1466,7 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 				value: Map<String, KColor>
 			) { colorMaps[id] = value }
 		}
+		delegate.gated()
 	}
 
 	/**
@@ -1388,6 +1552,9 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 
 									is FieldType.Selector -> selectors[key] =
 										decodeSerializableElement(descriptor, index, type.serializer)
+
+									is FieldType.ConfigRef<*> -> configRefs[key] =
+										decodeSerializableElement(descriptor, index, type.serializer).id
 
 									is FieldType.IntList -> intLists[key] =
 										decodeSerializableElement(descriptor, index, type.serializer)
@@ -1554,6 +1721,13 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 							value.selectors[key]!!
 						)
 
+						is FieldType.ConfigRef<*> ->
+						{
+							val ref = type as FieldType.ConfigRef<ConfigSpec>
+							val current = ref.options.find { it.id == value.configRefs[key] } ?: ref.default
+							encodeSerializableElement(descriptor, index, ref.serializer, current)
+						}
+
 						is FieldType.IntList -> encodeSerializableElement(
 							descriptor,
 							index,
@@ -1686,5 +1860,49 @@ abstract class DataSpec(val title: Component, val id: String = title.string.toSn
 	}
 
 	internal val serializer by lazy { ConfigCategorySerializer { this } }
+}
+
+/**
+ * Applies [action] to this [DataSpec] and every descendant reachable through nested `spec`/
+ * `specList`/`specMap` values and (for a [CategorySpec]) [CategorySpec.subcategories].
+ */
+internal fun DataSpec.forEachDescendant(action: (DataSpec) -> Unit)
+{
+	action(this)
+	specs.values.forEach { it.forEachDescendant(action) }
+	specLists.values.forEach { list -> list.forEach { it.forEachDescendant(action) } }
+	specMaps.values.forEach { map -> map.values.forEach { it.forEachDescendant(action) } }
+	if (this is CategorySpec) subcategories.forEach { it.forEachDescendant(action) }
+}
+
+/**
+ * Attaches (given a [ConfigSpecCollection.baseFolder] resolving next to [owner]'s own file) and
+ * scans every [ConfigSpecCollection] reachable from this [DataSpec]. Called by [ConfigSpec.load].
+ */
+internal fun DataSpec.attachSpecCollections(owner: ConfigSpec) = forEachDescendant { spec ->
+	spec.specCollections.values.forEach { collection ->
+		collection.baseFolder = { owner.configFolder.resolve(owner.filename) }
+		collection.init()
+	}
+}
+
+/**
+ * Registers the sync channel (a no-op unless [ConfigSpecCollection.synchronized]) for every
+ * [ConfigSpecCollection] reachable from this [DataSpec]. Called by [ConfigSpec.init] - unlike
+ * [attachSpecCollections], this must run at common-init time on *both* physical sides, since a
+ * non-hosting client never calls [ConfigSpec.load] for a [ConfigSpec.Server] owner and still
+ * needs its receiver registered.
+ */
+internal fun DataSpec.registerSpecCollectionNetworking(owner: ConfigSpec) = forEachDescendant { spec ->
+	spec.specCollections.values.forEach { it.registerNetwork(owner.mod, "${owner.id}_${it.id}") }
+}
+
+/**
+ * Wires [DataSpec.accessPredicate], on this [DataSpec] and every descendant, to [owner]'s own
+ * [ConfigSpec.predicate] - so every field access anywhere under [owner] is gated by it. Called by
+ * [ConfigSpec.init], alongside [registerSpecCollectionNetworking].
+ */
+internal fun DataSpec.wireAccessPredicate(owner: ConfigSpec) = forEachDescendant { spec ->
+	spec.accessPredicate = { owner.predicate() }
 }
 

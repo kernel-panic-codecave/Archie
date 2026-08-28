@@ -11,6 +11,7 @@ import me.shedaniel.math.Color
 import net.kernelpanicsoft.archie.config.ConfigSpec
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.screens.Screen
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
@@ -108,7 +109,31 @@ fun <T : DataSpec> ConfigEntryBuilder.startSpecField(fieldNameKey: Component, va
 
 fun <T : ConfigSpec> ConfigEntryBuilder.startConfigField(fieldNameKey: Component, value: T): ConfigFieldBuilder<T>
 {
-	return ConfigFieldBuilder(resetButtonKey, fieldNameKey, value)
+	return ConfigFieldBuilder(resetButtonKey, fieldNameKey, value) { value.client.buildConfig(it) }
+}
+
+/** Builds a native add/remove list field for a [net.kernelpanicsoft.archie.config.ConfigSpecList]. See [ConfigSpecListBuilder]. */
+fun <T : ConfigSpec> ConfigEntryBuilder.startConfigSpecList(fieldNameKey: Component, value: List<T>, scratchFactory: () -> T): ConfigSpecListBuilder<T>
+{
+	return ConfigSpecListBuilder(resetButtonKey, fieldNameKey, value, scratchFactory)
+}
+
+/** Builds a native add/remove map field for a [net.kernelpanicsoft.archie.config.ConfigSpecMap]. See [ConfigSpecMapBuilder]. */
+fun <T : ConfigSpec> ConfigEntryBuilder.startConfigSpecMap(fieldNameKey: Component, value: Map<String, T>, scratchFactory: () -> T): ConfigSpecMapBuilder<T>
+{
+	return ConfigSpecMapBuilder(resetButtonKey, fieldNameKey, value, scratchFactory)
+}
+
+/** Builds a cycle-selector-plus-edit-button field for a `configRef` field. See [ConfigRefFieldBuilder]. */
+fun <T : ConfigSpec> ConfigEntryBuilder.startConfigRefField(fieldNameKey: Component, options: List<T>, value: T): ConfigRefFieldBuilder<T>
+{
+	return ConfigRefFieldBuilder(resetButtonKey, fieldNameKey, options, value)
+}
+
+/** Like [startConfigField], but for any [value] with an explicit [openScreen] rather than one specifically backed by [ConfigSpec.client]. */
+fun <T : Any> ConfigEntryBuilder.startScreenField(fieldNameKey: Component, value: T, openScreen: (Screen) -> Screen): ConfigFieldBuilder<T>
+{
+	return ConfigFieldBuilder(resetButtonKey, fieldNameKey, value, openScreen)
 }
 
 /** See [startSpecField]. Builds a single registry-entry field, resolved against [registry] and optionally narrowed to [subclass]. */
