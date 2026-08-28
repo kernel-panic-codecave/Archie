@@ -102,8 +102,8 @@ dependencies {
 
 	// See core/fabric/build.gradle.kts for why this depends on common's "jar" task output directly
 	// rather than through a project(path, configuration) reference or a raw SourceSetOutput.
-	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
-	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {

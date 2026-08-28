@@ -1,4 +1,7 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.kernelpanicsoft.archie.plugin.bundleMod
+import net.kernelpanicsoft.archie.plugin.runtimeLibrary
+import org.gradle.api.tasks.bundling.Jar
 
 plugins {
 	alias(libs.plugins.shadow)
@@ -10,8 +13,21 @@ architectury {
 	neoForge()
 }
 
+// Same-tree sibling. See core/fabric/build.gradle.kts for why node.sibling() is used here.
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
+// Cross-tree references: test, core, datagen and gametest are separate Stonecutter trees, so
+// node.sibling() (which only searches within the current tree) doesn't reach them - resolve the
+// paths directly instead.
+val coreNeoforge = rootProject.project(":core:neoforge:${stonecutter.current.version}")
+val datagenNeoforge = rootProject.project(":datagen:neoforge:${stonecutter.current.version}")
+val gametestNeoforge = rootProject.project(":gametest:neoforge:${stonecutter.current.version}")
+
 actualizer {
-	actualizes(project(":archie-test-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -29,8 +45,8 @@ configurations {
 }
 
 loom {
-	log4jConfigs.from(project(":archie-test-common").loom.log4jConfigs)
-	accessWidenerPath.set(project(":archie-test-common").loom.accessWidenerPath)
+	log4jConfigs.from(common.loom.log4jConfigs)
+	accessWidenerPath.set(common.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
@@ -104,14 +120,20 @@ dependencies {
 	bundleMod(libs.storage.neoforge) { exclude(group = "curse.maven") }
 
 	implementation(libs.junit.jupiter.api)
+	implementation(libs.kotlinx.coroutines.test)
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	"common"(project(":archie-test-common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":archie-test-common", "transformProductionNeoForge")) { isTransitive = false }
-	api(project(":archie-core-neoforge", "namedElements"))
-	api(project(":archie-datagen-neoforge", "namedElements"))
-	api(project(":archie-gametest-neoforge", "namedElements"))
+	// See core/fabric/build.gradle.kts and gametest/neoforge/build.gradle.kts for why these depend
+	// on the sibling's "jar" task output directly, and why the Compose/coroutines deps above and
+	// below are repeated - the actualizer merges test-common's own source files into this project's
+	// own compilation, so it needs test-common's compile-time deps directly too, not just its output.
+	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	api(files(datagenNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	api(files(gametestNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	runtimeLibrary(compose.runtime)
 }
 
 modResources {
@@ -126,7 +148,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":archie-test-common").sourceSets.main.get().resources) {
+		from(common.sourceSets.main.get().resources) {
 			include("assets/archie_test/**")
 			include("data/archie_test/**")
 			include("archie_test.common.json")
@@ -159,11 +181,11 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":archie-test-common").sourceSets.main.get().output)
+		from(common.sourceSets.main.get().output)
 	}
 
 	sourcesJar {
-		val commonSources = project(":archie-test-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

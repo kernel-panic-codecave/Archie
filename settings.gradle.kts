@@ -22,10 +22,8 @@ plugins {
 	id("dev.kikugie.stonecutter") version "0.9.7"
 }
 
-// Validation slice: only `core` is Stonecutter-managed for now. datagen/gametest/test stay on the
-// old includeModule() scheme until this is proven out - see the migration plan.
 stonecutter {
-	create("core") {
+	for (tree in listOf("core", "datagen", "gametest", "test")) create(tree) {
 		branch("common") { versions("1.21.1") }
 		branch("fabric") { versions("1.21.1") }
 		branch("neoforge") { versions("1.21.1") }
@@ -33,18 +31,3 @@ stonecutter {
 }
 
 rootProject.name = "Archie"
-
-// includeModule("datagen")
-// includeModule("gametest")
-// includeModule("test")
-
-fun includeModulePlatform(name: String, platform: String) {
-	include("$name/$platform")
-	project(":$name/$platform").name = "archie-$name-$platform"
-}
-
-fun includeModule(name: String) {
-	includeModulePlatform(name, "common")
-	includeModulePlatform(name, "fabric")
-	includeModulePlatform(name, "neoforge")
-}

@@ -72,15 +72,15 @@ tasks {
 		description = "Verifies GUI sprite metadata files have matching PNG assets."
 
 		doLast {
-			val spritesDir = file("src/main/resources/assets/archie/textures/gui/sprites")
+			val spritesDir = branchDir.resolve("src/main/resources/assets/archie/textures/gui/sprites")
 			if (!spritesDir.exists()) return@doLast
 
 			val missingPng = spritesDir
 				.walkTopDown()
 				.filter { it.isFile && it.name.endsWith(".png.mcmeta") }
-				.map { it to file(it.path.removeSuffix(".mcmeta")) }
+				.map { it to File(it.path.removeSuffix(".mcmeta")) }
 				.filter { (_, png) -> !png.exists() }
-				.map { (meta, _) -> meta.relativeTo(projectDir).invariantSeparatorsPath }
+				.map { (meta, _) -> meta.relativeTo(branchDir).invariantSeparatorsPath }
 				.toList()
 
 			if (missingPng.isNotEmpty()) {

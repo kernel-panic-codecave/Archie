@@ -94,8 +94,8 @@ dependencies {
 	// MissingPropertyException: No such property: mode. Safe here since fabric and neoforge already
 	// share one mapping namespace (officialMojangMappings), so transformProductionX's per-platform
 	// remap was never doing anything for this project anyway.
-	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
-	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {
