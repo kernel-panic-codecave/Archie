@@ -33,10 +33,11 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	private val fluidStorage: MutableMap<String, ArchieFluidStorage> = mutableMapOf()
 	private val energyStorage: MutableMap<String, ArchieEnergyStorage> = mutableMapOf()
 	private val nestedMapStorage: MutableMap<String, NestedNBTHolderMap<*>> = mutableMapOf()
-	private val nestedMapFactories: MutableMap<String, (CompoundTag) -> NBTHolder> = mutableMapOf()
+	private val nestedMapFactories: MutableMap<String, (CompoundTag) -> NBTHolder?> = mutableMapOf()
 	private val nestedListStorage: MutableMap<String, NestedNBTHolderList<*>> = mutableMapOf()
-	private val nestedListFactories: MutableMap<String, (CompoundTag) -> NBTHolder> = mutableMapOf()
-	private val nestedHolderStorage: MutableMap<String, NBTHolder> = mutableMapOf()
+	private val nestedListFactories: MutableMap<String, (CompoundTag) -> NBTHolder?> = mutableMapOf()
+	private val nestedHolderStorage: MutableMap<String, NestedNBTHolder<*>> = mutableMapOf()
+	private val nestedHolderFactories: MutableMap<String, (CompoundTag) -> NBTHolder?> = mutableMapOf()
 	private val itemMapStorage: MutableMap<String, ArchieStorageMap<ArchieItemStorage>> = mutableMapOf()
 	private val itemListStorage: MutableMap<String, ArchieStorageList<ArchieItemStorage>> = mutableMapOf()
 	private val fluidMapStorage: MutableMap<String, ArchieStorageMap<ArchieFluidStorage>> = mutableMapOf()
@@ -154,7 +155,7 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 		}
 	}
 
-	override fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
+	override fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -170,7 +171,7 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 		}
 	}
 
-	override fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
+	override fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -186,13 +187,18 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 		}
 	}
 
-	override fun <T : NBTHolder> nestedField(factory: () -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>>
+	override fun <T : NBTHolder> nestedField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolder<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
-			val holder = factory()
-			(data[key] as? NbtCompound)?.toMinecraft?.let { holder.loadFromTag(it) }
+			lateinit var holder: NestedNBTHolder<T>
+			holder = NestedNBTHolder {
+				data[key] = holder.toNbtCompound()
+				saveToStack()
+			}
+			(data[key] as? NbtCompound)?.let { holder.loadFrom(it, factory) }
 			nestedHolderStorage[key] = holder
+			nestedHolderFactories[key] = factory
 			ReadOnlyProperty { _, _ -> holder }
 		}
 	}
@@ -362,7 +368,7 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 			list.loadFrom(data[key] as? NbtCompound, nestedListFactories.getValue(key))
 		}
 		nestedHolderStorage.forEach { (key, holder) ->
-			(data[key] as? NbtCompound)?.toMinecraft?.let { holder.loadFromTag(it) }
+			holder.loadFrom(data[key] as? NbtCompound, nestedHolderFactories.getValue(key))
 		}
 		itemMapStorage.forEach { (key, map) -> map.loadFrom(data[key] as? NbtCompound) }
 		itemListStorage.forEach { (key, list) -> list.loadFrom(data[key] as? NbtCompound) }
@@ -391,7 +397,7 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 				data[key] = list.toNbtCompound()
 			}
 			nestedHolderStorage.forEach { (key, holder) ->
-				data[key] = CompoundTag().also { holder.saveToTag(it) }.fromMinecraft
+				data[key] = holder.toNbtCompound()
 			}
 			itemMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
 			itemListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }

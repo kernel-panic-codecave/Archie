@@ -56,13 +56,13 @@ class NestedNBTHolderList<T : NBTHolder> internal constructor(private val onChan
 	 * plain [NBTHolder] rather than [T].
 	 */
 	@Suppress("UNCHECKED_CAST")
-	internal fun loadFrom(compound: NbtCompound?, factory: (CompoundTag) -> NBTHolder) {
+	internal fun loadFrom(compound: NbtCompound?, factory: (CompoundTag) -> NBTHolder?) {
 		entries.clear()
 		compound ?: return
 		compound.keys.mapNotNull { it.toIntOrNull() }.sorted().forEach { index ->
 			val tag = compound.getValue(index.toString())
 			val subTag = (tag as? NbtCompound)?.toMinecraft ?: return@forEach
-			entries += (factory(subTag).also { it.loadFromTag(subTag) }) as T
+			((factory(subTag)?.also { it.loadFromTag(subTag) }) as T?)?.let { entries += it }
 		}
 	}
 

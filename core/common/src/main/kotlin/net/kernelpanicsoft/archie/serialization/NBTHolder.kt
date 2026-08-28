@@ -63,13 +63,13 @@ interface NBTHolder
 	 * `NestedNBTHolderMap<HookHolderState>` instead of always getting back the base [NBTHolder]
 	 * type and having to cast every entry manually.
 	 */
-	fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
+	fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
 
 	/**
 	 * Declares a [NestedNBTHolderList] field, keyed by the delegated property's name - the
 	 * index-ordered counterpart to [nestedMapField]; see its KDoc for [factory]'s role and [T]'s.
 	 */
-	fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
+	fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
 
 	/**
 	 * Declares a single nested [NBTHolder] field, keyed by the delegated property's name and built
@@ -77,7 +77,7 @@ interface NBTHolder
 	 * those, there's exactly one fixed-type entry, so no per-entry type discrimination is needed:
 	 * [factory] takes no tag to inspect.
 	 */
-	fun <T : NBTHolder> nestedField(factory: () -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>>
+	fun <T : NBTHolder> nestedField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolder<T>>>
 
 	/**
 	 * Declares an [ArchieItemStorage] field with [size] slots, keyed by the delegated property's

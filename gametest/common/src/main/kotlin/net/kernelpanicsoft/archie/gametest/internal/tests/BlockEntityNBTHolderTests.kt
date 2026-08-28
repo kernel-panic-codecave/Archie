@@ -176,13 +176,11 @@ class BlockEntityNBTHolderTests
 	fun GameTestHelper.testNestedHolderFieldsPersistHeterogeneousMutations()
 	{
 		val holder = NestingFixture()
-		holder.single.value = 5
+		holder.single.value?.value = 5
 		holder.list.add { NestedFixture() }.value = 6
 		holder.list.add { OtherNestedFixture() }.label = "seven"
-		holder.map.getOrPut("a") { NestedFixture() }
-		(holder.map["a"] as NestedFixture).value = 8
-		holder.map.getOrPut("b") { OtherNestedFixture() }
-		(holder.map["b"] as OtherNestedFixture).label = "nine"
+		holder.map.getOrPut("a") { NestedFixture() }.value = 8
+		holder.map.getOrPut("b") { OtherNestedFixture() }.label = "nine"
 
 		val tag = CompoundTag()
 		holder.saveToTag(tag)
@@ -190,7 +188,7 @@ class BlockEntityNBTHolderTests
 		val loaded = NestingFixture()
 		loaded.loadFromTag(tag)
 
-		assertEquals(5, loaded.single.value)
+		assertEquals(5, loaded.single.value?.value)
 		assertEquals(6, (loaded.list[0] as NestedFixture).value)
 		assertEquals("seven", (loaded.list[1] as OtherNestedFixture).label)
 		assertEquals(8, (loaded.map["a"] as NestedFixture).value)

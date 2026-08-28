@@ -67,11 +67,11 @@ class NestedNBTHolderMap<T : NBTHolder> internal constructor(private val onChang
 	 * the cast back is safe in practice even though it isn't statically checked here.
 	 */
 	@Suppress("UNCHECKED_CAST")
-	internal fun loadFrom(compound: NbtCompound?, factory: (CompoundTag) -> NBTHolder) {
+	internal fun loadFrom(compound: NbtCompound?, factory: (CompoundTag) -> NBTHolder?) {
 		entries.clear()
 		compound?.forEach { (key, tag) ->
 			val subTag = (tag as? NbtCompound)?.toMinecraft ?: return@forEach
-			entries[key] = (factory(subTag).also { it.loadFromTag(subTag) }) as T
+			((factory(subTag)?.also { it.loadFromTag(subTag) }) as T?)?.let { entries[key] = it }
 		}
 	}
 

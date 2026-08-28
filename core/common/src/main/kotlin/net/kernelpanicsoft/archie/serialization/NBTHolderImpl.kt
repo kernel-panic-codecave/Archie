@@ -12,6 +12,8 @@ import net.benwoodworth.knbt.NbtCompound
 import net.benwoodworth.knbt.NbtTag
 import net.kernelpanicsoft.archie.gui.blockentity.getStateContainer
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.codec.ByteBufCodecs.holder
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -32,10 +34,11 @@ class NBTHolderImpl : NBTHolder
 	private val fluidStorage: MutableMap<String, ArchieFluidStorage> = mutableMapOf()
 	private val energyStorage: MutableMap<String, ArchieEnergyStorage> = mutableMapOf()
 	private val nestedMapStorage: MutableMap<String, NestedNBTHolderMap<*>> = mutableMapOf()
-	private val nestedMapFactories: MutableMap<String, (CompoundTag) -> NBTHolder> = mutableMapOf()
+	private val nestedMapFactories: MutableMap<String, (CompoundTag) -> NBTHolder?> = mutableMapOf()
 	private val nestedListStorage: MutableMap<String, NestedNBTHolderList<*>> = mutableMapOf()
-	private val nestedListFactories: MutableMap<String, (CompoundTag) -> NBTHolder> = mutableMapOf()
-	private val nestedHolderStorage: MutableMap<String, NBTHolder> = mutableMapOf()
+	private val nestedListFactories: MutableMap<String, (CompoundTag) -> NBTHolder?> = mutableMapOf()
+	private val nestedHolderStorage: MutableMap<String, NestedNBTHolder<*>> = mutableMapOf()
+	private val nestedHolderFactories: MutableMap<String, (CompoundTag) -> NBTHolder?> = mutableMapOf()
 	private val itemMapStorage: MutableMap<String, ArchieStorageMap<ArchieItemStorage>> = mutableMapOf()
 	private val itemListStorage: MutableMap<String, ArchieStorageList<ArchieItemStorage>> = mutableMapOf()
 	private val fluidMapStorage: MutableMap<String, ArchieStorageMap<ArchieFluidStorage>> = mutableMapOf()
@@ -77,11 +80,16 @@ class NBTHolderImpl : NBTHolder
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
+					if (value == null)
+						data.remove(property.name.toSnakeCase())
+					else
+						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
 					if (thisRef is BlockEntity)
 					{
-						if (property.name.toSnakeCase() in sync)
+						if (property.name.toSnakeCase() in sync) {
 							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+						}
 						thisRef.setChanged()
 					}
 				}
@@ -126,8 +134,10 @@ class NBTHolderImpl : NBTHolder
 					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
 					if (thisRef is BlockEntity)
 					{
-						if (property.name.toSnakeCase() in sync)
+						if (property.name.toSnakeCase() in sync) {
 							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+						}
 						thisRef.setChanged()
 					}
 				}
@@ -172,8 +182,10 @@ class NBTHolderImpl : NBTHolder
 					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
 					if (thisRef is BlockEntity)
 					{
-						if (property.name.toSnakeCase() in sync)
+						if (property.name.toSnakeCase() in sync) {
 							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+						}
 						thisRef.setChanged()
 					}
 				}
@@ -184,21 +196,24 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
+	override fun <T : NBTHolder> nestedMapField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderMap<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
 				sync += key
-				// Individual nested fields aren't wired into BlockEntityStateManager for live GUI
-				// observation - only the map as a whole round-trips through saveToTag/loadFromTag/
-				// getSyncTag, same as itemField/fluidField/energyField below.
 			}
 			lateinit var map: NestedNBTHolderMap<T>
 			map = NestedNBTHolderMap {
 				data[key] = map.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+//						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 			}
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it, factory) }
 			nestedMapStorage[key] = map
@@ -207,7 +222,7 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
+	override fun <T : NBTHolder> nestedListField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolderList<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -215,7 +230,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var list: NestedNBTHolderList<T>
 			list = NestedNBTHolderList {
 				data[key] = list.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+//						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 			}
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it, factory) }
 			nestedListStorage[key] = list
@@ -224,14 +245,25 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun <T : NBTHolder> nestedField(factory: () -> T): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>>
+	override fun <T : NBTHolder> nestedField(factory: (CompoundTag) -> T?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, NestedNBTHolder<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>()) sync += key
-			val holder = factory()
-			(data[key] as? NbtCompound)?.toMinecraft?.let { holder.loadFromTag(it) }
+			lateinit var holder: NestedNBTHolder<T>
+			holder = NestedNBTHolder {
+				data[key] = holder.toNbtCompound()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+//						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), holder)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
+			}
+			(data[key] as? NbtCompound)?.let { holder.loadFrom(it, factory) }
 			nestedHolderStorage[key] = holder
+			nestedHolderFactories[key] = factory
 			ReadOnlyProperty { _, _ -> holder }
 		}
 	}
@@ -250,8 +282,10 @@ class NBTHolderImpl : NBTHolder
 			val internalOnUpdate = when (thisRef)
 			{
 				is BlockEntity -> ({
-					if (property.name.toSnakeCase() in sync)
+					if (property.name.toSnakeCase() in sync) {
 						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), itemStorage[property.name.toSnakeCase()])
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
 					thisRef.setChanged()
 				})
 				else -> ({})
@@ -268,7 +302,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var map: ArchieStorageMap<ArchieItemStorage>
 			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 				onUpdate?.invoke()
 			}
 			map = ArchieStorageMap({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
@@ -285,7 +325,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var list: ArchieStorageList<ArchieItemStorage>
 			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 				onUpdate?.invoke()
 			}
 			list = ArchieStorageList({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
@@ -309,8 +355,10 @@ class NBTHolderImpl : NBTHolder
 			val internalOnUpdate: () -> Unit = {
 				if (thisRef is BlockEntity)
 				{
-					if (property.name.toSnakeCase() in sync)
+					if (property.name.toSnakeCase() in sync) {
 						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), fluidStorage[property.name.toSnakeCase()])
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
 					thisRef.setChanged()
 				}
 				onUpdate?.invoke()
@@ -327,7 +375,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var map: ArchieStorageMap<ArchieFluidStorage>
 			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 				onUpdate?.invoke()
 			}
 			map = ArchieStorageMap({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
@@ -344,7 +398,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var list: ArchieStorageList<ArchieFluidStorage>
 			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 				onUpdate?.invoke()
 			}
 			list = ArchieStorageList({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
@@ -369,7 +429,10 @@ class NBTHolderImpl : NBTHolder
 				if (thisRef is BlockEntity)
 				{
 					if (property.name.toSnakeCase() in sync)
+					{
 						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), energyStorage[property.name.toSnakeCase()])
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
 					thisRef.setChanged()
 				}
 				onUpdate?.invoke()
@@ -386,7 +449,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var map: ArchieStorageMap<ArchieEnergyStorage>
 			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 				onUpdate?.invoke()
 			}
 			map = ArchieStorageMap({ ArchieEnergyStorage(capacity, internalOnChange) }, internalOnChange)
@@ -403,7 +472,13 @@ class NBTHolderImpl : NBTHolder
 			lateinit var list: ArchieStorageList<ArchieEnergyStorage>
 			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				if (thisRef is BlockEntity) {
+					if (property.name.toSnakeCase() in sync) {
+						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+					}
+					thisRef.setChanged()
+				}
 				onUpdate?.invoke()
 			}
 			list = ArchieStorageList({ ArchieEnergyStorage(capacity, internalOnChange) }, internalOnChange)
@@ -440,7 +515,7 @@ class NBTHolderImpl : NBTHolder
 			list.loadFrom(data[key] as? NbtCompound, nestedListFactories.getValue(key))
 		}
 		nestedHolderStorage.forEach { (key, holder) ->
-			(data[key] as? NbtCompound)?.toMinecraft?.let { holder.loadFromTag(it) }
+			holder.loadFrom(data[key] as? NbtCompound, nestedHolderFactories.getValue(key))
 		}
 		itemMapStorage.forEach { (key, map) -> map.loadFrom(data[key] as? NbtCompound) }
 		itemListStorage.forEach { (key, list) -> list.loadFrom(data[key] as? NbtCompound) }
@@ -469,7 +544,7 @@ class NBTHolderImpl : NBTHolder
 				data[key] = list.toNbtCompound()
 			}
 			nestedHolderStorage.forEach { (key, holder) ->
-				data[key] = CompoundTag().also { holder.saveToTag(it) }.fromMinecraft
+				data[key] = holder.toNbtCompound()
 			}
 			itemMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
 			itemListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
