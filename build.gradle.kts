@@ -42,9 +42,15 @@ val String.prop: String?
 val String.localOrEnv: String?
 	get() = localProperties?.getProperty(this) ?: System.getenv(this.uppercase())
 
+version = "mod_version".prop ?: "0.0.1-SNAPSHOT"
+group = "mod_group".prop ?: "net.kernelpanicsoft"
+
 subprojects {
 	apply(plugin = "dev.architectury.loom")
 	apply(plugin = "net.kernelpanicsoft.actualizer")
+
+	version = rootProject.version
+	group = rootProject.group
 
 	val loom = project.extensions.getByName<LoomGradleExtensionAPI>("loom")
 
@@ -161,8 +167,7 @@ allprojects {
 	apply(plugin = "architectury-plugin")
 	apply(plugin = "maven-publish")
 
-	version = "mod_version".prop ?: "0.0.1-SNAPSHOT"
-	group = "mod_group".prop ?: "net.kernelpanicsoft"
+
 	base.archivesName = "archie-core"
 
 	tasks.withType<JavaCompile>().configureEach {
