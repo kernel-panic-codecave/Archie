@@ -14,6 +14,7 @@ import net.kernelpanicsoft.archie.gui.interaction.collectIsHoveredAsState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.BoxMeasurePolicy
 import net.kernelpanicsoft.archie.gui.layout.Layout
+import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
@@ -107,8 +108,8 @@ fun SliderCore(
     val hovered by interactionSource.collectIsHoveredAsState()
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    fun updateFromPointer(node: UINode, mouseX: Double) {
-        val localX = (mouseX - node.x).toFloat()
+    fun updateFromPointer(node: LayoutNode, mouseX: Double) {
+        val localX = (mouseX - node.absoluteCoords.x).toFloat()
         val fraction = if (node.width <= 1) 0f else localX / node.width.toFloat()
         onValueChange(snapSliderValue(fraction, steps))
     }
@@ -134,19 +135,19 @@ fun SliderCore(
             // Not Modifier.draggable(): that reports only a delta per movement, but pressing
             // anywhere on the track needs to jump straight to that absolute position - the same
             // reason Compose Foundation's own Slider doesn't build on plain draggable either.
-            .onPointerEvent<UINode>(PointerEventType.PRESS) { node, event ->
+            .onPointerEvent<LayoutNode>(PointerEventType.PRESS) { node, event ->
                 if (!enabled) return@onPointerEvent
                 dragging = true
                 interactionSource.tryEmit(DragInteraction.Start)
                 updateFromPointer(node, event.mouseX)
                 event.consume(true)
             }
-            .onDrag<UINode> { node, event ->
+            .onDrag<LayoutNode> { node, event ->
                 if (!enabled || !dragging) return@onDrag
                 updateFromPointer(node, event.mouseX)
                 event.consume()
             }
-            .onPointerEvent<UINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
+            .onPointerEvent<LayoutNode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
                 if (!enabled || !dragging) return@onPointerEvent
                 dragging = false
                 interactionSource.tryEmit(DragInteraction.Stop)
