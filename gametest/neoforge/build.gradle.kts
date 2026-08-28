@@ -95,19 +95,12 @@ dependencies {
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	// See core/fabric/build.gradle.kts and datagen/neoforge/build.gradle.kts for why these depend on
-	// the sibling's "jar" task output directly, and why the Compose/storage/coroutines deps above
-	// and below are repeated - the actualizer merges gametest-common's own source files into this
-	// project's own compilation, so it needs gametest-common's compile-time deps directly too, not
-	// just its output.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(coreNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	// The loader-specific storage-neoforge variant, not storage-common - NeoForge's remap pipeline
-	// doesn't correctly handle earth.terrarium.common_storage_lib's common artifact directly (same
-	// family of gap as the documented Cloche NeoForge remapCommon limitation for this library),
-	// which surfaced here as an ambiguous ItemResource.of overload resolving against raw Fabric
-	// intermediary-mapped parameter types instead of official ones.
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreNeoforge.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 	modImplementation(libs.storage.neoforge) { exclude(group = "curse.maven") }
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
 	runtimeLibrary(compose.runtime)
 }
 

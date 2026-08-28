@@ -13,8 +13,6 @@ architectury {
 	neoForge()
 }
 
-// See core/fabric/build.gradle.kts for why this goes through node.sibling() rather than a
-// hardcoded project path.
 val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
 	"No common project for $project"
 }
@@ -44,10 +42,6 @@ loom {
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(sourceSets.main.get())
-			// actualizer only merges Kotlin expect/actual source into this project's own
-			// compilation - plain Java files in archie-core-common (e.g. mixin classes with no
-			// actual/expect involvement) never get copied in, so they're invisible to FML's
-			// dev-mode module layer unless their sourceSet is also registered here directly.
 			sourceSet(common.sourceSets.main.get())
 		}
 	}
@@ -80,9 +74,6 @@ dependencies {
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
-	// compose.runtime's own transitive deps; Loom's dev-run GAMELIBRARY discovery doesn't walk
-	// transitive deps of a bundled library the way production JarJar packaging does, so each needs
-	// its own explicit declaration to be visible during runClient/runClientNeoForge.
 	bundleRuntimeLibrary(libs.androidx.annotation)
 	bundleRuntimeLibrary(libs.androidx.collection)
 	bundleRuntimeLibrary(libs.okio)
@@ -100,10 +91,8 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	runtimeLibrary(libs.kotlinx.coroutines.test)
 
-	// See core/fabric/build.gradle.kts for why this depends on common's "jar" task output directly
-	// rather than through a project(path, configuration) reference or a raw SourceSetOutput.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {

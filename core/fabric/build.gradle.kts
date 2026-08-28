@@ -13,10 +13,6 @@ architectury {
 	fabric()
 }
 
-// Stonecutter's sibling-lookup API (node.sibling(branchName)) replaces the old static
-// project(":archie-core-common") reference every one of these was hardcoded to before Stonecutter.
-// ProjectNode.project resolves straight to the sibling's Gradle Project - confirmed against
-// Stonecutter 0.9.7's own sources (GradleMember.project), not just the older reference template.
 val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
 	"No common project for $project"
 }
@@ -85,17 +81,8 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	runtimeLibrary(libs.kotlinx.coroutines.test)
 
-	// Depends directly on common's own "jar" task output (a real zip) rather than through a
-	// project(path, configuration) reference or Loom's common()/transformProductionX mechanism -
-	// both produce a circular task dependency / broken variant lookup under Stonecutter's nested
-	// per-version project paths (confirmed live; not present pre-Stonecutter). A raw SourceSetOutput
-	// FileCollection (plain class/resource directories) almost works the same way, but breaks
-	// shadowJar - Shadow's copy action expects zip-safe entries, not directories, and throws
-	// MissingPropertyException: No such property: mode. Safe here since fabric and neoforge already
-	// share one mapping namespace (officialMojangMappings), so transformProductionX's per-platform
-	// remap was never doing anything for this project anyway.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {

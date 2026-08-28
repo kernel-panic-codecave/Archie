@@ -86,16 +86,12 @@ dependencies {
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	// See core/fabric/build.gradle.kts for why these depend on the sibling's "jar" task output
-	// directly rather than through a project(path, configuration) reference - a plain cross-tree
-	// api(project(...)) edge to core-fabric hits the exact same circular compileJava<->compileKotlin
-	// task dependency under Stonecutter's nested per-version paths (confirmed live), regardless of
-	// which configuration is targeted. files() dependencies carry no transitive module metadata,
-	// so core-fabric's own `modApi`/`modCompileOnlyApi` surface is repeated below explicitly - keep
-	// this in sync with core/fabric/build.gradle.kts's own dependencies block.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(coreFabric.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 	modApi(libs.architectury.fabric)
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
 	runtimeLibrary(compose.runtime)
 }
 

@@ -128,11 +128,19 @@ dependencies {
 	// on the sibling's "jar" task output directly, and why the Compose/coroutines deps above and
 	// below are repeated - the actualizer merges test-common's own source files into this project's
 	// own compilation, so it needs test-common's compile-time deps directly too, not just its output.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(coreNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(datagenNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(gametestNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreNeoforge.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(datagenNeoforge.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(gametestNeoforge.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	// files() dependencies carry no runtime GAMELIBRARY discovery either - the serialization format
+	// add-ons core-neoforge bundles at runtime (nbt/toml/json5, needed by Archie's own Config system
+	// at init) don't propagate, so they're repeated here too. Confirmed missing live: a
+	// NoClassDefFoundError for io.github.xn32.json5k.ConfigBuilder when actually launching this
+	// project.
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
 	runtimeLibrary(compose.runtime)
 }
 

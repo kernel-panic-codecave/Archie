@@ -86,13 +86,11 @@ dependencies {
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	// See core/fabric/build.gradle.kts for why these depend on the sibling's "jar" task output
-	// directly rather than through a project(path, configuration) reference - a plain cross-tree
-	// api(project(...)) edge to core-neoforge hits the same circular compileJava<->compileKotlin
-	// task dependency under Stonecutter's nested per-version paths. files() dependencies carry no
-	// transitive module metadata, so core-neoforge's Compose dependency is repeated here explicitly.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(coreNeoforge.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreNeoforge.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
 	runtimeLibrary(compose.runtime)
 }
 

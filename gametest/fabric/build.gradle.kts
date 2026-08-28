@@ -86,16 +86,14 @@ dependencies {
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	// See core/fabric/build.gradle.kts and datagen/fabric/build.gradle.kts for why these depend on
-	// the sibling's "jar" task output directly, and why the Compose/Architectury/storage/coroutines
-	// deps above and below are repeated - the actualizer merges gametest-common's own source files
-	// into this project's own compilation, so it needs gametest-common's compile-time deps directly
-	// too, not just its output.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(coreFabric.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 	modApi(libs.architectury.fabric)
 	modImplementation(libs.storage.common)
 	modImplementation(libs.storage.resources.common)
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
 	runtimeLibrary(compose.runtime)
 }
 

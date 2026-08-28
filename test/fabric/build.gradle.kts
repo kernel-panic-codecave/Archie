@@ -119,14 +119,22 @@ dependencies {
 	// and below are repeated - the actualizer merges test-common's own source files into this
 	// project's own compilation, so it needs test-common's compile-time deps directly too, not just
 	// its output.
-	"common"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	"shadowCommon"(files(common.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(coreFabric.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(datagenFabric.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	api(files(gametestFabric.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
-	runtimeOnly(files(coreCommon.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(datagenFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(gametestFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	runtimeOnly(files(coreCommon.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 	modImplementation(libs.storage.common)
 	modImplementation(libs.storage.resources.common)
+	// files() dependencies carry no runtime GAMELIBRARY discovery either - the serialization format
+	// add-ons core-fabric bundles at runtime (nbt/toml/json5, needed by Archie's own Config system
+	// at init) don't propagate, so they're repeated here too. Confirmed missing live: a
+	// NoClassDefFoundError for io.github.xn32.json5k.ConfigBuilder when actually launching this
+	// project.
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
 	runtimeLibrary(compose.runtime)
 }
 
