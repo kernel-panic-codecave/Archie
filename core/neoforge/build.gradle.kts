@@ -1,3 +1,4 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
 import net.kernelpanicsoft.archie.plugin.runtimeLibrary
@@ -12,8 +13,13 @@ architectury {
 	neoForge()
 }
 
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
 actualizer {
-	actualizes(project(":archie-core-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -31,16 +37,12 @@ configurations {
 }
 
 loom {
-	accessWidenerPath.set(project(":archie-core-common").loom.accessWidenerPath)
+	accessWidenerPath.set(common.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
 			sourceSet(sourceSets.main.get())
-			// actualizer only merges Kotlin expect/actual source into this project's own
-			// compilation - plain Java files in archie-core-common (e.g. mixin classes with no
-			// actual/expect involvement) never get copied in, so they're invisible to FML's
-			// dev-mode module layer unless their sourceSet is also registered here directly.
-			sourceSet(project(":archie-core-common").sourceSets.main.get())
+			sourceSet(common.sourceSets.main.get())
 		}
 	}
 
@@ -72,9 +74,6 @@ dependencies {
 	bundleRuntimeLibrary(libs.kotlinx.serialization.json5)
 	bundleRuntimeLibrary(libs.kotlinx.serialization.cbor)
 	bundleRuntimeLibrary(compose.runtime)
-	// compose.runtime's own transitive deps; Loom's dev-run GAMELIBRARY discovery doesn't walk
-	// transitive deps of a bundled library the way production JarJar packaging does, so each needs
-	// its own explicit declaration to be visible during runClient/runClientNeoForge.
 	bundleRuntimeLibrary(libs.androidx.annotation)
 	bundleRuntimeLibrary(libs.androidx.collection)
 	bundleRuntimeLibrary(libs.okio)
@@ -92,8 +91,8 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	runtimeLibrary(libs.kotlinx.coroutines.test)
 
-	"common"(project(":archie-core-common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":archie-core-common", "transformProductionNeoForge")) { isTransitive = false }
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {
@@ -108,7 +107,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":archie-core-common").sourceSets.main.get().resources) {
+		from(common.sourceSets.main.get().resources) {
 			include("assets/archie/**")
 			include("data/archie/**")
 			include("archie-common.mixins.json")
@@ -142,11 +141,11 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":archie-core-common").sourceSets.main.get().output)
+		from(common.sourceSets.main.get().output)
 	}
 
 	sourcesJar {
-		val commonSources = project(":archie-core-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

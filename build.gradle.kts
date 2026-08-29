@@ -1,6 +1,8 @@
+import com.hypherionmc.modfusioner.plugin.FusionerExtension
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
@@ -46,6 +48,10 @@ version = "mod_version".prop ?: "0.0.1-SNAPSHOT"
 group = "mod_group".prop ?: "net.kernelpanicsoft"
 
 subprojects {
+	// Stonecutter's tree/branch anchors (e.g. `:core`) are synthetic container projects with real
+	// leaf projects nested under them - they must not get build plugins applied to them directly.
+	if (subprojects.isNotEmpty()) return@subprojects
+
 	apply(plugin = "dev.architectury.loom")
 	apply(plugin = "net.kernelpanicsoft.actualizer")
 
@@ -115,12 +121,20 @@ subprojects {
 		})
 
 		compileOnly("org.jetbrains:annotations:24.1.0")
+
+		// Gradle 9 stopped bundling its own copy of the JUnit Platform launcher for
+		// useJUnitPlatform() - every module needs this on the test runtime classpath now.
+		"testRuntimeOnly"(rootProject.libs.junit.platform.launcher)
 	}
 
 	// One MavenPublication per module, published to kernelpanicsoft.net's Reposilite - archie-core/
 	// -datagen/-gametest are real consumable libraries; archie-test is a dev playground, never
 	// published (matches fusioner/dokka's own product/test split above).
-	if (!project.name.startsWith("archie-test-")) {
+	//
+	// Under Stonecutter, `project.name` is just the version segment ("1.21.1") for every leaf in
+	// every tree - it no longer distinguishes "test" from the rest. `project.path` still does
+	// (":test:common:1.21.1" etc.), since Stonecutter nests leaves under their tree name.
+	if (!project.path.startsWith(":test:")) {
 		// allprojects{} (below) is what normally applies these, but it's declared after this
 		// subprojects{} block and hasn't run for this project yet - apply is idempotent, so
 		// re-applying here just guarantees ordering for the components["java"]/publishing{} access
@@ -128,28 +142,35 @@ subprojects {
 		apply(plugin = "java")
 		apply(plugin = "maven-publish")
 
-		extensions.configure<PublishingExtension>("publishing") {
-			publications {
-				create<MavenPublication>("maven") {
-					artifactId = base.archivesName.get()
-					from(components["java"])
+		// base.archivesName only reaches its final "archie-core-fabric"-style value once this leaf's
+		// own build.gradle.kts runs (module scripts execute after this subprojects{} block, and
+		// allprojects{} - which seeds the "archie-core" prefix - runs after it too) - reading it here
+		// would still see the base plugin's raw default ("1.21.1", from project.name). Defer until
+		// this project has finished configuring.
+		afterEvaluate {
+			extensions.configure<PublishingExtension>("publishing") {
+				publications {
+					create<MavenPublication>("maven") {
+						artifactId = base.archivesName.get()
+						from(components["java"])
+					}
 				}
-			}
 
-			repositories {
-				mavenLocal()
-				maven {
-					name = "Reposilite"
-					val releasesUrl = "https://maven.kernelpanicsoft.net/releases"
-					val snapshotsUrl = "https://maven.kernelpanicsoft.net/snapshots"
+				repositories {
+					mavenLocal()
+					maven {
+						name = "Reposilite"
+						val releasesUrl = "https://maven.kernelpanicsoft.net/releases"
+						val snapshotsUrl = "https://maven.kernelpanicsoft.net/snapshots"
 
-					url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl)
+						url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl)
 
-					credentials {
-						username = localProperties?.getProperty("reposilite.username")
-							?: System.getenv("REPOSILITE_USERNAME")
-						password = localProperties?.getProperty("reposilite.password")
-							?: System.getenv("REPOSILITE_PASSWORD")
+						credentials {
+							username = localProperties?.getProperty("reposilite.username")
+								?: System.getenv("REPOSILITE_USERNAME")
+							password = localProperties?.getProperty("reposilite.password")
+								?: System.getenv("REPOSILITE_PASSWORD")
+						}
 					}
 				}
 			}
@@ -158,6 +179,11 @@ subprojects {
 }
 
 allprojects {
+	// Stonecutter's tree/branch anchors (e.g. `:core`) are synthetic container projects with real
+	// leaf projects nested under them - they must not get build plugins applied to them directly.
+	// The true root project still needs this block (e.g. for its own `publish` task).
+	if (this != rootProject && subprojects.isNotEmpty()) return@allprojects
+
 	apply(plugin = "java")
 	apply(plugin = "org.jetbrains.kotlin.jvm")
 	apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
@@ -200,14 +226,38 @@ fusioner {
 	jarVersion = project.version.toString()
 	outputDirectory = "build/artifacts"
 
+	// modfusioner finds each side's source project by bare Project.name (case-insensitive), searched
+	// across the *entire* build - but under Stonecutter every tree (core/datagen/gametest/test) has a
+	// leaf literally named "fabric" and one named "neoforge", so no name resolves uniquely to core's.
+	// ":core" is an existing, globally-unique container project name - point both sides at it just to
+	// satisfy modfusioner's "did we find >= 2 projects" check; `inputFile` (set below, once every
+	// project has finished configuring) overrides where the actual jar is read from, resolved relative
+	// to that anchor project's directory.
 	fabric {
-		projectName = "archie-core-fabric"
-		inputTaskName = "remapJar"
+		projectName = "core"
 	}
 
 	neoforge {
-		projectName = "archie-core-neoforge"
-		inputTaskName = "remapJar"
+		projectName = "core"
+	}
+}
+
+// modfusioner reads `inputFile` as `File(<projectName's projectDir>, inputFile)` - `projectName` above
+// is just an anchor, so compute the real remapJar output path here (deferred to gradle.projectsEvaluated
+// so base.archivesName - and therefore the jar's real filename - has reached its final value) and
+// express it relative to :core's directory.
+gradle.projectsEvaluated {
+	val mcVersion = libs.versions.minecraft.get()
+	val coreDir = project(":core").projectDir
+
+	fun remapJarFile(path: String) =
+		(project(path).tasks.named("remapJar").get() as AbstractArchiveTask).archiveFile.get().asFile
+
+	project.extensions.getByType<FusionerExtension>().let { fusionerExtension ->
+		fusionerExtension.fabricConfiguration.inputFile =
+			remapJarFile(":core:fabric:$mcVersion").relativeTo(coreDir).path
+		fusionerExtension.neoforgeConfiguration.inputFile =
+			remapJarFile(":core:neoforge:$mcVersion").relativeTo(coreDir).path
 	}
 }
 
@@ -224,7 +274,7 @@ publisher {
 
 	projectVersion = "${libs.versions.minecraft.get()}-${project.version}"
 	displayName = "Archie-Merged-${projectVersion.get()}"
-	gameVersions = listOf("1.21.1")
+	gameVersions = listOf(libs.versions.minecraft.get())
 	loaders = listOf("neoforge", "fabric")
 	curseEnvironment = "both"
 	versionType = "alpha"
@@ -243,15 +293,12 @@ publisher {
 }
 
 dependencies {
-	dokka(project(":archie-core-common")) { isTransitive = false }
-	dokka(project(":archie-core-fabric")) { isTransitive = false }
-	dokka(project(":archie-core-neoforge")) { isTransitive = false }
-	dokka(project(":archie-datagen-common")) { isTransitive = false }
-	dokka(project(":archie-datagen-fabric")) { isTransitive = false }
-	dokka(project(":archie-datagen-neoforge")) { isTransitive = false }
-	dokka(project(":archie-gametest-common")) { isTransitive = false }
-	dokka(project(":archie-gametest-fabric")) { isTransitive = false }
-	dokka(project(":archie-gametest-neoforge")) { isTransitive = false }
+	val mcVersion = libs.versions.minecraft.get()
+	listOf("core", "datagen", "gametest").forEach { tree ->
+		listOf("common", "fabric", "neoforge").forEach { branch ->
+			dokka(project(":$tree:$branch:$mcVersion")) { isTransitive = false }
+		}
+	}
 }
 
 tasks {
@@ -269,20 +316,8 @@ tasks {
 		group = "publishing"
 		val tag = rootProject.version.toString().substringBeforeLast(".")
 		workingDir = rootDir
-		// --alias-type redirect: mike's default ("symlink") writes the "latest" alias as an
-		// actual symlink into the gh-pages branch, which GitHub's own automatic Pages
-		// build-and-deploy (triggered whenever gh-pages is pushed, separate from this task)
-		// rejects outright ("content does not contain any hard links, symlinks"). "redirect"
-		// makes the alias a small HTML redirect page instead - no symlink, same effect for
-		// visitors.
 		commandLine("mike", "deploy", "--push", "--update-aliases", "--alias-type", "redirect", tag, "latest")
 	}
-	// modpublisher's changelog reads CHANGELOG.md straight off disk when a publish task runs - it
-	// doesn't know about git tags or PRs. .github/workflows/release-notes.yaml (reactive, post-tag)
-	// can't help here: by the time it would generate this release's entry, the publish task attached
-	// to the tag has already read (and shipped) whatever was on disk before. This task closes that
-	// gap by generating CHANGELOG.md synchronously - see .github/scripts/generate_release_notes.py's
-	// module docstring for the two call shapes.
 	register<Exec>("generateChangelog") {
 		group = "publishing"
 		workingDir = rootDir

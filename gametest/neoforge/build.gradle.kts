@@ -1,4 +1,8 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
+import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
+import net.kernelpanicsoft.archie.plugin.runtimeLibrary
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
+import org.gradle.api.tasks.bundling.Jar
 
 plugins {
 	alias(libs.plugins.archie)
@@ -9,8 +13,19 @@ architectury {
 	neoForge()
 }
 
+// Same-tree sibling. See core/fabric/build.gradle.kts for why node.sibling() is used here.
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
+// Cross-tree references: gametest and core are separate Stonecutter trees, so node.sibling()
+// (which only searches within the current tree) doesn't reach core - resolve the path directly.
+val coreCommon = rootProject.project(":core:common:${stonecutter.current.version}")
+val coreNeoforge = rootProject.project(":core:neoforge:${stonecutter.current.version}")
+
 actualizer {
-	actualizes(project(":archie-gametest-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -26,7 +41,7 @@ configurations {
 }
 
 loom {
-	accessWidenerPath.set(project(":archie-core-common").loom.accessWidenerPath)
+	accessWidenerPath.set(coreCommon.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
@@ -76,11 +91,17 @@ dependencies {
 	modApi(libs.architectury.neoforge)
 
 	implementation(libs.junit.jupiter.api)
+	implementation(libs.kotlinx.coroutines.test)
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	"common"(project(":archie-gametest-common", "namedElements")) { isTransitive = false }
-	api(project(":archie-core-neoforge", "namedElements"))
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreNeoforge.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	modImplementation(libs.storage.neoforge) { exclude(group = "curse.maven") }
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
+	runtimeLibrary(compose.runtime)
 }
 
 modResources {
@@ -106,7 +127,7 @@ tasks {
 	}
 
 	sourcesJar {
-		val commonSources = project(":archie-gametest-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

@@ -8,12 +8,25 @@ actualizer {
 	stubUnfulfilledExpects()
 }
 
+// Cross-tree reference: gametest and core are separate Stonecutter trees, so node.sibling() (which
+// only searches within the current tree) doesn't reach core - resolve the path directly instead.
+val coreCommon = rootProject.project(":core:common:${stonecutter.current.version}")
+
 loom {
-	accessWidenerPath.set(project(":archie-core-common").loom.accessWidenerPath)
+	accessWidenerPath.set(coreCommon.loom.accessWidenerPath)
 }
 
 dependencies {
-	api(project(":archie-core-common", "namedElements"))
+	// See core/fabric/build.gradle.kts and datagen/common/build.gradle.kts for why this depends on
+	// core-common's "jar" task output directly, and why the Compose dependency is repeated below.
+	api(files(coreCommon.tasks.named<org.gradle.api.tasks.bundling.Jar>("jar").flatMap { it.archiveFile }))
+	api(compose.runtime)
+	api(libs.kotlinx.serialization)
+	api(libs.kotlinx.serialization.json)
+	api(libs.kotlinx.serialization.nbt) { isTransitive = false }
+	api(libs.kotlinx.serialization.toml) { isTransitive = false }
+	api(libs.kotlinx.serialization.json5) { isTransitive = false }
+	api(libs.kotlinx.serialization.cbor) { isTransitive = false }
 	modApi(libs.architectury.common)
 	modApi(libs.storage.common)
 	modApi(libs.storage.resources.common)

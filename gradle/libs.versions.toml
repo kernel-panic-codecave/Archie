@@ -18,7 +18,7 @@ parchment = "2024.11.17"
 
 architectury = "13.0.8"
 architectury-plugin = { require = "[3.4, 3.5[" }
-architectury-loom = { require = "1.13.469" }
+architectury-loom = { require = "1.17.491" }
 architectury-kotlin = "2.0.0"
 
 modfusioner = "1.0.12"
@@ -51,7 +51,7 @@ quilt-parsers = "0.2.1"
 knbt = "0.11.4"
 tomlkt = "0.3.7"
 json5k = "0.3.0"
-shadow = "8.1.1"
+shadow = "9.6.1"
 compose = "1.7.1"
 dokka-mkdocs = "0.6.1"
 junit = "5.11.4"
@@ -124,6 +124,7 @@ neoforge = { module = "net.neoforged:neoforge", version.ref = "neoforge" }
 modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -137,7 +138,7 @@ architectury = { id = "architectury-plugin", version.ref = "architectury-plugin"
 architectury-loom = { id = "dev.architectury.loom", version.ref = "architectury-loom" }
 architectury-kotlin = { id = "net.kernelpanicsoft.architectury.kotlin", version.ref = "architectury-kotlin" }
 
-shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 modfusioner = { id = "com.hypherionmc.modutils.modfusioner", version.ref = "modfusioner" }
 modpublisher = { id = "com.hypherionmc.modutils.modpublisher", version.ref = "modpublisher" }
 

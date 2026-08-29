@@ -1,3 +1,4 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.kernelpanicsoft.archie.plugin.bundleMod
 import net.kernelpanicsoft.archie.plugin.bundleRuntimeLibrary
 import net.kernelpanicsoft.archie.plugin.runtimeLibrary
@@ -12,8 +13,13 @@ architectury {
 	fabric()
 }
 
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
 actualizer {
-	actualizes(project(":archie-core-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -26,7 +32,7 @@ configurations {
 }
 
 loom {
-	accessWidenerPath.set(project(":archie-core-common").loom.accessWidenerPath)
+	accessWidenerPath.set(common.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
@@ -75,8 +81,8 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	runtimeLibrary(libs.kotlinx.coroutines.test)
 
-	"common"(project(":archie-core-common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":archie-core-common", "transformProductionFabric")) { isTransitive = false }
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
 }
 
 modResources {
@@ -91,7 +97,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":archie-core-common").sourceSets.main.get().resources) {
+		from(common.sourceSets.main.get().resources) {
 			include("assets/archie/**")
 			include("data/archie/**")
 			include("archie-common.mixins.json")
@@ -124,11 +130,11 @@ tasks {
 
 	jar {
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-		from(project(":archie-core-common").sourceSets.main.get().output)
+		from(common.sourceSets.main.get().output)
 	}
 
 	sourcesJar {
-		val commonSources = project(":archie-core-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

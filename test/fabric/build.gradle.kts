@@ -1,4 +1,7 @@
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import net.kernelpanicsoft.archie.plugin.bundleMod
+import net.kernelpanicsoft.archie.plugin.runtimeLibrary
+import org.gradle.api.tasks.bundling.Jar
 
 plugins {
 	alias(libs.plugins.shadow)
@@ -10,8 +13,22 @@ architectury {
 	fabric()
 }
 
+// Same-tree sibling. See core/fabric/build.gradle.kts for why node.sibling() is used here.
+val commonNode = requireNotNull(extensions.getByType<StonecutterBuildExtension>().node.sibling("common")) {
+	"No common project for $project"
+}
+val common: Project = commonNode.project
+
+// Cross-tree references: test, core, datagen and gametest are separate Stonecutter trees, so
+// node.sibling() (which only searches within the current tree) doesn't reach them - resolve the
+// paths directly instead.
+val coreCommon = rootProject.project(":core:common:${stonecutter.current.version}")
+val coreFabric = rootProject.project(":core:fabric:${stonecutter.current.version}")
+val datagenFabric = rootProject.project(":datagen:fabric:${stonecutter.current.version}")
+val gametestFabric = rootProject.project(":gametest:fabric:${stonecutter.current.version}")
+
 actualizer {
-	actualizes(project(":archie-test-common"))
+	actualizes(common)
 }
 
 configurations {
@@ -24,8 +41,8 @@ configurations {
 }
 
 loom {
-	log4jConfigs.from(project(":archie-test-common").loom.log4jConfigs)
-	accessWidenerPath.set(project(":archie-test-common").loom.accessWidenerPath)
+	log4jConfigs.from(common.loom.log4jConfigs)
+	accessWidenerPath.set(common.loom.accessWidenerPath)
 
 	mods {
 		maybeCreate("main").apply {
@@ -93,16 +110,32 @@ dependencies {
 	bundleMod(libs.storage.fabric)
 
 	implementation(libs.junit.jupiter.api)
+	implementation(libs.kotlinx.coroutines.test)
 	testImplementation(libs.junit.jupiter.api)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 
-	"common"(project(":archie-test-common", "namedElements")) { isTransitive = false }
-	"shadowCommon"(project(":archie-test-common", "transformProductionFabric")) { isTransitive = false }
-	api(project(":archie-core-fabric", "namedElements"))
-	api(project(":archie-datagen-fabric", "namedElements"))
-	api(project(":archie-gametest-fabric", "namedElements"))
-	// See the matching comment in gametest/fabric/build.gradle.kts.
-	runtimeOnly(project(":archie-core-common", "namedElements")) { isTransitive = false }
+	// See core/fabric/build.gradle.kts and gametest/fabric/build.gradle.kts for why these depend on
+	// the sibling's "jar" task output directly, and why the Compose/storage/coroutines deps above
+	// and below are repeated - the actualizer merges test-common's own source files into this
+	// project's own compilation, so it needs test-common's compile-time deps directly too, not just
+	// its output.
+	"common"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	"shadowCommon"(files(common.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(coreFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(datagenFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	api(files(gametestFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	runtimeOnly(files(coreCommon.tasks.named<Jar>("jar").flatMap { it.archiveFile }))
+	modImplementation(libs.storage.common)
+	modImplementation(libs.storage.resources.common)
+	// files() dependencies carry no runtime GAMELIBRARY discovery either - the serialization format
+	// add-ons core-fabric bundles at runtime (nbt/toml/json5, needed by Archie's own Config system
+	// at init) don't propagate, so they're repeated here too. Confirmed missing live: a
+	// NoClassDefFoundError for io.github.xn32.json5k.ConfigBuilder when actually launching this
+	// project.
+	runtimeLibrary(libs.kotlinx.serialization.nbt)
+	runtimeLibrary(libs.kotlinx.serialization.toml)
+	runtimeLibrary(libs.kotlinx.serialization.json5)
+	runtimeLibrary(compose.runtime)
 }
 
 modResources {
@@ -117,7 +150,7 @@ tasks {
 	}
 
 	processResources {
-		from(project(":archie-test-common").sourceSets.main.get().resources) {
+		from(common.sourceSets.main.get().resources) {
 			include("assets/archie_test/**")
 			include("data/archie_test/**")
 			include("archie_test.common.json")
@@ -148,7 +181,7 @@ tasks {
 	jar.get().archiveClassifier.set("dev")
 
 	sourcesJar {
-		val commonSources = project(":archie-test-common").tasks.sourcesJar
+		val commonSources = common.tasks.sourcesJar
 		dependsOn(commonSources)
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		from(commonSources.get().archiveFile.map { zipTree(it) })

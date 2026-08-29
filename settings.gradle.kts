@@ -1,7 +1,3 @@
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
-rootProject.name = "Archie"
-
 pluginManagement {
 	repositories {
 		maven("https://maven.fabricmc.net/")
@@ -22,21 +18,16 @@ pluginManagement {
 	}
 }
 
-includeModule("core")
-
-includeModule("datagen")
-
-includeModule("gametest")
-
-includeModule("test")
-
-fun includeModulePlatform(name: String, platform: String) {
-	include("$name/$platform")
-	project(":$name/$platform").name = "archie-$name-$platform"
+plugins {
+	id("dev.kikugie.stonecutter") version "0.9.7"
 }
 
-fun includeModule(name: String) {
-	includeModulePlatform(name, "common")
-	includeModulePlatform(name, "fabric")
-	includeModulePlatform(name, "neoforge")
+stonecutter {
+	for (tree in listOf("core", "datagen", "gametest", "test")) create(tree) {
+		branch("common") { versions("1.21.1") }
+		branch("fabric") { versions("1.21.1") }
+		branch("neoforge") { versions("1.21.1") }
+	}
 }
+
+rootProject.name = "Archie"
