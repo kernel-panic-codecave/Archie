@@ -77,7 +77,7 @@ dependencies {
 	bundleRuntimeLibrary(libs.androidx.annotation)
 	bundleRuntimeLibrary(libs.androidx.collection)
 	bundleRuntimeLibrary(libs.okio)
-	modRuntimeOnly(libs.rei.neoforge)
+	modLocalRuntime(libs.rei.neoforge)
 	modCompileOnlyApi(libs.catalogue.neoforge)
 	modRuntimeOnly(libs.catalogue.neoforge)
 	modCompileOnlyApi(libs.clothConfig.neoforge)

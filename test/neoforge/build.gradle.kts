@@ -114,7 +114,7 @@ dependencies {
 	"neoForge"(libs.neoforge)
 	modApi(libs.architectury.neoforge)
 	implementation(libs.kotlin.neoforge)
-	modRuntimeOnly(libs.rei.neoforge)
+	modLocalRuntime(libs.rei.neoforge)
 	modRuntimeOnly(libs.catalogue.neoforge)
 	modRuntimeOnly(libs.clothConfig.neoforge)
 	bundleMod(libs.storage.neoforge) { exclude(group = "curse.maven") }
