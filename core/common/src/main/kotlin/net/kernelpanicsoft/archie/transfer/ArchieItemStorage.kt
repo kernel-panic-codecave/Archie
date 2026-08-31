@@ -15,6 +15,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.benwoodworth.knbt.NbtTag
 import net.minecraft.core.NonNullList
+import java.util.function.Predicate
 import kotlin.math.min
 
 /**
@@ -31,17 +32,18 @@ import kotlin.math.min
 @Serializable(with = ArchieItemStorage.Serializer::class)
 open class ArchieItemStorage private constructor(
 	protected var slots: NonNullList<ArchieItemSlot>,
+	protected val filter: Predicate<ItemResource> = Predicate { true },
 	protected val onUpdate: () -> Unit = {}
 ) : CommonStorage<ItemResource>, UpdateManager<NbtTag>
 {
 	/** Creates a storage with [size] empty slots. */
-	constructor(size: Int, onUpdate: () -> Unit = {}) : this(
+	constructor(size: Int, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(
 		NonNullList.createWithCapacity<ArchieItemSlot>(size).apply {
 			for (i in 0 until size)
 			{
-				add(ArchieItemSlot())
+				add(ArchieItemSlot(filter))
 			}
-		}, onUpdate
+		}, filter, onUpdate
 	)
 
 	override fun insert(unit: ItemResource, amount: Long, simulate: Boolean): Long

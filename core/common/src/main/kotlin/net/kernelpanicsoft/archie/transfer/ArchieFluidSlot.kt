@@ -3,6 +3,7 @@ package net.kernelpanicsoft.archie.transfer
 import dev.architectury.fluid.FluidStack
 import earth.terrarium.common_storage_lib.resources.ResourceStack
 import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.StorageSlot
 import earth.terrarium.common_storage_lib.storage.base.UpdateManager
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -24,6 +25,7 @@ import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.kSerializer
 import net.minecraft.world.item.Item
+import java.util.function.Predicate
 import kotlin.math.min
 
 /**
@@ -34,7 +36,7 @@ import kotlin.math.min
  * @param onUpdate Invoked by [update] whenever this slot's contents should be persisted/synced.
  */
 @Serializable(with = ArchieFluidSlot.Serializer::class)
-class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit = {}) : StorageSlot<FluidResource>, UpdateManager<NbtTag>
+class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<FluidResource> = Predicate { true }, private val onUpdate: () -> Unit = {}) : StorageSlot<FluidResource>, UpdateManager<NbtTag>
 {
 	private var resource: FluidResource = FluidResource.BLANK
 	private var amount: Long = 0
@@ -62,12 +64,12 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 			amount = value.amount
 		}
 
-	constructor(limit: Long, stack: FluidStack = FluidStack.empty(), onUpdate: () -> Unit = {}) : this(limit, onUpdate)
+	constructor(limit: Long, stack: FluidStack = FluidStack.empty(), filter: Predicate<FluidResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(limit, filter, onUpdate)
 	{
 		this.stack = stack
 	}
 
-	constructor(limit: Long, resourceStack: ResourceStack<FluidResource>, onUpdate: () -> Unit = {}) : this(limit, onUpdate)
+	constructor(limit: Long, resourceStack: ResourceStack<FluidResource>, filter: Predicate<FluidResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(limit, filter, onUpdate)
 	{
 		this.resourceStack = resourceStack
 	}
@@ -126,7 +128,7 @@ class ArchieFluidSlot(private val limit: Long, private val onUpdate: () -> Unit 
 
 	override fun getLimit(resource: FluidResource): Long = limit
 
-	override fun isResourceValid(unit: FluidResource): Boolean = true
+	override fun isResourceValid(unit: FluidResource): Boolean = filter.test(unit)
 
 	override fun getResource(): FluidResource = resource
 

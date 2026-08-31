@@ -1,6 +1,7 @@
 package net.kernelpanicsoft.archie.transfer
 
 import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import earth.terrarium.common_storage_lib.storage.base.CommonStorage
 import earth.terrarium.common_storage_lib.storage.base.UpdateManager
 import earth.terrarium.common_storage_lib.storage.util.TransferUtil
@@ -20,6 +21,7 @@ import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.serialization.decodeFromNbtTagRootless
 import net.kernelpanicsoft.archie.serialization.encodeToNbtTagRootless
 import net.minecraft.core.NonNullList
+import java.util.function.Predicate
 import kotlin.math.min
 
 /**
@@ -33,18 +35,19 @@ import kotlin.math.min
 open class ArchieFluidStorage private constructor(
 	protected val limit: Long,
 	protected val slots: NonNullList<ArchieFluidSlot>,
+	protected val filter: Predicate<FluidResource> = Predicate { true },
 	protected val onUpdate: () -> Unit = {}
 ) : CommonStorage<FluidResource>, UpdateManager<NbtTag>
 {
 	/** Creates a storage with [size] empty slots, each capped at [limit]. */
-	constructor(limit: Long, size: Int, onUpdate: () -> Unit = {}) : this(
+	constructor(limit: Long, size: Int, filter: Predicate<FluidResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(
 		limit,
 		NonNullList.createWithCapacity<ArchieFluidSlot>(size).apply {
 			for (i in 0 until size)
 			{
-				add(ArchieFluidSlot(limit))
+				add(ArchieFluidSlot(limit, filter))
 			}
-		}, onUpdate
+		}, filter, onUpdate
 	)
 
 	override fun insert(unit: FluidResource, amount: Long, simulate: Boolean): Long

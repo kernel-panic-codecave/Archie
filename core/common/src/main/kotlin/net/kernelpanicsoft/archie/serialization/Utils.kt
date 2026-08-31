@@ -17,6 +17,7 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonElement
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import kotlin.reflect.KClass
@@ -41,7 +42,7 @@ inline fun <reified T : Any> RegistryFriendlyByteBuf.write(data: T) = write(Seri
 /**
  * Writes data into a [RegistryFriendlyByteBuf] using a [KSerializer]
  */
-fun <T : Any> RegistryFriendlyByteBuf.write(serializer: KSerializer<T>, data: T) =
+fun <T : Any> RegistryFriendlyByteBuf.write(serializer: KSerializer<T>, data: T): FriendlyByteBuf =
 	writeByteArray(SerializationManager.cbor.encodeToByteArray(serializer, data))
 
 /**

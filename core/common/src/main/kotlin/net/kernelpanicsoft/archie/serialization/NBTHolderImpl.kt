@@ -1,5 +1,7 @@
 package net.kernelpanicsoft.archie.serialization
 
+import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import net.kernelpanicsoft.archie.config.toSnakeCase
 import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
 import net.kernelpanicsoft.archie.transfer.ArchieFluidStorage
@@ -15,6 +17,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.codec.ByteBufCodecs.holder
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
+import java.util.function.Predicate
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
@@ -65,18 +68,27 @@ class NBTHolderImpl : NBTHolder
 
 			val delegate = object : ReadWriteProperty<Any?, T>
 			{
-				override fun getValue(thisRef: Any?, property: KProperty<*>): T
-				{
-					return runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(serializer, data.getOrPut(property.name.toSnakeCase()) {
-							SerializationManager.nbt.encodeToNbtTagRootless(serializer, default())
-						})
-					}.recover {
-						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
-						ret
-					}.getOrThrow()
-				}
+					override fun getValue(thisRef: Any?, property: KProperty<*>): T
+					{
+						val key = property.name.toSnakeCase()
+						val tag = data[key]
+						if (tag == null)
+						{
+							val def = default()
+							if (def == null) return def as T
+							val encodedDef = SerializationManager.nbt.encodeToNbtTagRootless(serializer, def)
+							data[key] = encodedDef
+							return def
+						}
+						return runCatching {
+							SerializationManager.nbt.decodeFromNbtTagRootless(serializer, tag)
+						}.recover {
+							val ret = default()
+							if (ret != null)
+								data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
+							ret
+						}.getOrThrow()
+					}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
@@ -268,7 +280,11 @@ class NBTHolderImpl : NBTHolder
 		}
 	}
 
-	override fun itemField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+	override fun itemField(
+		size: Int,
+		filter: Predicate<ItemResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -290,12 +306,16 @@ class NBTHolderImpl : NBTHolder
 				})
 				else -> ({})
 			}
-			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size) { internalOnUpdate(); onUpdate?.invoke() }
+			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size, filter) { internalOnUpdate(); onUpdate?.invoke() }
 			ReadOnlyProperty { _, _ -> itemStorage[property.name.toSnakeCase()]!! }
 		}
 	}
 
-	override fun itemMapField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
+	override fun itemMapField(
+		size: Int,
+		filter: Predicate<ItemResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -311,14 +331,18 @@ class NBTHolderImpl : NBTHolder
 				}
 				onUpdate?.invoke()
 			}
-			map = ArchieStorageMap({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
+			map = ArchieStorageMap({ ArchieItemStorage(size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			itemMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun itemListField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
+	override fun itemListField(
+		size: Int,
+		filter: Predicate<ItemResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -334,14 +358,19 @@ class NBTHolderImpl : NBTHolder
 				}
 				onUpdate?.invoke()
 			}
-			list = ArchieStorageList({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
+			list = ArchieStorageList({ ArchieItemStorage(size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			itemListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }
 		}
 	}
 
-	override fun fluidField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+	override fun fluidField(
+		limit: Long,
+		size: Int,
+		filter: Predicate<FluidResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -363,12 +392,17 @@ class NBTHolderImpl : NBTHolder
 				}
 				onUpdate?.invoke()
 			}
-			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, internalOnUpdate)
+			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
 			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
 		}
 	}
 
-	override fun fluidMapField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
+	override fun fluidMapField(
+		limit: Long,
+		size: Int,
+		filter: Predicate<FluidResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -384,14 +418,19 @@ class NBTHolderImpl : NBTHolder
 				}
 				onUpdate?.invoke()
 			}
-			map = ArchieStorageMap({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
+			map = ArchieStorageMap({ ArchieFluidStorage(limit, size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			fluidMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun fluidListField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
+	override fun fluidListField(
+		limit: Long,
+		size: Int,
+		filter: Predicate<FluidResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -407,7 +446,7 @@ class NBTHolderImpl : NBTHolder
 				}
 				onUpdate?.invoke()
 			}
-			list = ArchieStorageList({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
+			list = ArchieStorageList({ ArchieFluidStorage(limit, size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			fluidListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }

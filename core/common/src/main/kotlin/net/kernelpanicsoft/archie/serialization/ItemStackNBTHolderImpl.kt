@@ -1,5 +1,7 @@
 package net.kernelpanicsoft.archie.serialization
 
+import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import net.kernelpanicsoft.archie.config.toSnakeCase
 import net.kernelpanicsoft.archie.gui.item.SyncedItemHolder
 import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
@@ -18,6 +20,7 @@ import net.minecraft.network.codec.ByteBufCodecs.holder
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.level.block.entity.BlockEntity
+import java.util.function.Predicate
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
@@ -241,7 +244,7 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			lateinit var holder: NestedNBTHolder<T>
 			holder = NestedNBTHolder {
 				data[key] = holder.toNbtCompound()
-				if (thisRef is BlockEntity) thisRef.setChanged()
+				saveToStack()
 			}
 			(data[key] as? NbtCompound)?.let { holder.loadFrom(it, factory) }
 			nestedHolderStorage[key] = holder
@@ -250,7 +253,11 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 		}
 	}
 
-	override fun itemField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+	override fun itemField(
+		size: Int,
+		filter: Predicate<ItemResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -265,12 +272,7 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			val storage = ArchieItemStorage(size, internalOnUpdate)
-			// init { loadFromStack() } already ran (before this delegate even existed to be
-			// hydrated by loadFromTag's itemStorage.forEach loop, unlike a BlockEntity's field
-			// declarations - which all run in its constructor, before NBTBlockEntity.load() ever
-			// calls loadFromTag) - so data may already hold this key's raw tag with nothing to
-			// apply it to yet. Apply it now, directly, instead.
+			val storage = ArchieItemStorage(size, filter, internalOnUpdate)
 			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
 			itemStorage[property.name.toSnakeCase()] = storage
 			// readSnapshot() above never calls onUpdate, so announce the starting contents now.
@@ -280,7 +282,11 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 		}
 	}
 
-	override fun itemMapField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
+	override fun itemMapField(
+		size: Int,
+		filter: Predicate<ItemResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -290,14 +296,18 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			map = ArchieStorageMap({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
+			map = ArchieStorageMap({ ArchieItemStorage(size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			itemMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun itemListField(size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
+	override fun itemListField(
+		size: Int,
+		filter: Predicate<ItemResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -307,14 +317,19 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			list = ArchieStorageList({ ArchieItemStorage(size, internalOnChange) }, internalOnChange)
+			list = ArchieStorageList({ ArchieItemStorage(size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			itemListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }
 		}
 	}
 
-	override fun fluidField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+	override fun fluidField(
+		limit: Long,
+		size: Int,
+		filter: Predicate<FluidResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			if (property.hasAnnotation<Sync>())
@@ -329,7 +344,7 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			val storage = ArchieFluidStorage(limit, size, internalOnUpdate)
+			val storage = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
 			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
 			fluidStorage[property.name.toSnakeCase()] = storage
 			// See itemField() above - same "storage's initial contents never announced" gap.
@@ -339,7 +354,12 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 		}
 	}
 
-	override fun fluidMapField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
+	override fun fluidMapField(
+		limit: Long,
+		size: Int,
+		filter: Predicate<FluidResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -349,14 +369,19 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			map = ArchieStorageMap({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
+			map = ArchieStorageMap({ ArchieFluidStorage(limit, size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it) }
 			fluidMapStorage[key] = map
 			ReadOnlyProperty { _, _ -> map }
 		}
 	}
 
-	override fun fluidListField(limit: Long, size: Int, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
+	override fun fluidListField(
+		limit: Long,
+		size: Int,
+		filter: Predicate<FluidResource>,
+		onUpdate: (() -> Unit)?
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
 			val key = property.name.toSnakeCase()
@@ -366,7 +391,7 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			list = ArchieStorageList({ ArchieFluidStorage(limit, size, internalOnChange) }, internalOnChange)
+			list = ArchieStorageList({ ArchieFluidStorage(limit, size, filter, internalOnChange) }, internalOnChange)
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it) }
 			fluidListStorage[key] = list
 			ReadOnlyProperty { _, _ -> list }

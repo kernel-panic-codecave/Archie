@@ -17,6 +17,7 @@ import net.benwoodworth.knbt.NbtTag
 import net.kernelpanicsoft.archie.serialization.kSerializer
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
+import java.util.function.Predicate
 import kotlin.math.min
 
 /**
@@ -27,7 +28,7 @@ import kotlin.math.min
  * @param onUpdate Invoked by [update] whenever this slot's contents should be persisted/synced.
  */
 @Serializable(with = ArchieItemSlot.Serializer::class)
-class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemResource>, UpdateManager<NbtTag>
+class ArchieItemSlot(private val filter: Predicate<ItemResource> = Predicate { true }, private val onUpdate: () -> Unit = {}) : StorageSlot<ItemResource>, UpdateManager<NbtTag>
 {
 	private var resource: ItemResource = ItemResource.BLANK
 	private var amount: Long = 0
@@ -55,12 +56,12 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 			amount = value.amount
 		}
 
-	constructor(stack: ItemStack = ItemStack.EMPTY, onUpdate: () -> Unit = {}) : this(onUpdate)
+	constructor(stack: ItemStack = ItemStack.EMPTY, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(filter, onUpdate)
 	{
 		this.stack = stack
 	}
 
-	constructor(resourceStack: ResourceStack<ItemResource>, onUpdate: () -> Unit = {}) : this(onUpdate)
+	constructor(resourceStack: ResourceStack<ItemResource>, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(filter, onUpdate)
 	{
 		this.resourceStack = resourceStack
 	}
@@ -136,7 +137,7 @@ class ArchieItemSlot(private val onUpdate: () -> Unit = {}) : StorageSlot<ItemRe
 		if (resource.isBlank) Item.ABSOLUTE_MAX_STACK_SIZE.toLong()
 		else resource.cachedStack.maxStackSize.toLong()
 
-	override fun isResourceValid(unit: ItemResource): Boolean = true
+	override fun isResourceValid(unit: ItemResource): Boolean = filter.test(unit)
 
 	override fun getResource(): ItemResource = resource
 

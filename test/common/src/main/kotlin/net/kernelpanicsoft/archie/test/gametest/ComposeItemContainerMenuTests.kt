@@ -8,11 +8,12 @@ import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.level.GameType
 
 /**
  * GameTest coverage for [net.kernelpanicsoft.archie.gui.item.ComposeItemContainerMenu], via the
  * fixture [TestItemMenu] (declared directly against a real
- * [net.minecraft.gametest.framework.GameTestHelper.makeMockServerPlayerInLevel] player - no
+ * [net.minecraft.gametest.framework.GameTestHelper.makeMockPlayer] player - no
  * network round trip, matching [net.kernelpanicsoft.archie.test.gametest.CapabilityLookupTests]'s
  * "construct against real infrastructure directly" style).
  *
@@ -43,7 +44,7 @@ class ComposeItemContainerMenuTests
 	@GameTest(template = EMPTY)
 	fun GameTestHelper.testSlotContentPersistsThroughHolder()
 	{
-		val player = makeMockServerPlayerInLevel()
+		val player = makeMockPlayer(GameType.CREATIVE)
 		player.inventory.setItem(0, ItemStack(Items.PAPER))
 		val menu = TestItemMenu(1, player.inventory, PlayerInventoryItemAccess(player, 0, Items.PAPER))
 
@@ -68,7 +69,7 @@ class ComposeItemContainerMenuTests
 	@GameTest(template = EMPTY)
 	fun GameTestHelper.testStillValidReflectsItemAccess()
 	{
-		val player = makeMockServerPlayerInLevel()
+		val player = makeMockPlayer(GameType.CREATIVE)
 		player.inventory.setItem(0, ItemStack(Items.PAPER))
 		val menu = TestItemMenu(4, player.inventory, PlayerInventoryItemAccess(player, 0, Items.PAPER))
 
@@ -85,7 +86,7 @@ class ComposeItemContainerMenuTests
 	@GameTest(template = EMPTY)
 	fun GameTestHelper.testSyncedFieldRegistersSerializer()
 	{
-		val player = makeMockServerPlayerInLevel()
+		val player = makeMockPlayer(GameType.CREATIVE)
 		player.inventory.setItem(0, ItemStack(Items.PAPER))
 		val menu = TestItemMenu(5, player.inventory, PlayerInventoryItemAccess(player, 0, Items.PAPER))
 
@@ -100,7 +101,7 @@ class ComposeItemContainerMenuTests
 	@GameTest(template = EMPTY)
 	fun GameTestHelper.testItemStateManagerForceClosesInvalidMenu()
 	{
-		val player = makeMockServerPlayerInLevel()
+		val player = makeMockPlayer(GameType.CREATIVE)
 		player.inventory.setItem(0, ItemStack(Items.PAPER))
 		val menu = TestItemMenu(6, player.inventory, PlayerInventoryItemAccess(player, 0, Items.PAPER))
 		player.containerMenu = menu

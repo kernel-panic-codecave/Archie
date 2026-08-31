@@ -7,6 +7,10 @@ import earth.terrarium.common_storage_lib.fluid.FluidApi
 import earth.terrarium.common_storage_lib.item.ItemApi
 import earth.terrarium.common_storage_lib.lookup.BlockLookup
 import earth.terrarium.common_storage_lib.lookup.ItemLookup
+import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
+import earth.terrarium.common_storage_lib.storage.base.CommonStorage
+import earth.terrarium.common_storage_lib.storage.base.ValueStorage
 import net.minecraft.core.Direction
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -42,32 +46,32 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 object ArchieCapabilityExposure
 
 /** See [ArchieCapabilityExposure]. Exposes this block entity type's [ArchieItemStorage] to [ItemApi.BLOCK]. */
-fun <T : BlockEntity> BlockEntityType<T>.exposeItemStorage(selector: (T, Direction?) -> ArchieItemStorage?) {
+fun <T : BlockEntity> BlockEntityType<T>.exposeItemStorage(selector: (T, Direction?) -> CommonStorage<ItemResource>?) {
     exposeToBlockLookup(ItemApi.BLOCK, selector)
 }
 
 /** [exposeItemStorage] overload for a selector that doesn't need the query direction. */
-fun <T : BlockEntity> BlockEntityType<T>.exposeItemStorage(selector: (T) -> ArchieItemStorage?) {
+fun <T : BlockEntity> BlockEntityType<T>.exposeItemStorage(selector: (T) -> CommonStorage<ItemResource>?) {
     exposeItemStorage { be, _ -> selector(be) }
 }
 
 /** See [ArchieCapabilityExposure]. Exposes this block entity type's [ArchieFluidStorage] to [FluidApi.BLOCK]. */
-fun <T : BlockEntity> BlockEntityType<T>.exposeFluidStorage(selector: (T, Direction?) -> ArchieFluidStorage?) {
+fun <T : BlockEntity> BlockEntityType<T>.exposeFluidStorage(selector: (T, Direction?) -> CommonStorage<FluidResource>?) {
     exposeToBlockLookup(FluidApi.BLOCK, selector)
 }
 
 /** [exposeFluidStorage] overload for a selector that doesn't need the query direction. */
-fun <T : BlockEntity> BlockEntityType<T>.exposeFluidStorage(selector: (T) -> ArchieFluidStorage?) {
+fun <T : BlockEntity> BlockEntityType<T>.exposeFluidStorage(selector: (T) -> CommonStorage<FluidResource>?) {
     exposeFluidStorage { be, _ -> selector(be) }
 }
 
 /** See [ArchieCapabilityExposure]. Exposes this block entity type's [ArchieEnergyStorage] to [EnergyApi.BLOCK]. */
-fun <T : BlockEntity> BlockEntityType<T>.exposeEnergyStorage(selector: (T, Direction?) -> ArchieEnergyStorage?) {
+fun <T : BlockEntity> BlockEntityType<T>.exposeEnergyStorage(selector: (T, Direction?) -> ValueStorage?) {
     exposeToBlockLookup(EnergyApi.BLOCK, selector)
 }
 
 /** [exposeEnergyStorage] overload for a selector that doesn't need the query direction. */
-fun <T : BlockEntity> BlockEntityType<T>.exposeEnergyStorage(selector: (T) -> ArchieEnergyStorage?) {
+fun <T : BlockEntity> BlockEntityType<T>.exposeEnergyStorage(selector: (T) -> ValueStorage?) {
     exposeEnergyStorage { be, _ -> selector(be) }
 }
 
@@ -83,7 +87,7 @@ private fun <T : BlockEntity, S> BlockEntityType<T>.exposeToBlockLookup(
 ) {
     lookup.onRegister { registrar ->
         registrar.registerBlockEntities(
-            BlockLookup.BlockEntityGetter { blockEntity, direction -> selector(blockEntity as T, direction) },
+	        { blockEntity, direction -> selector(blockEntity as T, direction) },
             this,
         )
     }
@@ -94,22 +98,22 @@ private fun <T : BlockEntity, S> BlockEntityType<T>.exposeToBlockLookup(
 // registration-time call site. Architectury's RegistrySupplier.listen(...) already guarantees the
 // callback runs once the entry is actually registered.
 
-fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeItemStorage(selector: (T, Direction?) -> ArchieItemStorage?) =
+fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeItemStorage(selector: (T, Direction?) -> CommonStorage<ItemResource>?) =
     listen { it.exposeItemStorage(selector) }
 
-fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeItemStorage(selector: (T) -> ArchieItemStorage?) =
+fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeItemStorage(selector: (T) -> CommonStorage<ItemResource>?) =
     listen { it.exposeItemStorage(selector) }
 
-fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeFluidStorage(selector: (T, Direction?) -> ArchieFluidStorage?) =
+fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeFluidStorage(selector: (T, Direction?) -> CommonStorage<FluidResource>?) =
     listen { it.exposeFluidStorage(selector) }
 
-fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeFluidStorage(selector: (T) -> ArchieFluidStorage?) =
+fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeFluidStorage(selector: (T) -> CommonStorage<FluidResource>?) =
     listen { it.exposeFluidStorage(selector) }
 
-fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeEnergyStorage(selector: (T, Direction?) -> ArchieEnergyStorage?) =
+fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeEnergyStorage(selector: (T, Direction?) -> ValueStorage?) =
     listen { it.exposeEnergyStorage(selector) }
 
-fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeEnergyStorage(selector: (T) -> ArchieEnergyStorage?) =
+fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeEnergyStorage(selector: (T) -> ValueStorage?) =
     listen { it.exposeEnergyStorage(selector) }
 
 // ── Item-in-item exposure (stretch) ─────────────────────────────────────────────────────────
@@ -119,6 +123,6 @@ fun <T : BlockEntity> RegistrySupplier<BlockEntityType<T>>.exposeEnergyStorage(s
 // backpack/bag's own storage pipe-accessible (by other CSL-aware mods) even while its GUI is closed.
 
 /** Exposes this item's [ArchieItemStorage] (e.g. a bag/backpack's contents) to [ItemApi.ITEM]. */
-fun Item.exposeItemStorage(selector: (ItemStack, ItemContext) -> ArchieItemStorage?) {
-    ItemApi.ITEM.registerSelf(ItemLookup.ItemGetter { stack, context -> selector(stack, context) }, this)
+fun Item.exposeItemStorage(selector: (ItemStack, ItemContext) -> CommonStorage<ItemResource>?) {
+    ItemApi.ITEM.registerSelf({ stack, context -> selector(stack, context) }, this)
 }

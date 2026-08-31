@@ -4,6 +4,8 @@ import net.kernelpanicsoft.archie.transfer.ArchieEnergyStorage
 import net.kernelpanicsoft.archie.transfer.ArchieFluidStorage
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import dev.architectury.fluid.FluidStack
+import earth.terrarium.common_storage_lib.resources.fluid.FluidResource
+import earth.terrarium.common_storage_lib.resources.item.ItemResource
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -11,6 +13,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.item.ItemStack
+import java.util.function.Predicate
 import kotlin.collections.listOf
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -87,7 +90,7 @@ interface NBTHolder
 	 * this inventory changed" hook, without needing to poll it or re-derive the same notification
 	 * some other way.
 	 */
-	fun itemField(size: Int, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
+	fun itemField(size: Int, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 
 	/**
 	 * Declares an [ArchieStorageMap] of [ArchieItemStorage]s, each with [size] slots, keyed by the
@@ -96,19 +99,19 @@ interface NBTHolder
 	 * every entry the map creates is wired with the map's own persistence trigger as well, so a
 	 * mutation deep inside one entry is never silently unpersisted.
 	 */
-	fun itemMapField(size: Int, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
+	fun itemMapField(size: Int, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieItemStorage>>>
 
 	/** Declares an [ArchieStorageList] of [ArchieItemStorage]s, each with [size] slots, keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
-	fun itemListField(size: Int, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
+	fun itemListField(size: Int, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieItemStorage>>>
 
 	/** Declares an [ArchieFluidStorage] field with [size] tank slots each capped at [limit], keyed by the delegated property's name. See [itemField] for [onUpdate]'s semantics. */
-	fun fluidField(limit: Long, size: Int = 1, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
+	fun fluidField(limit: Long, size: Int = 1, filter: Predicate<FluidResource> = Predicate { true }, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 
 	/** Declares an [ArchieStorageMap] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
-	fun fluidMapField(limit: Long, size: Int = 1, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
+	fun fluidMapField(limit: Long, size: Int = 1, filter: Predicate<FluidResource> = Predicate { true }, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageMap<ArchieFluidStorage>>>
 
 	/** Declares an [ArchieStorageList] of [ArchieFluidStorage]s, each with [size] tank slots capped at [limit], keyed by the delegated property's name. See [itemMapField] for [onUpdate]'s semantics. */
-	fun fluidListField(limit: Long, size: Int = 1, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
+	fun fluidListField(limit: Long, size: Int = 1, filter: Predicate<FluidResource> = Predicate { true }, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieStorageList<ArchieFluidStorage>>>
 
 	/** Declares an [ArchieEnergyStorage] field capped at [capacity], keyed by the delegated property's name. See [itemField] for [onUpdate]'s semantics. */
 	fun energyField(capacity: Long, onUpdate: (() -> Unit)? = null): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
