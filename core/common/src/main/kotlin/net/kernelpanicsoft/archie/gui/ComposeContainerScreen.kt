@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
 import kotlinx.coroutines.*
@@ -34,6 +35,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
@@ -125,14 +127,21 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
 
     private var hasFrameWaiters = false
-    private val clock = BroadcastFrameClock { hasFrameWaiters = true }
+    private lateinit var clock: BroadcastFrameClock
 
     // See ComposeScreen's identical fields for why this is captured once and untyped against
     // kotlinx-coroutines-test.
     private val testPump = ComposeTestClockOverride.pump
 
-    private val composeScope = CoroutineScope(ComposeTestClockOverride.dispatcher ?: Dispatchers.Default) + clock
-    final override val coroutineContext: CoroutineContext = composeScope.coroutineContext
+    // A fresh CoroutineScope/Job every [start] call (including a restart - see [init]'s own KDoc),
+    // never the one a prior [disposeCompose] already cancelled: a cancelled Job can never launch
+    // further children, so reusing it would silently make every coroutine start() launches
+    // (including the recomposer's own) instantly-cancelled no-ops instead of actually restarting
+    // anything. A computed [coroutineContext] getter (not a `val` snapshotting it once) means
+    // every consumer - including this class's own [CoroutineScope] delegation - always sees
+    // whichever scope is currently live.
+    private lateinit var composeScope: CoroutineScope
+    final override val coroutineContext: CoroutineContext get() = composeScope.coroutineContext
 
     final override lateinit var layerManager: LayerStackManager
         private set
@@ -140,15 +149,10 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     private var recomposeJob: Job? = null
 
     private var applyScheduled = false
-    private val snapshotHandle = Snapshot.registerGlobalWriteObserver {
-        if (!applyScheduled) {
-            applyScheduled = true
-            composeScope.launch {
-                applyScheduled = false
-                Snapshot.sendApplyNotifications()
-            }
-        }
-    }
+    private lateinit var snapshotHandle: ObserverHandle
+
+    /** The content passed to the most recent [start] call - retained so [init] can restart Compose with it after a prior [removed] disposed it. */
+    private var contentFn: (@Composable () -> Unit)? = null
 
     private var lastMouseX = 0.0
     private var lastMouseY = 0.0
@@ -176,13 +180,31 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
         }
 
     /**
-     * Initialises the Compose runtime and pushes the base layer with [content].
+     * Initialises (or re-initialises - see [init]) the Compose runtime and pushes the base layer
+     * with [content].
      *
-     * Must be called once from [init]. Subsequent calls replace the content.
+     * Must be called once from a subclass's own construction. Also called automatically from
+     * [init] to restart Compose after a prior [removed] disposed it.
      *
      * @param content The root composable content for this screen.
      */
     protected fun start(content: @Composable () -> Unit) {
+        contentFn = content
+        composeDisposed = false
+        hasFrameWaiters = false
+        applyScheduled = false
+        clock = BroadcastFrameClock { hasFrameWaiters = true }
+        composeScope = CoroutineScope(ComposeTestClockOverride.dispatcher ?: Dispatchers.Default) + clock
+        snapshotHandle = Snapshot.registerGlobalWriteObserver {
+            if (!applyScheduled) {
+                applyScheduled = true
+                composeScope.launch {
+                    applyScheduled = false
+                    Snapshot.sendApplyNotifications()
+                }
+            }
+        }
+
         recomposer = Recomposer(coroutineContext)
         layerManager = LayerStackManager(recomposer) { layerContent ->
             // Applied to every layer this screen ever pushes (base, modal, dropdown, tooltip
@@ -447,6 +469,29 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     private var composeDisposed = false
 
+    /**
+     * Restarts the Compose runtime with [contentFn] if a prior [removed] disposed it - vanilla's
+     * `Minecraft.setScreen()` calls [removed] on this screen for *any* swap-away, including one a
+     * caller intends to reverse later by handing this exact instance back to `setScreen()` again
+     * (a recipe viewer's "view recipe" navigation, say), not just a genuine close. Without this,
+     * such a screen never renders its Compose content again once reactivated - only vanilla's own
+     * slot/title rendering (untouched by any of this) keeps working, which is what actually
+     * surfaces the bug: the screen looks blank apart from its slots after returning from a recipe
+     * lookup.
+     *
+     * [added] rather than the no-arg `init()` hook - `Screen.init(Minecraft, int, int)` only calls
+     * that hook down a much more conditional path (gated by vanilla's own `initialized` flag *and*,
+     * on NeoForge, a cancellable `ScreenEvent.Init.Pre`), so it doesn't reliably fire on every
+     * reactivation. `Minecraft.setScreen()` calls [added] unconditionally on every activation,
+     * fresh construction and reactivation alike - confirmed against the decompiled source, not
+     * assumed. A no-op on the very first [added] (right after construction), since [composeDisposed]
+     * starts `false` until a real [removed] call has actually happened.
+     */
+    override fun added() {
+        super.added()
+        if (composeDisposed) contentFn?.let { start(it) }
+    }
+
     override fun onClose() {
         GLFW.glfwSetCursor(minecraft!!.window.window, 0L)
         super.onClose()
@@ -459,6 +504,11 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     override fun removed() {
         super.removed()
         disposeCompose()
+    }
+
+    override fun resize(minecraft: Minecraft, width: Int, height: Int)
+    {
+        super.resize(minecraft, width, height)
     }
 
     private fun disposeCompose() {
