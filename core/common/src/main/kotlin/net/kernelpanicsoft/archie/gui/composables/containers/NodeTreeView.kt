@@ -670,15 +670,20 @@ private fun drawSplinePolyline(guiGraphics: GuiGraphics, points: List<IntArray>,
 /**
  * The axis-aligned waypoints connecting [childEdgeX]/[childCenterY] to [parentEdgeX]/[parentCenterY]
  * - each already the node's own edge facing the other. Ordered child-then-parent, since the
- * connector always draws that direction by default. Adjacent columns
- * (`abs(childDepth - parentDepth) <= 1`) get a plain three-leg elbow; anything further apart
- * routes around via a detour lane at [detourClearanceY] (the [DETOUR_MARGIN]-padded bottom edge of
- * whatever sits in the columns being crossed) instead of cutting straight through them.
+ * connector always draws that direction by default. A plain three-leg elbow unless [detour], in
+ * which case it routes around via a lane at [detourClearanceY] (the [DETOUR_MARGIN]-padded bottom
+ * edge of whatever sits in the columns being crossed) instead of cutting through them.
+ *
+ * [detour] is the caller's own obstruction test rather than a column-distance rule. Detouring purely
+ * because a connector spans more than one column sent every long edge diving under the whole graph
+ * even when the columns it crosses were empty at that height and it could simply have gone straight
+ * - which is most of them, since a skipped column is usually skipped precisely because nothing in it
+ * is on that path.
  */
-private fun pointsFor(childEdgeX: Int, childCenterY: Int, childDepth: Int, parentEdgeX: Int, parentCenterY: Int, parentDepth: Int, halfGap: Int, detourClearanceY: Int): List<IntArray> {
+private fun pointsFor(childEdgeX: Int, childCenterY: Int, parentEdgeX: Int, parentCenterY: Int, halfGap: Int, detour: Boolean, detourClearanceY: Int): List<IntArray> {
 	val towardParent = if (parentEdgeX >= childEdgeX) 1 else -1
 
-	if (abs(childDepth - parentDepth) <= 1) {
+	if (!detour) {
 		val midX = parentEdgeX - towardParent * halfGap
 		return listOf(
 			intArrayOf(childEdgeX, childCenterY),
@@ -942,6 +947,24 @@ fun <T> NodeTreeView(
 						}
 						return clearance
 					}
+					/**
+					 * Whether anything actually sits in the columns a connector would cut straight
+					 * through, at the height it would cross them at - the band between its two
+					 * endpoints, padded so a line never grazes a node's own edge. Only a real
+					 * obstruction is worth the detour; a connector spanning empty columns should just
+					 * go straight.
+					 */
+					fun crossingBlocked(minDepth: Int, maxDepth: Int, bandTop: Int, bandBottom: Int): Boolean {
+						if (maxDepth - minDepth <= 1) return false
+						for (j in flat.indices) {
+							val depth = flat[j].depth
+							if (depth <= minDepth || depth >= maxDepth) continue
+							val top = y + positioned[j][1] - DETOUR_MARGIN
+							val bottom = y + positioned[j][1] + positioned[j][3] + DETOUR_MARGIN
+							if (bottom >= bandTop && top <= bandBottom) return true
+						}
+						return false
+					}
 					for (i in flat.indices) {
 						val flatNode = flat[i]
 						if (flatNode.parents.isEmpty() && flatNode.hiddenParentCount == 0) continue
@@ -966,8 +989,9 @@ fun <T> NodeTreeView(
 							val minDepth = minOf(flatNode.depth, flat[parentIndex].depth)
 							val maxDepth = maxOf(flatNode.depth, flat[parentIndex].depth)
 							val clearanceFloor = maxOf(childCenterY, parentCenterY)
-							val clearanceY = detourClearanceY(minDepth, maxDepth, clearanceFloor)
-							val points = pointsFor(childEdgeX, childCenterY, flatNode.depth, parentEdgeX, parentCenterY, flat[parentIndex].depth, halfGap, clearanceY)
+							val detour = crossingBlocked(minDepth, maxDepth, minOf(childCenterY, parentCenterY), clearanceFloor)
+							val clearanceY = if (detour) detourClearanceY(minDepth, maxDepth, clearanceFloor) else clearanceFloor
+							val points = pointsFor(childEdgeX, childCenterY, parentEdgeX, parentCenterY, halfGap, detour, clearanceY)
 							val orientedPoints = if (direction == ConnectorDirection.PARENT_TO_CHILD) points.reversed() else points
 							val childVisible = visible(flatNode.node)
 							val parentVisible = visible(flat[parentIndex].node)
