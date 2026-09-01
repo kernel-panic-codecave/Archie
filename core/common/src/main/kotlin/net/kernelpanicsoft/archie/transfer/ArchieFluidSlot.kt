@@ -96,7 +96,7 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 				this.amount = inserted
 			}
 			return inserted
-		} else if (this.resource == unit)
+		} else if (holds(unit))
 		{
 			val inserted = min(amount, limit - this.amount)
 			if (!simulate)
@@ -110,7 +110,7 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 
 	override fun extract(unit: FluidResource, amount: Long, simulate: Boolean): Long
 	{
-		if (this.resource == unit)
+		if (holds(unit))
 		{
 			val extracted = min(amount, this.amount)
 			if (!simulate)
@@ -125,6 +125,28 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 		}
 		return 0
 	}
+
+	/**
+	 * Whether this slot already holds [unit] - a **value** comparison, on fluid type plus data
+	 * components.
+	 *
+	 * Deliberately not `==`. Common Storage Lib's [FluidResource] overrides neither `equals` nor
+	 * `hashCode` (unlike [earth.terrarium.common_storage_lib.resources.item.ItemResource], which
+	 * does), so `==` on it is reference identity. That made this slot accept the first insert into
+	 * a blank slot and then silently reject every later one, because the incoming resource is a
+	 * different object - anything that has been round-tripped through NBT or rebuilt from a packet
+	 * always is, even when it is plainly the same fluid. [extract] failed the same way, so a slot
+	 * could also refuse to give back what it was holding.
+	 *
+	 * [ArchieItemSlot] has never had this problem because it compares with
+	 * `resource.test(unit.toStack())` rather than `==`; this is the fluid equivalent.
+	 * [FluidResource.isOf] compares the [net.minecraft.world.level.material.Fluid] itself (a
+	 * registry singleton, so identity is right there) and
+	 * [earth.terrarium.common_storage_lib.resources.ResourceComponent.componentsMatch] compares the
+	 * component patch by value.
+	 */
+	private fun holds(unit: FluidResource): Boolean =
+		resource.isOf(unit.type) && resource.componentsMatch(unit.dataPatch)
 
 	override fun getLimit(resource: FluidResource): Long = limit
 
