@@ -8,6 +8,7 @@ import net.kernelpanicsoft.archie.config.serializer.Json5ConfigSerializer
 import net.kernelpanicsoft.archie.config.serializer.TomlConfigSerializer
 import net.kernelpanicsoft.archie.APlatform
 import net.kernelpanicsoft.archie.util.onClient
+import dev.architectury.utils.GameInstance
 import dev.architectury.platform.Mod
 import dev.architectury.platform.Platform
 import kotlinx.serialization.KSerializer
@@ -20,6 +21,7 @@ import net.kernelpanicsoft.archie.networking.NetworkChannel
 import net.kernelpanicsoft.archie.serialization.SerializationManager
 import net.kernelpanicsoft.archie.util.foldEnv
 import net.kernelpanicsoft.archie.util.isClient
+import net.kernelpanicsoft.archie.util.minecraftServer
 import net.kernelpanicsoft.archie.util.rem
 import net.kernelpanicsoft.archie.util.sendSystemMessage
 import net.minecraft.network.chat.Component
@@ -120,6 +122,15 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, override val title: Compon
 	var isLoaded: Boolean = false
 		internal set
 
+	/**
+	 * Whether [isLoaded] is owed to a server's push rather than to this side's own [load].
+	 *
+	 * Distinguishes the two ways a synced spec becomes readable, which matters exactly once: on
+	 * client disconnect, where only the pushed kind should be discarded. See the client-quit handler
+	 * in [init].
+	 */
+	private var loadedFromSync: Boolean = false
+
 	var configFolder: Path = Platform.getConfigFolder()
 		internal set
 
@@ -160,7 +171,11 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, override val title: Compon
 			foldEnv(
 				client = {
 					ClientPlayerEvent.CLIENT_PLAYER_QUIT.register {
-						this.isLoaded = false
+						if (this.loadedFromSync)
+						{
+							this.loadedFromSync = false
+							this.isLoaded = false
+						}
 					}
 				},
 				server = {
@@ -185,6 +200,8 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, override val title: Compon
 	 */
 	fun load() = fileSerializer.load(this, configFolder).also {
 		isLoaded = true
+		// This side's own file, not a push - so a client disconnect must not discard it.
+		loadedFromSync = false
 		categoriesMap.values.forEach { cat -> cat.attachSpecCollections(this) }
 	}
 
@@ -229,7 +246,11 @@ sealed class ConfigSpec(val type: Type, val mod: Mod, override val title: Compon
 				channel.toPlayer(player as ServerPlayer, this)
 			}
 		}
-		channel.clientbound(klass, serializer) { config, _ -> config.isLoaded = true; config.save() }
+		channel.clientbound(klass, serializer) { config, _ ->
+			config.isLoaded = true
+			config.loadedFromSync = minecraftServer == null
+			config.save()
+		}
 	}
 
 	/** Serializes/deserializes a [ConfigSpec] by delegating each entry of [categoriesMap] to its own [DataSpec.serializer]. */
