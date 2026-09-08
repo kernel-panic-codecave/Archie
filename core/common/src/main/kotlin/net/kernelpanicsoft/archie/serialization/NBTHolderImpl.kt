@@ -264,7 +264,8 @@ class NBTHolderImpl : NBTHolder
 			if (property.hasAnnotation<Sync>()) sync += key
 			lateinit var holder: NestedNBTHolder<T>
 			holder = NestedNBTHolder {
-				data[key] = holder.toNbtCompound()
+				// Removed rather than stored empty when the holder is unset - see toNbtCompoundOrNull.
+				holder.toNbtCompoundOrNull().let { if (it == null) data.remove(key) else data[key] = it }
 				if (thisRef is BlockEntity) {
 					if (property.name.toSnakeCase() in sync) {
 //						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), holder)
@@ -579,7 +580,7 @@ class NBTHolderImpl : NBTHolder
 		energyStorage.forEach { (key, value) -> data[key] = value.createSnapshot() }
 		nestedMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
 		nestedListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
-		nestedHolderStorage.forEach { (key, holder) -> data[key] = holder.toNbtCompound() }
+		nestedHolderStorage.forEach { (key, holder) -> holder.toNbtCompoundOrNull().let { if (it == null) data.remove(key) else data[key] = it } }
 		itemMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
 		itemListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
 		fluidMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }

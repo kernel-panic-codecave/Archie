@@ -24,10 +24,23 @@ class NestedNBTHolder<T : NBTHolder> internal constructor(private val onChange: 
 		((factory(tag)?.also { it.loadFromTag(tag) }) as T?)?.let { value = it }
 	}
 
-	internal fun toNbtCompound(): NbtCompound
+	/**
+	 * This holder's contents, or `null` when it holds nothing.
+	 *
+	 * Nullable rather than an empty compound, and the owning holder removes the key entirely for a
+	 * `null` - otherwise an *unset* nested field saves as `{}`, and [loadFrom] cannot tell that
+	 * apart from a holder that genuinely serialized to nothing. It would hand the empty tag to the
+	 * factory, which either resurrects a default-constructed instance where there had been none, or
+	 * throws: a factory reads its discriminator out of that tag (`tag.getString("type")`), and there
+	 * is nothing there to read. Every factory in the wild has had to defend against being called
+	 * this way, one of them by switching to `tryParse` after being bitten. Absence now round-trips
+	 * as absence, so it never gets called at all.
+	 */
+	internal fun toNbtCompoundOrNull(): NbtCompound?
 	{
+		val held = value ?: return null
 		val tag = CompoundTag()
-		value?.saveToTag(tag)
+		held.saveToTag(tag)
 		return tag.fromMinecraft
 	}
 }

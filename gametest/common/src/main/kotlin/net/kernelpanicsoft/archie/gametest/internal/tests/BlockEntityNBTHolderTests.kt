@@ -176,7 +176,10 @@ class BlockEntityNBTHolderTests
 	fun GameTestHelper.testNestedHolderFieldsPersistHeterogeneousMutations()
 	{
 		val holder = NestingFixture()
-		holder.single.value?.value = 5
+		// getOrSet, not `value?.value =` - a nested single field starts empty (the factory is for
+		// *loading*, and picks the concrete type out of the saved tag), so the safe-call form this
+		// used to take silently did nothing and the assertion below read the default back.
+		holder.single.getOrSet { NestedFixture() }.value = 5
 		holder.list.add { NestedFixture() }.value = 6
 		holder.list.add { OtherNestedFixture() }.label = "seven"
 		holder.map.getOrPut("a") { NestedFixture() }.value = 8
@@ -196,4 +199,31 @@ class BlockEntityNBTHolderTests
 		succeed()
 	}
 
+	/**
+	 * A nested single field that was never set comes back unset, rather than as a
+	 * default-constructed instance.
+	 *
+	 * It used to save as an empty compound, which [NestedNBTHolder.loadFrom] cannot tell from a
+	 * holder that genuinely serialized to nothing - so it called the factory with an empty tag. This
+	 * fixture's factory ignores that tag and always constructs, which is exactly the case that
+	 * resurrects something from nothing; a real one reads a discriminator out of it and either
+	 * returns null or, with `parse` rather than `tryParse`, throws.
+	 */
+	@GameTest(template = EMPTY)
+	fun GameTestHelper.testAnUnsetNestedHolderStaysUnsetAcrossARoundTrip()
+	{
+		val holder = NestingFixture()
+		assertTrue(holder.single.value == null) { "Expected a nested single field to start empty" }
+
+		val tag = CompoundTag()
+		holder.saveToTag(tag)
+
+		val loaded = NestingFixture()
+		loaded.loadFromTag(tag)
+
+		assertTrue(loaded.single.value == null) {
+			"Expected an unset nested holder to stay unset, got ${loaded.single.value}"
+		}
+		succeed()
+	}
 }

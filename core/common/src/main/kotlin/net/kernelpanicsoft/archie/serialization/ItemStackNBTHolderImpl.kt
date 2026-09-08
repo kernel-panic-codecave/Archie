@@ -243,7 +243,8 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 			if (property.hasAnnotation<Sync>()) sync += key
 			lateinit var holder: NestedNBTHolder<T>
 			holder = NestedNBTHolder {
-				data[key] = holder.toNbtCompound()
+				// Removed rather than stored empty when the holder is unset - see toNbtCompoundOrNull.
+				holder.toNbtCompoundOrNull().let { if (it == null) data.remove(key) else data[key] = it }
 				saveToStack()
 			}
 			(data[key] as? NbtCompound)?.let { holder.loadFrom(it, factory) }
@@ -513,7 +514,7 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				data[key] = list.toNbtCompound()
 			}
 			nestedHolderStorage.forEach { (key, holder) ->
-				data[key] = holder.toNbtCompound()
+				holder.toNbtCompoundOrNull().let { if (it == null) data.remove(key) else data[key] = it }
 			}
 			itemMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
 			itemListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
