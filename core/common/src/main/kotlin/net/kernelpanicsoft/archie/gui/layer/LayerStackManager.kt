@@ -19,6 +19,8 @@ import net.kernelpanicsoft.archie.gui.animation.animateFloat
 import net.kernelpanicsoft.archie.gui.animation.animateInt
 import net.kernelpanicsoft.archie.gui.composables.containers.RootContainer
 import net.kernelpanicsoft.archie.gui.composables.modal.AlertDialog
+import net.kernelpanicsoft.archie.gui.composables.modal.WizardDialog
+import net.kernelpanicsoft.archie.gui.composables.modal.WizardPage
 import net.kernelpanicsoft.archie.gui.composables.modal.ChoiceDialog
 import net.kernelpanicsoft.archie.gui.composables.modal.ConfirmDialog
 import net.kernelpanicsoft.archie.gui.composables.modal.ModalChoice
@@ -281,6 +283,36 @@ class LayerStackManager(
                 onConfirm = onConfirm,
                 onCancel = onCancel,
                 content = content
+            )
+        }
+    }
+
+    /**
+     * Pushes a modal presenting a [WizardDialog] - a multi-page flow with Back/Cancel/forward
+     * navigation, a horizontal slide between pages, and per-page validation gating the forward
+     * button.
+     *
+     * Not dismissable by clicking outside: a wizard holds part-finished input across several steps,
+     * and losing it to a stray click is worse than making the reader press Cancel.
+     *
+     * @param pages The steps, in order.
+     * @param onFinish Invoked when the reader completes the final page.
+     * @param onCancel Invoked when the reader cancels.
+     */
+    fun wizardDialog(
+        pages: List<WizardPage>,
+        contentWidth: Int = 9 * 18,
+        contentHeight: Int? = null,
+        onFinish: () -> Unit = {},
+        onCancel: () -> Unit = {},
+    ) {
+        modal(dismissOnClickOutside = false) {
+            WizardDialog(
+                pages = pages,
+                contentWidth = contentWidth,
+                contentHeight = contentHeight,
+                onFinish = onFinish,
+                onCancel = onCancel,
             )
         }
     }

@@ -30,4 +30,4 @@ import net.minecraft.resources.ResourceKey
  * @param registryKey The registry this holder's own entries belong to - NeoForge's `actual` waits
  *   specifically for *this* registry's population event before running [block].
  */
-expect fun scheduleEarlyClientRegistration(mod: Mod, registryKey: ResourceKey<out Registry<*>>, block: () -> Unit)
+expect fun waitForRegistry(mod: Mod, registryKey: ResourceKey<out Registry<*>>, block: () -> Unit)

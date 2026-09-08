@@ -47,20 +47,17 @@ abstract class ADeferredRegistryHolder<T> private constructor(
 	 * client, at the earliest point registration APIs that depend on [registryKey]'s registry
 	 * already being populated (e.g. Architectury's `MenuRegistry.registerScreenFactory`, or
 	 * registering a renderer for a `BlockEntityType` this holder just registered) are safe to
-	 * call - see [scheduleEarlyClientRegistration]. Must be called once during mod initialization.
+	 * call - see [waitForRegistry]. Must be called once during mod initialization.
 	 */
 	open fun init()
 	{
 		registry.register()
-		onClient {
-			scheduleEarlyClientRegistration(mod, registryKey) {
-				initClient()
-			}
-		}
 	}
 
-	/** Client-only setup run after [init] - see [scheduleEarlyClientRegistration] for exactly when. No-op by default. */
-	open fun initClient() = Unit
+	fun listen(listener: () -> Unit)
+	{
+		waitForRegistry(mod, registryKey, listener)
+	}
 
 	/** Looks up a registered entry by its unqualified [id] (namespaced under [mod] automatically). */
 	operator fun get(id: String): RegistrySupplier<out T>? = map[mod % id]

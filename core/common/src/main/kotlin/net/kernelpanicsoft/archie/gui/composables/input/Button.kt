@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animateInt
+import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
 import net.kernelpanicsoft.archie.gui.layout.Alignment
@@ -18,9 +19,11 @@ import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.theme.contentPaddingModifier
 import net.kernelpanicsoft.archie.gui.theme.intrinsicSizeModifier
+import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.network.chat.Component
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -92,6 +95,25 @@ fun Button(
                 .offset(x = 0, y = pressOffset)
         )
     }
+}
+
+@Composable
+fun TextButton(
+	text: Component,
+	color: KColor = LocalTheme.current.lightTextColor,
+	modifier: Modifier = Modifier,
+	enabled: Boolean = true,
+	texture: String = "button",
+	variant: String = ThemeVariants.DEFAULT,
+	onClick: (UINode) -> Unit,
+) = Button(
+   modifier = modifier,
+   enabled = enabled,
+   texture = texture,
+   variant = variant,
+   onClick = onClick,
+) {
+	Text(text, dropShadow = false, color = color)
 }
 
 

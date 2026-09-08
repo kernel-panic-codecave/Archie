@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import net.kernelpanicsoft.archie.gui.animation.AnimationSpec
 import net.kernelpanicsoft.archie.gui.animation.Easings
 import net.kernelpanicsoft.archie.gui.animation.animatePulse
+import net.kernelpanicsoft.archie.gui.composables.basic.Label
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.composables.theme.WidgetState
@@ -175,7 +176,7 @@ fun <T> RadioGroup(
                     enabled = option.enabled,
                     onSelect = { onSelected(option.value) },
                 )
-                Text(option.label, dropShadow = false)
+                Label(option.label)
             }
         }
     }

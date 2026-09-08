@@ -19,6 +19,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
+import net.kernelpanicsoft.archie.gui.util.extension.reconcilePointerHover
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.events.GuiEventListener
@@ -367,13 +368,7 @@ abstract class ComposeScreen(
      */
     private fun reconcileHoverState(mouseX: Double, mouseY: Double) {
         val top = topNode() ?: return
-        if (mouseX == lastMouseX && mouseY == lastMouseY) return
-        processPointerEvent(top, mouseX, mouseY, PointerEventType.ENTER) {
-            it.isBounded(mouseX.toInt(), mouseY.toInt()) && !it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
-        }
-        processPointerEvent(top, mouseX, mouseY, PointerEventType.EXIT) {
-            !it.isBounded(mouseX.toInt(), mouseY.toInt()) && it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
-        }
+        reconcilePointerHover(top, mouseX, mouseY)
         lastMouseX = mouseX; lastMouseY = mouseY
     }
 

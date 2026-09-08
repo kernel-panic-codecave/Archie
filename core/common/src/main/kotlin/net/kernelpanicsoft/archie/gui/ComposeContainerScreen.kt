@@ -10,6 +10,9 @@ import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import com.mojang.blaze3d.platform.InputConstants
 import kotlinx.coroutines.*
+import net.kernelpanicsoft.archie.gui.access.DeferredFloatingItems
+import net.kernelpanicsoft.archie.gui.access.DeferredSlotHighlights
+import net.kernelpanicsoft.archie.gui.access.ScreenOverlayDeferral
 import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider
 import net.kernelpanicsoft.archie.gui.access.SlotLayerDepthProvider
 import net.kernelpanicsoft.archie.gui.blockentity.LocalBlockEntityState
@@ -34,6 +37,7 @@ import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processKeyEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processPointerEvent
+import net.kernelpanicsoft.archie.gui.util.extension.reconcilePointerHover
 import net.kernelpanicsoft.archie.gui.util.extension.processScrollEvent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
@@ -81,6 +85,7 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     CoroutineScope,
     SlotLayerDepthProvider,
     SlotHighlightClipProvider,
+    ScreenOverlayDeferral,
     ComposeIdleAware,
     LayerManagerProvider
 {
@@ -103,14 +108,30 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
         private const val SLOT_LAYER_OFFSET = 120f
 
         /**
-         * [ComposeContainerScreen.renderLabels]'s own Z offset above [layerBaseZ]`(0)` - high enough
-         * to clear every other base-layer element (crucially, [SLOT_LAYER_OFFSET] *and* vanilla's own
-         * further `+200` for slot decorations, both explained on [LAYER_Z_STEP]) that would otherwise
-         * paint over the title/inventory label, while staying under [layerBaseZ]`(1)` so an open modal
-         * - which starts painting there - still correctly covers/dims the label rather than the label
-         * poking through on top of it.
+         * A label's Z offset above the base of the layer it belongs to - the title's is always the
+         * base layer's, the inventory label's is whichever layer [PlayerSlots] gave the player row.
+         *
+         * High enough to clear every other element of that layer (crucially, [SLOT_LAYER_OFFSET]
+         * *and* vanilla's own further `+200` for slot decorations, both explained on [LAYER_Z_STEP])
+         * that would otherwise paint over the label, while staying under the *next* layer's base so
+         * a modal opened over the label's own layer still correctly covers/dims it rather than the
+         * label poking through on top.
          */
         private const val LABEL_LAYER_OFFSET = 450f
+
+        /** Vanilla's own label grey, `4210752` - see `AbstractContainerScreen.renderLabels`. */
+        private const val LABEL_COLOR = 0x404040
+
+        /**
+         * Z offset, above the *top* layer's base, for the two overlays [ScreenOverlayDeferral] holds
+         * back and [render] draws itself: the hovered slot's highlight and the carried item.
+         *
+         * Above [SLOT_LAYER_OFFSET] plus vanilla's own `+200` for decorations (see [LAYER_Z_STEP]),
+         * so it clears the very slots it annotates. There is by definition no layer above the top
+         * one for it to reach into, so unlike [LABEL_LAYER_OFFSET] it has no ceiling to respect -
+         * and the carried stack adding vanilla's own further `+232` on top of this is fine.
+         */
+        private const val OVERLAY_LAYER_OFFSET = 400f
 
         /**
          * Extra room past a slot's own 16x16 icon box that [slotClipRect] leaves unclipped, for
@@ -330,13 +351,37 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
             pose {
                 translate(leftPos.toFloat(), topPos.toFloat(), layerBaseZ(0) + LABEL_LAYER_OFFSET)
-                super.renderLabels(guiGraphics, mouseX, mouseY)
+                renderTitleLabel(guiGraphics)
             }
+
+            // The inventory label rides at the depth of whichever layer is *placing* the player row,
+            // not the screen's - see PlayerSlots, which hands that row to the deepest layer asking
+            // for it. Drawn with the title while the base layer still holds it, and after the layer
+            // pass otherwise, since a label at the base band under an open modal is a label behind
+            // the row it names.
+            val inventoryLabelDepth = menu.slotData.playerSlotsOwner
+            if (inventoryLabelDepth == 0) renderInventoryLabelAt(guiGraphics, 0)
             flush()
 
             if (layerManager.layers.size > 1)
             {
                 renderNodes(false, guiGraphics, mouseX, mouseY, partialTick)
+                flush()
+
+                if (inventoryLabelDepth > 0) renderInventoryLabelAt(guiGraphics, inventoryLabelDepth)
+
+                // The overlays super.render() held back, now that the layers they belong over have
+                // been drawn - see ScreenOverlayDeferral. Under the same leftPos/topPos translate
+                // vanilla drew them in, since both were handed screen-relative coordinates.
+                pose {
+                    translate(
+                        leftPos.toFloat(),
+                        topPos.toFloat(),
+                        layerBaseZ(layerManager.layers.size - 1) + OVERLAY_LAYER_OFFSET,
+                    )
+                    (this@ComposeContainerScreen as? DeferredSlotHighlights)?.archieDrawDeferredSlotHighlights(guiGraphics)
+                    (this@ComposeContainerScreen as? DeferredFloatingItems)?.archieDrawDeferredFloatingItems(guiGraphics)
+                }
                 flush()
             }
             pose {
@@ -363,11 +408,21 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
         mouseY: Double
     ): Boolean
     {
-        if (layerManager.layers.size != 1) return false
+        // Vanilla only ever asks about a 16x16 region on a slot's behalf; any other size is a
+        // subclass asking about decoration of its own, which belongs to the base layer.
+        val slotIndex = if (width == 16 && height == 16) menu.slots.indexOfFirst { it.x == x && it.y == y } else -1
 
-        if (width == 16 && height == 16) {
-            val slotIndex = menu.slots.indexOfFirst { it.x == x && it.y == y }
-            val clip = if (slotIndex >= 0) menu.slotClipBounds(slotIndex) else null
+        // A slot answers the mouse only from the layer that placed it, and only while that layer
+        // is the one on top - every layer draws over the ones beneath it, so their slots sit behind
+        // it and must not be clickable through it. Refusing *every* slot the moment any layer opens
+        // would be simpler, and was what this did, but the player inventory is the case that makes
+        // it wrong: see PlayerSlots, which hands the one player row to the deepest layer asking for
+        // it precisely so the row stays reachable from inside a modal.
+        val ownerDepth = if (slotIndex >= 0) menu.slotLayerDepth(slotIndex) else 0
+        if (ownerDepth != layerManager.layers.size - 1) return false
+
+        if (slotIndex >= 0) {
+            val clip = menu.slotClipBounds(slotIndex)
             if (clip != null) {
                 val absX = leftPos + x
                 val absY = topPos + y
@@ -388,15 +443,39 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
      * No-op here - vanilla's own [AbstractContainerScreen.render] calls this sandwiched between
      * the slot loop and the floating dragged-item render, with `RenderSystem.disableDepthTest()`
      * active for that whole span, so a plain call here can't reliably win against a slot's own
-     * icon/decorations. The real call moves to [render] instead, pinned to the *base* layer's own
-     * Z-band ([layerBaseZ]`(0) + `[LABEL_LAYER_OFFSET]) - high enough to clear the base layer's
-     * own content (slots and their decorations included) so nothing there paints over the label -
-     * and drawn *before* this screen's own modal/dropdown layers ([renderNodes]) get their own
-     * turn, not after, so an open modal covers/dims the label the same ordinary way it covers a
-     * slot icon, through draw order, rather than the label needing to out-rank whatever Z the
-     * modal's own content happens to render at.
+     * icon/decorations. The real work moves to [render] instead, as [renderTitleLabel] and
+     * [renderInventoryLabel] - split in two because the two labels no longer share a depth: the
+     * title is the screen's, but the inventory label belongs to whichever layer is placing the
+     * player row (see [PlayerSlots]) and has to be drawn after that layer, not before it.
+     *
+     * Each is pinned to its own layer's Z-band ([layerBaseZ]` + `[LABEL_LAYER_OFFSET]) - high
+     * enough to clear that layer's own content, slots and their decorations included - and drawn
+     * *before* any layer above it ([renderNodes]) gets its turn, so a modal covers/dims a label
+     * beneath it the same ordinary way it covers a slot icon, through draw order, rather than the
+     * label needing to out-rank whatever Z the modal's own content happens to render at.
      */
     override fun renderLabels(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
+    }
+
+    /**
+     * Draws the screen's own title. Vanilla's own [renderLabels] body, split in two so the two
+     * labels can be drawn at different depths - override to restyle or suppress it.
+     */
+    protected open fun renderTitleLabel(guiGraphics: GuiGraphics) {
+        guiGraphics.drawString(font, title, titleLabelX, titleLabelY, LABEL_COLOR, false)
+    }
+
+    /** The `"Inventory"` label. See [renderTitleLabel]; positioned by [PlayerSlots], not by this screen. */
+    protected open fun renderInventoryLabel(guiGraphics: GuiGraphics) {
+        guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, LABEL_COLOR, false)
+    }
+
+    /** [renderInventoryLabel] in the Z band of the layer at [layerDepth] - see [render]'s use of it. */
+    private fun renderInventoryLabelAt(guiGraphics: GuiGraphics, layerDepth: Int) {
+        guiGraphics.pose {
+            translate(leftPos.toFloat(), topPos.toFloat(), layerBaseZ(layerDepth) + LABEL_LAYER_OFFSET)
+            renderInventoryLabel(guiGraphics)
+        }
     }
 
     /**
@@ -431,6 +510,13 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
     override fun slotRenderLayerOffset(slot: Slot): Float? = slotRenderLayerZ(slot)
 
     /**
+     * Only once something is actually drawn over the slot loop. With no layer open there is nothing
+     * for the highlight or the carried stack to end up behind, so vanilla's own inline draw is left
+     * exactly as it is - this costs a plain screen nothing and can regress nothing.
+     */
+    override fun defersScreenOverlays(): Boolean = layerManager.layers.size > 1
+
+    /**
      * Z layer used when rendering a specific vanilla [slot].
      *
      * Slots render above the compose content of the layer that owns them, while
@@ -455,8 +541,13 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
      * Returns `null` when the slot does not intersect the (possibly narrower) clip area.
      */
     protected open fun slotClipRect(slot: Slot): IntRect? {
-        val containerClip = IntRect(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight)
         val slotIndex = menu.slots.indexOf(slot).takeIf { it >= 0 }
+        // The container's own bounds clip the base layer's slots. A slot a *layer* placed is not
+        // inside that panel at all - it is wherever the layer put it, which is routinely outside -
+        // so it gets the whole screen instead, and is still clipped by its own group below.
+        val containerClip = if (slotIndex == null || menu.slotLayerDepth(slotIndex) == 0)
+            IntRect(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight)
+        else IntRect(0, 0, width, height)
         val groupClip = slotIndex?.let { menu.slotClipBounds(it) }
         val effectiveClip = groupClip?.let { containerClip.intersect(it) } ?: containerClip
 
@@ -566,13 +657,7 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
      */
     private fun reconcileHoverState(mouseX: Double, mouseY: Double) {
         val topNode = getTopNode() ?: return
-        if (mouseX == lastMouseX && mouseY == lastMouseY) return
-        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.ENTER) {
-            it.isBounded(mouseX.toInt(), mouseY.toInt()) && !it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
-        }
-        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.EXIT) {
-            !it.isBounded(mouseX.toInt(), mouseY.toInt()) && it.isBounded(lastMouseX.toInt(), lastMouseY.toInt())
-        }
+        reconcilePointerHover(topNode, mouseX, mouseY)
         lastMouseX = mouseX
         lastMouseY = mouseY
     }

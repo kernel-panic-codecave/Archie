@@ -26,11 +26,11 @@ private const val FLUID_TANK_INSET = 1
  * frame sprite with the real fluid texture and tint (via [AFluidRenderPlatform]) filling it
  * bottom-up to `fluid.amount / capacity`.
  *
- * The fluid sprite is stretched to the tank's interior and clipped with a scissor rather than
- * tiled per-block, so it won't repeat at a pixel-perfect 16px grid - a reasonable tradeoff for a
- * UI meter over the complexity of manual tiled-quad rendering. See [AFluidRenderPlatform] for
- * why this needs a platform bridge at all: Fabric and NeoForge expose a fluid's client
- * appearance through unrelated APIs.
+ * The fluid sprite is **tiled** at its own size, anchored to the bottom of the tank, and clipped
+ * with a scissor at the waterline. Stretching one 16px texture over a tank several times taller
+ * smears it into vertical streaks that read as a gradient rather than as a fluid. See
+ * [AFluidRenderPlatform] for why this needs a platform bridge at all: Fabric and NeoForge expose a
+ * fluid's client appearance through unrelated APIs.
  *
  * @param fluid    The fluid and amount to display; an empty stack renders just the tank frame.
  * @param capacity The tank's total capacity; a non-positive value renders as empty rather than
@@ -82,8 +82,29 @@ fun FluidTank(
 				val g = ((tint ushr 8) and 0xFF) / 255f
 				val b = (tint and 0xFF) / 255f
 
-				scissor(innerX, fillY, innerX + innerW, fillY + fillH) {
-					blit(innerX, innerY, innerW, innerH, 0, sprite, r, g, b, a)
+				// Tiled at the sprite's own size rather than stretched over the interior: a tank is
+				// usually much taller than the 16px texture, and stretching smears it into vertical
+				// streaks that read as a gradient rather than as a fluid.
+				val tileWidth = sprite.contents().width()
+				val tileHeight = sprite.contents().height()
+				if (tileWidth <= 0 || tileHeight <= 0) return@guiGraphics
+
+				val bottom = innerY + innerH
+				scissor(innerX, fillY, innerX + innerW, bottom) {
+					// Anchored to the bottom so the tiling stays put as the level moves - anchoring
+					// to the surface instead would slide the whole pattern on every change. The
+					// scissor trims the partial tiles at the waterline and the right edge, so the
+					// loops can overrun both.
+					// Vanilla's blit order is (x, y, blitOffset, width, height, sprite, ...).
+					var tileY = bottom - tileHeight
+					while (tileY + tileHeight > fillY) {
+						var tileX = innerX
+						while (tileX < innerX + innerW) {
+							blit(tileX, tileY, 0, tileWidth, tileHeight, sprite, r, g, b, a)
+							tileX += tileWidth
+						}
+						tileY -= tileHeight
+					}
 				}
 			}
 		},

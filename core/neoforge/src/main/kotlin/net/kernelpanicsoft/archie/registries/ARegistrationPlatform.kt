@@ -30,7 +30,7 @@ import net.neoforged.neoforge.registries.RegisterEvent
  * (which does the actual population) - it runs after every other listener for this firing, on
  * any priority, has already run.
  */
-actual fun scheduleEarlyClientRegistration(mod: Mod, registryKey: ResourceKey<out Registry<*>>, block: () -> Unit)
+actual fun waitForRegistry(mod: Mod, registryKey: ResourceKey<out Registry<*>>, block: () -> Unit)
 {
 	EventBusesHooks.whenAvailable(mod.modId) { bus ->
 		bus.addListener(EventPriority.LOWEST, RegisterEvent::class.java) { event ->

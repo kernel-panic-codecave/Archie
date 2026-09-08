@@ -13,6 +13,7 @@ import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.layout.Renderer
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.clipToBounds
 import net.kernelpanicsoft.archie.gui.modifiers.input.onDrag
 import net.kernelpanicsoft.archie.gui.modifiers.input.onScroll
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
@@ -210,6 +211,8 @@ fun PannableCanvas(
 				}
 			},
 			modifier = canvasModifier
+				// Panned-off content is scissored away; clip its input to match - see ClipToBoundsModifier.
+				.clipToBounds()
 				.onGloballyPositioned { state.originX = it.x; state.originY = it.y }
 				.onDrag<UINode> { _, event -> state.panX += event.dragX.toInt(); state.panY += event.dragY.toInt() }
 				.onScroll<UINode> { _, event ->

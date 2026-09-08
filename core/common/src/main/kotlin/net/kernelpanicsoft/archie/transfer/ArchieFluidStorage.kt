@@ -45,7 +45,7 @@ open class ArchieFluidStorage private constructor(
 		NonNullList.createWithCapacity<ArchieFluidSlot>(size).apply {
 			for (i in 0 until size)
 			{
-				add(ArchieFluidSlot(limit, filter))
+				add(ArchieFluidSlot(limit, filter, onUpdate))
 			}
 		}, filter, onUpdate
 	)

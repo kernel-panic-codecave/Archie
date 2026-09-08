@@ -41,7 +41,7 @@ open class ArchieItemStorage private constructor(
 		NonNullList.createWithCapacity<ArchieItemSlot>(size).apply {
 			for (i in 0 until size)
 			{
-				add(ArchieItemSlot(filter))
+				add(ArchieItemSlot(filter, onUpdate))
 			}
 		}, filter, onUpdate
 	)

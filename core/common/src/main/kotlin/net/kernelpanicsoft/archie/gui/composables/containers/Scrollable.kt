@@ -8,6 +8,7 @@ import net.kernelpanicsoft.archie.gui.focus.LocalBringIntoViewParent
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.clipToBounds
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
 import net.kernelpanicsoft.archie.gui.modifiers.onSizeChanged
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
@@ -226,6 +227,9 @@ fun Scrollable(
                 }
             },
             modifier = modifier
+            // The scissor above hides overflowing children; this stops them being clicked and
+            // hovered where they overflow to - see ClipToBoundsModifier.
+            .clipToBounds()
             .onGloballyPositioned { coords ->
                 clipSource.updateOrigin(coords)
             }

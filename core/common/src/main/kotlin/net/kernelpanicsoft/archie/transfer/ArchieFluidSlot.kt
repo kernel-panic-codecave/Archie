@@ -51,6 +51,7 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 		{
 			resource = FluidResource.of(value.fluid)
 			amount = value.amount
+			update()
 		}
 
 	private var resourceStack: ResourceStack<FluidResource>
@@ -62,6 +63,7 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 		{
 			resource = value.resource
 			amount = value.amount
+			update()
 		}
 
 	constructor(limit: Long, stack: FluidStack = FluidStack.empty(), filter: Predicate<FluidResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(limit, filter, onUpdate)
@@ -82,26 +84,26 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 		stack = value
 	}
 
-
-
 	override fun insert(unit: FluidResource, amount: Long, simulate: Boolean): Long
 	{
 		if (!isResourceValid(unit)) return 0
 		if (this.resource.isBlank())
 		{
 			val inserted = min(amount, limit)
-			if (!simulate)
+			if (!simulate && inserted > 0)
 			{
 				this.resource = unit
 				this.amount = inserted
+				update()
 			}
 			return inserted
 		} else if (holds(unit))
 		{
 			val inserted = min(amount, limit - this.amount)
-			if (!simulate)
+			if (!simulate && inserted > 0)
 			{
 				this.amount += inserted
+				update()
 			}
 			return inserted
 		}
@@ -113,13 +115,14 @@ class ArchieFluidSlot(private val limit: Long, private val filter: Predicate<Flu
 		if (holds(unit))
 		{
 			val extracted = min(amount, this.amount)
-			if (!simulate)
+			if (!simulate && extracted > 0)
 			{
 				this.amount -= extracted
 				if (this.amount == 0L)
 				{
 					this.resource = FluidResource.BLANK
 				}
+				update()
 			}
 			return extracted
 		}

@@ -5,7 +5,6 @@ import net.kernelpanicsoft.archie.gui.LocalContainerScreen
 import net.kernelpanicsoft.archie.gui.PlayerSlots
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.layout.Column
-import net.kernelpanicsoft.archie.gui.layout.offset
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.onGloballyPositioned
 import net.kernelpanicsoft.archie.gui.modifiers.position.offset
@@ -14,6 +13,17 @@ import net.kernelpanicsoft.archie.gui.modifiers.width
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 
 private const val DEFAULT_CONTENT_WIDTH = 9 * 18
+
+/**
+ * The gap between a container's own contents and the player inventory below them, in pixels -
+ * measured off the vanilla GUI textures, so a screen built out of these composables lines up with
+ * one drawn the old way.
+ *
+ * Public because [ContainerPanel] is not the only thing that needs it: a layer that has claimed the
+ * player row ([net.kernelpanicsoft.archie.gui.PlayerSlots]) assembles this same layout by hand, and
+ * has nowhere else to read the spacing from.
+ */
+const val PLAYER_INVENTORY_GAP: Int = 14
 
 /**
  * A complete container screen layout following the vanilla chest-screen pattern.
@@ -59,14 +69,10 @@ fun ContainerPanel(
             ) {
                 content()
             }
-            // Player inventory section
-            Box(
-                modifier = Modifier
-                    .padding(top = 14)
-                    .onGloballyPositioned { coords ->
-                        screen.inventoryLabelPos = coords + offset(x = 1, y = 3)
-                    }
-            ) {
+            // Player inventory section. Its label position is reported by [PlayerSlots] itself,
+            // not from here: the row may be claimed by a layer drawn above this screen, and the
+            // label has to follow it there.
+            Box(modifier = Modifier.padding(top = PLAYER_INVENTORY_GAP)) {
                 // Player inventory slots (3×9 main inventory + 1×9 hotbar)
                 PlayerSlots()
             }

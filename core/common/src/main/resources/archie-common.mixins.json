@@ -6,12 +6,12 @@
   "remap": false,
   "client": [
     "client.gui.AbstractContainerScreenDepthMixin",
+    "client.gui.AbstractContainerScreenFloatingItemMixin",
     "client.gui.AbstractContainerScreenMixin",
     "client.gui.GuiGraphicsMixin"
   ],
-  "mixins": [
-  ],
+  "mixins": [],
   "injectors": {
-	"defaultRequire": 1
+    "defaultRequire": 1
   }
 }

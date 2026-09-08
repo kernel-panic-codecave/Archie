@@ -43,6 +43,7 @@ class ArchieItemSlot(private val filter: Predicate<ItemResource> = Predicate { t
 		{
 			resource = ItemResource.of(value)
 			amount = value.count.toLong()
+			update()
 		}
 
 	private var resourceStack: ResourceStack<ItemResource>
@@ -54,6 +55,7 @@ class ArchieItemSlot(private val filter: Predicate<ItemResource> = Predicate { t
 		{
 			resource = value.resource
 			amount = value.amount
+			update()
 		}
 
 	constructor(stack: ItemStack = ItemStack.EMPTY, filter: Predicate<ItemResource> = Predicate { true }, onUpdate: () -> Unit = {}) : this(filter, onUpdate)
@@ -87,8 +89,6 @@ class ArchieItemSlot(private val filter: Predicate<ItemResource> = Predicate { t
 	/** The maximum stack size for the resource currently held (or [Item.ABSOLUTE_MAX_STACK_SIZE] if empty). */
 	fun getMaxStackSize(): Int = getLimit(resource).toInt()
 
-
-
 	override fun insert(unit: ItemResource, amount: Long, simulate: Boolean): Long
 	{
 		if (!isResourceValid(unit)) return 0
@@ -96,19 +96,21 @@ class ArchieItemSlot(private val filter: Predicate<ItemResource> = Predicate { t
 		{
 			val inserted =
 				min(amount.toDouble(), unit.cachedStack.maxStackSize.toDouble()).toLong()
-			if (!simulate)
+			if (!simulate && inserted > 0)
 			{
 				this.resource = unit
 				this.amount = inserted
+				update()
 			}
 			return inserted
 		} else if (this.resource.test(unit.toStack()))
 		{
 			val inserted =
 				min(amount.toDouble(), (getLimit(resource) - this.amount).toDouble()).toLong()
-			if (!simulate)
+			if (!simulate && inserted > 0)
 			{
 				this.amount += inserted
+				update()
 			}
 			return inserted
 		}
@@ -120,13 +122,14 @@ class ArchieItemSlot(private val filter: Predicate<ItemResource> = Predicate { t
 		if (this.resource.test(unit.toStack()))
 		{
 			val extracted = min(amount.toDouble(), this.amount.toDouble()).toLong()
-			if (!simulate)
+			if (!simulate && extracted > 0)
 			{
 				this.amount -= extracted
 				if (this.amount == 0L)
 				{
 					this.resource = ItemResource.BLANK
 				}
+				update()
 			}
 			return extracted
 		}

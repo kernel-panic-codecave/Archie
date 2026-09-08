@@ -63,10 +63,17 @@ abstract class ComposeBlockContainerMenu<T : BlockEntity, SELF : ComposeBlockCon
 
     override fun onMenuClosed(player: Player)
     {
-        BlockEntityStateManager.unregisterBlockEntity(tile)
         if (!level.isClientSide)
         {
             BlockEntityStateManager.removeTrackedPlayer(tile, player as ServerPlayer)
+            // Only once the last viewer has gone. Discarding the container while someone else still
+            // has the same block open would strand them on whatever they last received.
+            if (!BlockEntityStateManager.hasTrackedPlayers(tile)) BlockEntityStateManager.unregisterBlockEntity(tile)
+        }
+        else
+        {
+            // The client tracks nobody; its container is per-screen and goes with the screen.
+            BlockEntityStateManager.unregisterBlockEntity(tile)
         }
     }
 

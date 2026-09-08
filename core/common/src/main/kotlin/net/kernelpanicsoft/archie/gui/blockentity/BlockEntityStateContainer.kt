@@ -22,7 +22,6 @@ import kotlin.reflect.jvm.isAccessible
  *
  * @param blockEntity The block entity to monitor for changes.
  */
-@OptIn(InternalSerializationApi::class)
 class BlockEntityStateContainer(
     val blockEntity: BlockEntity,
 ) {
@@ -38,9 +37,17 @@ class BlockEntityStateContainer(
     @Suppress("UNCHECKED_CAST")
     private fun <T> anySerializer(serializer: KSerializer<T>): KSerializer<out Any> = serializer as KSerializer<out Any>
 
+    /**
+     * The serializer registered for [propertyName], or `null` when it has none.
+     *
+     * Not every `@Sync` property has one: the `init` scan resolves what it can through
+     * `serializerOrNull`, and a property whose type it cannot describe - a nested holder map, say -
+     * simply gets no entry. Such a property can be tracked and read locally but never sent, so this
+     * is nullable rather than a cast that would blow up the sync tick for every block entity at once.
+     */
     @Suppress("UNCHECKED_CAST")
-    private fun packetSerializer(propertyName: String): KSerializer<Any> =
-        propertySerializers[propertyName] as KSerializer<Any>
+    private fun packetSerializer(propertyName: String): KSerializer<Any>? =
+        propertySerializers[propertyName] as? KSerializer<Any>
 
     init {
         blockEntity::class.memberProperties.forEach { property ->
@@ -70,10 +77,17 @@ class BlockEntityStateContainer(
      * @param value The new value.
      * @return True if the value changed, false if it's the same as before.
      */
-    fun <T> updateProperty(propertyName: String, value: T): Boolean {
+    fun <T> updateProperty(propertyName: String, value: T?): Boolean {
 
         val oldValue = propertyValues[propertyName]
-        val changed = oldValue != value
+        // Identity counts as a change. A storage-backed property hands back the *same* mutable
+        // object every time it is touched - `fluidField` passes its own live storage - so comparing
+        // it against what is already recorded compares an object with itself and can never report a
+        // change, leaving the property permanently clean and its viewers permanently stale.
+        // Equality cannot distinguish "mutated in place" from "re-set to an equal value", and
+        // callers only reach here on an actual update, so a redundant packet is the right trade
+        // against a silent freeze.
+        val changed = if (oldValue === value) oldValue != null else oldValue != value
         if (changed) {
             propertyValues[propertyName] = value
             dirtyProperties.add(propertyName)
@@ -121,9 +135,12 @@ class BlockEntityStateContainer(
     fun generatePacket(serverTick: Long): BlockEntityStatePacket? {
         if (dirtyProperties.isEmpty()) return null
 
-        val updates = dirtyProperties.associateWith { propertyName ->
-            propertyValues[propertyName].toSerializedValue(packetSerializer(propertyName))
-        }
+        // A property with no serializer is skipped rather than fatal - see packetSerializer.
+        val updates = dirtyProperties.mapNotNull { propertyName ->
+            val serializer = packetSerializer(propertyName) ?: return@mapNotNull null
+            propertyName to propertyValues[propertyName].toSerializedValue(serializer)
+        }.toMap()
+        if (updates.isEmpty()) return null
 
         return BlockEntityStatePacket(
             pos = pos,
@@ -142,6 +159,40 @@ class BlockEntityStateContainer(
     fun clearDirty(serverTick: Long) {
         dirtyProperties.clear()
         lastSyncTick = serverTick
+    }
+
+    /**
+     * Re-reads every `@Sync` property straight off the block entity into [propertyValues].
+     *
+     * A container only ever learned a value when something *changed* it, so anything that was
+     * already true before the container existed - a tank filled last session, a machine loaded from
+     * disk - was invisible to it. That is fine while the only consumer is a delta stream, and wrong
+     * the moment someone opens a screen expecting to see current state.
+     *
+     * Reads through the property getter rather than any backing map, so a delegated property (an
+     * `itemField`/`fluidField` storage) reports the live object exactly as the block entity's own
+     * code would. A getter that throws is skipped rather than propagated: seeding is best-effort,
+     * and one awkward property must not stop a screen opening.
+     */
+    fun captureCurrentValues() {
+        blockEntity::class.memberProperties.forEach { property ->
+            if (!property.hasAnnotation<Sync>()) return@forEach
+            property.isAccessible = true
+            runCatching { property.getter.call(blockEntity) }
+                .onSuccess { value -> propertyValues[property.name.toSnakeCase()] = value }
+        }
+    }
+
+    /**
+     * Marks every known property dirty, so the next packet carries a full snapshot rather than a delta.
+     *
+     * For a viewer who has just started tracking: they have missed every change so far, and a delta
+     * stream tells them nothing until the next one happens.
+     */
+    fun markAllDirty() {
+        // Only what can actually be sent: marking a property with no serializer would leave it dirty
+        // forever, re-examined on every sync tick and never cleared by a successful send.
+        dirtyProperties.addAll(propertyValues.keys.filter { propertySerializers.containsKey(it) })
     }
 
     /**

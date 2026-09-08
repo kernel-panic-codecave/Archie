@@ -6,6 +6,7 @@ import earth.terrarium.common_storage_lib.storage.base.CommonStorage
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.transfer.ArchieItemMenuSlot
+import net.kernelpanicsoft.archie.transfer.CommonStorageMenuSlot
 import net.kernelpanicsoft.archie.transfer.ArchieItemStorage
 import net.kernelpanicsoft.archie.transfer.VanillaMenuSlot
 import net.minecraft.world.Container
@@ -371,6 +372,9 @@ abstract class ComposeContainerMenuBase<SELF : ComposeContainerMenuBase<SELF>>(
 	    {
 		    is ArchieItemStorage -> slot(storage, filter, slot, x, y)
 		    is AbstractVanillaContainer -> slot(storage, filter, slot, x, y)
+		    // Anything else through the plain StorageSlot contract - see CommonStorageMenuSlot for
+		    // why a storage that is neither of the above still has to be able to appear in a menu.
+		    else -> addSlot(CommonStorageMenuSlot(storage, filter, slot, x, y, this))
 	    }
     }
 

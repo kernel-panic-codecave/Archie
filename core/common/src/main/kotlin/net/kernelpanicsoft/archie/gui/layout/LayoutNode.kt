@@ -119,6 +119,9 @@ class LayoutNode(
     /** The effective z-index for this node, used for draw and input ordering. */
     val zIndex: Float get() = get<ZIndexModifier>()?.zIndex ?: 0f
 
+    /** Whether this node clips its subtree's hit-testing to its own bounds - see [ClipToBoundsModifier]. */
+    val clipsToBounds: Boolean get() = get<ClipToBoundsModifier>() != null
+
     /** This node's absolute z-depth, combining its [layer]'s base z with all ancestor [zIndex]es. */
 //    val effectiveZ: Float get() = effectiveZ(ComposeContainerScreen.layerBaseZ(layer))
 
@@ -167,6 +170,30 @@ class LayoutNode(
 
     /** The topmost ancestor [LayoutNode] (the root of this subtree). */
     val rootNode: LayoutNode get() = parent?.rootNode ?: this
+
+    /**
+     * Whether this node is still attached to the tree rooted at [root].
+     *
+     * Compose's applier clears [parent] when it removes a node (see
+     * [net.kernelpanicsoft.archie.gui.nodes.LayoutNodeApplier.remove]), so a detached node's
+     * [rootNode] walk terminates at itself instead of reaching the real root. Anything holding a
+     * node across recompositions has to check this before trusting its geometry: a detached node
+     * is never measured or placed again, so its width/height/position are frozen at whatever they
+     * were when it was dropped.
+     */
+    fun isAttachedTo(root: LayoutNode): Boolean = rootNode === root
+
+    /**
+     * Whether the pointer was inside this node's bounds as of the last hover reconciliation.
+     *
+     * Hover is per-node *state*, not a single event some node gets to claim: several nodes can
+     * legitimately change hover status in one reconciliation (a node and the ancestor containing
+     * it, or two cells the cursor swept across), and a node that misses its EXIT stays visibly
+     * hovered forever. Tracked here so reconciliation compares against what each node last
+     * reported rather than against the previous cursor position - the latter cannot see content
+     * that moved *under* a stationary cursor, which is every scroll, filter and layout change.
+     */
+    internal var isPointerInside: Boolean = false
 
     /**
      * Whether the debug overlay is active. Setting this on a child propagates to the root.
@@ -384,12 +411,29 @@ class LayoutNode(
 
     // ── Hit testing ───────────────────────────────────────────────────────
 
-    /**
-     * Returns `true` if ([mouseX], [mouseY]) falls within this node's absolute screen bounds.
-     */
-    fun isBounded(mouseX: Int, mouseY: Int): Boolean {
+    /** `true` when ([mouseX], [mouseY]) falls within this node's own absolute screen bounds, ignoring any clip. */
+    private fun containsPoint(mouseX: Int, mouseY: Int): Boolean {
         val (ax, ay) = absoluteCoords
         return mouseX in ax until (ax + width) && mouseY in ay until (ay + height)
+    }
+
+    /**
+     * Returns `true` if ([mouseX], [mouseY]) falls within this node's absolute screen bounds *and*
+     * within those of every clipping ancestor - see [ClipToBoundsModifier].
+     *
+     * The ancestor walk is what keeps hit-testing honest inside a scroller: a scissor hides a
+     * scrolled-off child's pixels but leaves it at real coordinates, typically over whatever sits
+     * below the viewport, so testing self bounds alone would let an invisible node take a click
+     * (and a press consumes the event, so the visible target never sees it).
+     */
+    fun isBounded(mouseX: Int, mouseY: Int): Boolean {
+        if (!containsPoint(mouseX, mouseY)) return false
+        var ancestor = parent
+        while (ancestor != null) {
+            if (ancestor.clipsToBounds && !ancestor.containsPoint(mouseX, mouseY)) return false
+            ancestor = ancestor.parent
+        }
+        return true
     }
 
     override fun toString() = children.toList().run { if (isNotEmpty()) joinToString(prefix = "$nodeName {\n", separator = "\n", postfix = "\n}") { "\t$it" } else "$nodeName()" }

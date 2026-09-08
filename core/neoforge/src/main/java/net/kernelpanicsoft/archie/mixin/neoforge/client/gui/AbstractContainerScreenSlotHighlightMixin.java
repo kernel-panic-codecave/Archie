@@ -1,5 +1,7 @@
 package net.kernelpanicsoft.archie.mixin.neoforge.client.gui;
 
+import net.kernelpanicsoft.archie.gui.access.DeferredSlotHighlights;
+import net.kernelpanicsoft.archie.gui.access.ScreenOverlayDeferral;
 import net.kernelpanicsoft.archie.gui.access.SlotHighlightClipProvider;
 import net.kernelpanicsoft.archie.gui.layout.IntRect;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -26,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * here, not the highlight position.
  */
 @Mixin(AbstractContainerScreen.class)
-public abstract class AbstractContainerScreenSlotHighlightMixin<T extends AbstractContainerMenu> extends Screen implements MenuAccess<T>
+public abstract class AbstractContainerScreenSlotHighlightMixin<T extends AbstractContainerMenu> extends Screen implements MenuAccess<T>, DeferredSlotHighlights
 {
     protected AbstractContainerScreenSlotHighlightMixin(Component title)
     {
@@ -38,6 +41,44 @@ public abstract class AbstractContainerScreenSlotHighlightMixin<T extends Abstra
 
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderSlotHighlight(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/inventory/Slot;IIF)V"))
     private void archie$clipSlotHighlight(AbstractContainerScreen<T> self, GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick)
+    {
+        if (this instanceof ScreenOverlayDeferral deferral && deferral.defersScreenOverlays())
+        {
+            // Held back rather than drawn here - see ScreenOverlayDeferral. Only the args are kept;
+            // the clip is recomputed at replay time, when the layout it depends on has settled.
+            this.archie$deferredHighlight = slot;
+            this.archie$deferredMouseX = mouseX;
+            this.archie$deferredMouseY = mouseY;
+            this.archie$deferredPartialTick = partialTick;
+            return;
+        }
+        this.archie$drawSlotHighlight(guiGraphics, slot, mouseX, mouseY, partialTick);
+    }
+
+    /** The one hovered slot's highlight, held back this frame - at most one, since only one slot is hovered. */
+    @Unique
+    private Slot archie$deferredHighlight;
+    @Unique
+    private int archie$deferredMouseX;
+    @Unique
+    private int archie$deferredMouseY;
+    @Unique
+    private float archie$deferredPartialTick;
+
+    @Override
+    public void archieDrawDeferredSlotHighlights(GuiGraphics guiGraphics)
+    {
+        Slot slot = this.archie$deferredHighlight;
+        if (slot == null)
+        {
+            return;
+        }
+        this.archie$deferredHighlight = null;
+        this.archie$drawSlotHighlight(guiGraphics, slot, this.archie$deferredMouseX, this.archie$deferredMouseY, this.archie$deferredPartialTick);
+    }
+
+    @Unique
+    private void archie$drawSlotHighlight(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick)
     {
         IntRect clip = null;
         if (this instanceof SlotHighlightClipProvider provider)

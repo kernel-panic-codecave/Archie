@@ -9,6 +9,7 @@ import net.kernelpanicsoft.archie.gui.composables.basic.Spacer
 import net.kernelpanicsoft.archie.gui.composables.basic.Text
 import net.kernelpanicsoft.archie.gui.layout.*
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
+import net.kernelpanicsoft.archie.gui.modifiers.clipToBounds
 import net.kernelpanicsoft.archie.gui.modifiers.appearance.BackgroundModifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxHeight
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
@@ -120,6 +121,9 @@ fun Collapsible(
                         disableScissor()
                     }
                 },
+                // Content past the animated visibleHeight is scissored away; clip its input to
+                // match, so a collapsing section stops taking clicks before it finishes closing.
+                modifier = Modifier.clipToBounds(),
             ) {
                 // A plain Row can't be used here: this whole subtree is measured with an
                 // unbounded maxHeight (see the measurePolicy above, which needs the content's

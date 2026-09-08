@@ -76,7 +76,19 @@ object BlockEntityStateManager {
     fun addTrackedPlayer(blockEntity: BlockEntity, player: ServerPlayer) {
         val key = getKey(blockEntity)
         trackedPlayers.computeIfAbsent(key) { mutableSetOf() }.add(player)
+
+        // A player who has just started tracking has missed every change so far, and the sync is a
+        // delta stream - without this they would see nothing at all until the block entity next
+        // changed, which for anything sitting idle is never. Seeding from the live block entity
+        // covers state that predates the container entirely.
+        val container = registerBlockEntity(blockEntity)
+        container.captureCurrentValues()
+        container.markAllDirty()
     }
+
+    /** Whether anyone is still tracking [blockEntity] - see [unregisterBlockEntity]'s own caveat. */
+    fun hasTrackedPlayers(blockEntity: BlockEntity): Boolean =
+        trackedPlayers[getKey(blockEntity)]?.isNotEmpty() == true
 
     /**
      * Removes a player from the tracking list for a block entity.

@@ -20,6 +20,28 @@
       "default": {
         "texture": "archie:java/surface_inset_transparent"
       }
+    },
+    "slot": {
+      "default": {
+        "texture": "archie:java/slot",
+        "texture_size": {
+          "width": 18,
+          "height": 18
+        },
+        "width": 18,
+        "height": 18
+      }
+    },
+    "slot_inverted": {
+      "default": {
+        "texture": "archie:java/slot_inverted",
+        "texture_size": {
+          "width": 18,
+          "height": 18
+        },
+        "width": 18,
+        "height": 18
+      }
     }
   }
 }

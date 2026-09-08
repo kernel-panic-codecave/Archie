@@ -42,6 +42,36 @@ internal fun <T : InputEvent> Screen.processInputEvent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Brings every node in [node]'s subtree up to date with whether the pointer is inside it,
+ * firing ENTER/EXIT on exactly those whose status changed since the last call.
+ *
+ * Each transitioning node gets its **own** event rather than sharing one consumable event down
+ * the tree. A shared event meant the first node to handle it consumed it and every other node
+ * that also needed to transition was skipped - so a node could take an ENTER and never the
+ * matching EXIT, leaving it hovered indefinitely. For the same reason consumption is not checked
+ * between handlers on a single node: two `hoverable` modifiers layered on one node both need to
+ * hear about it.
+ *
+ * Driven by current boundedness rather than by cursor movement, so content that moves under a
+ * stationary cursor (a scroll, a filter, results arriving) reconciles correctly too.
+ */
+internal fun reconcilePointerHover(node: LayoutNode, mouseX: Double, mouseY: Double) {
+    val inside = node.isBounded(mouseX.toInt(), mouseY.toInt())
+    if (inside != node.isPointerInside) {
+        node.isPointerInside = inside
+        val eventType = if (inside) PointerEventType.ENTER else PointerEventType.EXIT
+        val event = BasicPointerEvent(eventType, mouseX, mouseY)
+        node.modifier.foldIn(Unit) { _, el ->
+            if (el is OnPointerEventModifier<*> && el.eventType == eventType)
+                @Suppress("UNCHECKED_CAST")
+                (el.onEvent as (UINode, PointerEvent) -> Unit)(node, event)
+        }
+    }
+    // Snapshot: recomposition can restructure children from the recomposer's own thread.
+    for (child in node.children.toList()) reconcilePointerHover(child, mouseX, mouseY)
+}
+
+/**
  * Dispatches a [PointerEvent] of [eventType] through the [node] tree.
  *
  * Only nodes that pass [condition] (default: bounded by the mouse position) receive

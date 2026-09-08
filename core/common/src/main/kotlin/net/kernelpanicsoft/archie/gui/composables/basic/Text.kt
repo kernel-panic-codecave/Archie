@@ -97,3 +97,20 @@ fun Text(
         modifier = modifier,
     )
 }
+
+@Composable
+fun Label(
+    text: Component,
+    fontScale: Float = 1f,
+    font: Font = minecraftClient.font,
+    color: KColor = LocalTheme.current.darkTextColor,
+    dropShadow: Boolean = false,
+    modifier: Modifier = Modifier,
+) = Text(
+    text = text,
+    fontScale = fontScale,
+    font = font,
+    color = color,
+    dropShadow = dropShadow,
+    modifier = modifier,
+)

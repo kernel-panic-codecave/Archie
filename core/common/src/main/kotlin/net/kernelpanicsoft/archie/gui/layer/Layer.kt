@@ -29,8 +29,28 @@ class Layer(
 ) {
     val rootNode = LayoutNode("Root").apply { layer = depth }
 
-    /** The `"RootContainer"` node under [rootNode], if one has been composed. */
-    val rootContainerNode by lazy { rootNode.findNode("RootContainer") }
+    private var cachedRootContainer: LayoutNode? = null
+
+    /**
+     * The `"RootContainer"` node under [rootNode], if one has been composed.
+     *
+     * Re-resolved whenever the cached node has been detached from this layer's tree. This used to
+     * be a `by lazy`, which resolved once and then held that node for the layer's whole life -
+     * but recomposition replaces the RootContainer node outright, and a detached node is never
+     * measured again, so its geometry freezes. [net.kernelpanicsoft.archie.gui.layer.LayerStackManager.screenPos]
+     * and `screenSize` fold over exactly this node, and a container screen overwrites its own
+     * `leftPos`/`topPos` from them every frame - so a stale node pinned the screen origin, and
+     * with it the clip rect every vanilla slot is rendered through, to pre-recomposition values.
+     * A window resize restarts the composition, which is why resizing stranded it permanently.
+     *
+     * The attachment check is O(depth) against the O(tree) [LayoutNode.findNode] walk, so the
+     * common case where nothing changed stays about as cheap as the cached read it replaces.
+     */
+    val rootContainerNode: LayoutNode?
+        get() {
+            cachedRootContainer?.let { if (it.isAttachedTo(rootNode)) return it }
+            return rootNode.findNode("RootContainer").also { cachedRootContainer = it }
+        }
 
     /** Finds a descendant of [rootNode] by name. See [LayoutNode.findNode]. */
     fun findNode(name: String): LayoutNode? = rootNode.findNode(name)

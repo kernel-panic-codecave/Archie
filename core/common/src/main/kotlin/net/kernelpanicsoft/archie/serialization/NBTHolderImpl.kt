@@ -564,33 +564,34 @@ class NBTHolderImpl : NBTHolder
 		energyListStorage.forEach { (key, list) -> list.loadFrom(data[key] as? NbtCompound) }
 	}
 
+	/**
+	 * Copies every live storage's current contents into [data].
+	 *
+	 * A storage-backed field is canonically its **storage object**, not [data] - [data] holds only a
+	 * serialized snapshot, and that snapshot goes stale the instant anything inserts or extracts.
+	 * Anything reading [data] for such a field has to flush first, which is why both [saveToTag] and
+	 * [getSyncTag] call this rather than one of them re-deriving it.
+	 */
+	private fun flushStoragesToData()
+	{
+		itemStorage.forEach { (key, value) -> data[key] = value.createSnapshot() }
+		fluidStorage.forEach { (key, value) -> data[key] = value.createSnapshot() }
+		energyStorage.forEach { (key, value) -> data[key] = value.createSnapshot() }
+		nestedMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
+		nestedListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
+		nestedHolderStorage.forEach { (key, holder) -> data[key] = holder.toNbtCompound() }
+		itemMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
+		itemListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
+		fluidMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
+		fluidListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
+		energyMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
+		energyListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
+	}
+
 	override fun saveToTag(compoundTag: CompoundTag)
 	{
 		mergeToCompoundTag(compoundTag) {
-			itemStorage.forEach { (key, value) ->
-				data[key] = value.createSnapshot()
-			}
-			fluidStorage.forEach { (key, value) ->
-				data[key] = value.createSnapshot()
-			}
-			energyStorage.forEach { (key, value) ->
-				data[key] = value.createSnapshot()
-			}
-			nestedMapStorage.forEach { (key, map) ->
-				data[key] = map.toNbtCompound()
-			}
-			nestedListStorage.forEach { (key, list) ->
-				data[key] = list.toNbtCompound()
-			}
-			nestedHolderStorage.forEach { (key, holder) ->
-				data[key] = holder.toNbtCompound()
-			}
-			itemMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
-			itemListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
-			fluidMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
-			fluidListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
-			energyMapStorage.forEach { (key, map) -> data[key] = map.toNbtCompound() }
-			energyListStorage.forEach { (key, list) -> data[key] = list.toNbtCompound() }
+			flushStoragesToData()
 			data.forEach { (key, value) ->
 				put(key, value)
 			}
@@ -599,6 +600,11 @@ class NBTHolderImpl : NBTHolder
 
 	override fun getSyncTag(): CompoundTag
 	{
+		// Without this flush the tag carries whatever [data] last held, which for a storage-backed
+		// field is only refreshed by a disk save - so a container filled at runtime syncs as empty
+		// and a screen reading it client-side draws nothing over a full tank. Invisible until
+		// something @Sync'd a storage rather than a plain field.
+		flushStoragesToData()
 		return buildCompoundTag {
 			data.filter { (key, _) -> key in sync }
 				.forEach { (key, value) ->
