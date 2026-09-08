@@ -30,6 +30,16 @@ object GameTestRunner
 	const val PROP_TIMEOUT_MINUTES = "archie.junit.gametest.timeoutMinutes"
 	/** System property overriding the auto-detected workspace root (the directory containing `settings.gradle.kts`). */
 	const val PROP_WORKSPACE_ROOT = "archie.junit.gametest.root"
+	/**
+	 * System property naming Stonecutter's active version, which is part of the launched task's own
+	 * project path for a product laid out that way - see [GameTestGradleInvocation].
+	 *
+	 * **Optional**, and its absence is meaningful: a product whose Gradle projects are flat
+	 * (`:boilerplate-fabric`) simply never sets it and keeps the paths it always had. Passed by the
+	 * `test` task rather than read from the source, the same way [PROP_WORKSPACE_ROOT] is - a fact
+	 * about the build, which this code cannot work out on its own.
+	 */
+	const val PROP_VERSION = "archie.junit.gametest.version"
 
 	/** The default `loader:side` matrix launched by [tests] when [PROP_MATRIX] isn't set. */
 	const val DEFAULT_MATRIX = "fabric:server,fabric:client,neoforge:server,neoforge:client"
@@ -39,8 +49,9 @@ object GameTestRunner
 	 * in the configured matrix, each running the loader's GameTest Gradle task once and then
 	 * reporting one [DynamicTest] per test method declared via [tests] (an
 	 * [AGametestEvents.ArchieGameTestBuilder] receiver, same DSL as [AGametestEvents.REGISTER_GAME_TEST]) whose
-	 * side matches that invocation. [projectPrefix] is which product's Gradle projects the launched
-	 * task targets (e.g. `"archie-gametest"`, `"archie-test"`) - see [GameTestGradleInvocation].
+	 * side matches that invocation. [projectPrefix] is what the launched task's project path is built
+	 * from - `"boilerplate"` for a flat `:boilerplate-fabric`, `"gametest"` for a nested
+	 * `:gametest:fabric:<version>` - see [GameTestGradleInvocation] for both layouts.
 	 */
 	fun tests(modID: String, projectPrefix: String, tests: AGametestEvents.ArchieGameTestBuilder.() -> Unit): Collection<DynamicContainer>
 	{
@@ -56,7 +67,9 @@ object GameTestRunner
 		}
 
 		val matrixValue = System.getProperty(PROP_MATRIX) ?: DEFAULT_MATRIX
-		val invocations = GameTestGradleInvocation.parseMatrix(matrixValue, projectPrefix)
+		// Absent for a product with flat Gradle projects, which is not an error - see PROP_VERSION.
+		val version = System.getProperty(PROP_VERSION)?.takeIf { it.isNotBlank() }
+		val invocations = GameTestGradleInvocation.parseMatrix(matrixValue, projectPrefix, version)
 		require(invocations.isNotEmpty()) {
 			"No GameTest invocations configured. Set -D$PROP_MATRIX with at least one loader:side pair."
 		}

@@ -4,6 +4,7 @@ import net.kernelpanicsoft.archie.Archie
 import net.kernelpanicsoft.archie.gui.item.PlayerInventoryItemAccess
 import net.kernelpanicsoft.archie.registries.ADeferredRegistryHolder
 import dev.architectury.registry.menu.MenuRegistry
+import net.kernelpanicsoft.archie.util.onClient
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
@@ -32,10 +33,15 @@ object GuiRegistry : ADeferredRegistryHolder<MenuType<*>>(Archie.MOD, Registries
 		}
 	}
 
-	override fun initClient()
+	override fun init()
 	{
-		MenuRegistry.registerScreenFactory(TestMenu, ::TestScreen)
-		MenuRegistry.registerScreenFactory(TestItemMenu, ::TestItemContainerScreen)
+		super.init()
+		listen {
+			onClient {
+				MenuRegistry.registerScreenFactory(TestMenu, ::TestScreen)
+				MenuRegistry.registerScreenFactory(TestItemMenu, ::TestItemContainerScreen)
+			}
+		}
 	}
 
 }

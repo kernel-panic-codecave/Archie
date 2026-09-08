@@ -64,6 +64,9 @@ tasks {
 		)
 		systemProperty("archie.junit.gametest.timeoutMinutes", "20")
 		systemProperty("archie.junit.gametest.root", rootProject.rootDir.absolutePath)
+		// Part of the launched task's project path - the version is a real project level, so
+		// `:gametest:fabric:runGametest` does not exist and `:gametest:fabric:1.21.1:...` does.
+		systemProperty("archie.junit.gametest.version", stonecutter.current.version)
 		testLogging {
 			exceptionFormat = TestExceptionFormat.FULL
 		}
