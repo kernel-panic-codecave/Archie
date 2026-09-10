@@ -22,8 +22,23 @@ import kotlin.math.min
 private val TEXT_FIELD_SPRITE     = ResourceLocation.withDefaultNamespace("widget/text_field")
 private val TEXT_FIELD_HIGHLIGHTED = ResourceLocation.withDefaultNamespace("widget/text_field_highlighted")
 private val SCROLLER_SPRITE       = ResourceLocation.withDefaultNamespace("widget/scroller")
-private const val BORDER_PADDING  = 4
+private const val BORDER_PADDING  = TextFieldDefaults.BORDER_PADDING
 private const val SCROLL_BAR_W    = 8
+
+/**
+ * The measurements a text field lays itself out by, for anything that has to line up beside one.
+ *
+ * Public because a caller cannot arrive at these on its own: the padding is not derivable from the
+ * font, and a control sitting next to a field - a spinner's step buttons, say - matching it by a
+ * hand-picked number is a number that stops matching the moment either changes.
+ */
+object TextFieldDefaults {
+    /** Space between a field's border and its text, on every side. */
+    const val BORDER_PADDING = 4
+
+    /** The height a single-line field lays itself out at in [font] - what [singleLine] measures to. */
+    fun singleLineHeight(font: Font): Int = font.lineHeight + BORDER_PADDING * 2
+}
 
 /**
  * A simple, controlled text field that uses a plain `String` as its state.

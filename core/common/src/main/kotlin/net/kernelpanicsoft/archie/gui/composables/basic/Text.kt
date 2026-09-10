@@ -11,7 +11,7 @@ import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.kernelpanicsoft.archie.gui.util.extension.pose
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
@@ -29,7 +29,7 @@ import net.minecraft.network.chat.Component
 fun getTextSize(
     text: Component,
     scale: Float = 1f,
-    font: Font = minecraftClient.font,
+    font: Font = requireMinecraftClient.font,
 ): Size = Size((font.width(text) * scale).toInt(), (font.lineHeight * scale).toInt())
 
 /**
@@ -59,7 +59,7 @@ fun getTextSize(
 fun Text(
     text: Component,
     fontScale: Float = 1f,
-    font: Font = minecraftClient.font,
+    font: Font = requireMinecraftClient.font,
     color: KColor = LocalTheme.current.lightTextColor,
     dropShadow: Boolean = true,
     modifier: Modifier = Modifier,
@@ -102,7 +102,7 @@ fun Text(
 fun Label(
     text: Component,
     fontScale: Float = 1f,
-    font: Font = minecraftClient.font,
+    font: Font = requireMinecraftClient.font,
     color: KColor = LocalTheme.current.darkTextColor,
     dropShadow: Boolean = false,
     modifier: Modifier = Modifier,

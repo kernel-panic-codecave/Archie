@@ -111,16 +111,22 @@ fun Modifier.hoverable(
  * [net.kernelpanicsoft.archie.gui.interaction.collectIsPressedAsState] rather than a callback -
  * [onPress] is kept only because, unlike hover, a press is inherently an action (the click
  * itself), not just state to observe.
+ *
+ * Fires for **any** [MouseButton], handing the one that pressed to [onPress]: a widget that only
+ * answers to the primary button filters there, and one with a right- or middle-click gesture of
+ * its own gets it without a second modifier competing for the same event.
+ *
+ * @param onPress Invoked with the receiving node and the [MouseButton] that pressed it.
  */
 fun Modifier.pressable(
     interactionSource: MutableInteractionSource,
     enabled: Boolean = true,
-    onPress: (UINode) -> Unit,
+    onPress: (UINode, Int) -> Unit,
 ): Modifier = this
     .onPointerEvent<UINode>(PointerEventType.PRESS) { node, e ->
         if (!enabled) return@onPointerEvent
         interactionSource.tryEmit(PressInteraction.Press)
-        onPress(node)
+        onPress(node, e.button)
         e.consume(true)
     }
     .onPointerEvent<UINode>(PointerEventType.GLOBAL_RELEASE) { _, _ ->
@@ -210,7 +216,7 @@ fun Modifier.toggleable(
             }
         }
         .hoverable(interactionSource, enabled = enabled)
-        .pressable(interactionSource, enabled = enabled, onPress = { onValueChange(!value) })
+        .pressable(interactionSource, enabled = enabled, onPress = { _, _ -> onValueChange(!value) })
 }
 
 /**
@@ -240,5 +246,5 @@ fun Modifier.selectable(
             }
         }
         .hoverable(interactionSource, enabled = enabled)
-        .pressable(interactionSource, enabled = enabled, onPress = { onClick() })
+        .pressable(interactionSource, enabled = enabled, onPress = { _, _ -> onClick() })
 }

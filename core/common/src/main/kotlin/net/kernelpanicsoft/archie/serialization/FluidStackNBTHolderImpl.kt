@@ -59,29 +59,30 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			val delegate = object : ReadWriteProperty<Any?, T>
 			{
 				override fun getValue(thisRef: Any?, property: KProperty<*>): T
 				{
 					loadFromStack()
 					return runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(serializer, data.getOrPut(property.name.toSnakeCase()) {
+						SerializationManager.nbt.decodeFromNbtTagRootless(serializer, data.getOrPut(key) {
 							SerializationManager.nbt.encodeToNbtTagRootless(serializer, default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
+						data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
 						ret
 					}.getOrThrow()
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
 					saveToStack()
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
+			if (key !in data)
 				delegate.setValue(thisRef, property, default())
 
 			delegate
@@ -91,35 +92,31 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	override fun <T> listField(
 		serializer: KSerializer<T>,
 		default: () -> List<T>
-	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>>
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ObservableList<T>>>
 	{
-		return PropertyDelegateProvider { thisRef, property ->
-			val delegate = object : ReadWriteProperty<Any?, MutableList<T>>
+		return PropertyDelegateProvider { _, property ->
+			val key = property.name.toSnakeCase()
+			// The single write path - see the equivalent in [NBTHolderImpl.listField].
+			fun persist(value: List<T>)
 			{
-				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableList<T>
-				{
-					loadFromStack()
-					return ObservableList(runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(property.name.toSnakeCase()) {
-							SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
-						})
-					}.recover {
-						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
-						ret
-					}.getOrThrow().toMutableList()) { list -> setValue(thisRef, property, list)}
-				}
-
-				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableList<T>)
-				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
-					saveToStack()
-				}
+				data[key] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
+				saveToStack()
 			}
-			if (property.name.toSnakeCase() !in data)
-				delegate.setValue(thisRef, property, default().toMutableList())
 
-			delegate
+			if (key !in data) persist(default())
+
+			ReadOnlyProperty { _, _ ->
+				loadFromStack()
+				ObservableList(runCatching {
+					SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(key) {
+						SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
+					})
+				}.recover {
+					val ret = default()
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
+					ret
+				}.getOrThrow().toMutableList()) { list -> persist(list) }
+			}
 		}
 	}
 
@@ -129,29 +126,30 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			val delegate = object : ReadWriteProperty<Any?, MutableMap<String, T>>
 			{
 				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableMap<String, T>
 				{
 					loadFromStack()
 					return ObservableMap(runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(property.name.toSnakeCase()) {
+						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(key) {
 							SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
+						data[key] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
 						ret
 					}.getOrThrow().toMutableMap()) { map -> setValue(thisRef, property, map)}
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableMap<String, T>)
 				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
 					saveToStack()
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
+			if (key !in data)
 				delegate.setValue(thisRef, property, default().toMutableMap())
 
 			delegate
@@ -214,12 +212,13 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			val internalOnUpdate: () -> Unit = {
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size, filter, internalOnUpdate)
-			ReadOnlyProperty { _, _ -> itemStorage[property.name.toSnakeCase()]!! }
+			itemStorage[key] = ArchieItemStorage(size, filter, internalOnUpdate)
+			ReadOnlyProperty { _, _ -> itemStorage[key]!! }
 		}
 	}
 
@@ -273,12 +272,13 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			val internalOnUpdate: () -> Unit = {
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
-			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
+			fluidStorage[key] = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
+			ReadOnlyProperty { _, _ -> fluidStorage[key]!! }
 		}
 	}
 
@@ -329,12 +329,13 @@ class FluidStackNBTHolderImpl(private val stack: FluidStack) : NBTHolder
 	override fun energyField(capacity: Long, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			val internalOnUpdate: () -> Unit = {
 				saveToStack()
 				onUpdate?.invoke()
 			}
-			energyStorage[property.name.toSnakeCase()] = ArchieEnergyStorage(capacity, internalOnUpdate)
-			ReadOnlyProperty { _, _ -> energyStorage[property.name.toSnakeCase()]!! }
+			energyStorage[key] = ArchieEnergyStorage(capacity, internalOnUpdate)
+			ReadOnlyProperty { _, _ -> energyStorage[key]!! }
 		}
 	}
 

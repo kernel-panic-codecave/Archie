@@ -12,11 +12,12 @@ import net.kernelpanicsoft.archie.gui.layout.Alignment
 import net.kernelpanicsoft.archie.gui.layout.Box
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.focusable
+import net.kernelpanicsoft.archie.gui.modifiers.input.MouseButton
 import net.kernelpanicsoft.archie.gui.modifiers.input.hoverable
 import net.kernelpanicsoft.archie.gui.modifiers.input.onKeyEvent
 import net.kernelpanicsoft.archie.gui.modifiers.input.pressable
 import net.kernelpanicsoft.archie.gui.nodes.UINode
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.Minecraft
 import org.lwjgl.glfw.GLFW
 
@@ -30,8 +31,8 @@ private val CLICK_ACTIVATION_KEYS = intArrayOf(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KE
 private fun setHandCursor(enabled: Boolean) {
     // GLFW calls must happen on the render thread; DisposableEffect callbacks run on the
     // recomposition dispatcher, so hop over via Minecraft's thread-safe task queue.
-    minecraftClient.execute {
-        val window = minecraftClient.window.window
+    requireMinecraftClient.execute {
+        val window = requireMinecraftClient.window.window
         GLFW.glfwSetCursor(window, if (enabled) CursorCache.handCursor else 0L)
     }
 }
@@ -46,14 +47,22 @@ private fun setHandCursor(enabled: Boolean) {
  * `Modifier.clickable` bakes in, rather than treating focus as a separate concern from click.
  * Applies no visual styling itself - that is entirely up to [content].
  *
+ * A press of any [MouseButton] fires [onClick], as vanilla's own widgets do - unless
+ * [onAuxClick] is given, in which case [onClick] narrows to [MouseButton.LEFT] and every other
+ * button goes to [onAuxClick]. That is the only shape in which a right- or middle-click gesture
+ * is expressible here: [pressable] consumes the press, so a second modifier listening for the
+ * same event on the same node would never see it.
+ *
  * @param onClick           Invoked with the receiving [UINode] on press, or on Enter/Space
- *   while vanilla-focused.
+ *   while vanilla-focused. Narrowed to [MouseButton.LEFT] when [onAuxClick] is given.
  * @param modifier          Additional modifiers applied to the outer [Box].
  * @param enabled           When `false`, pointer and activation-key events are ignored, no
  *   cursor change occurs, and this drops out of the vanilla focus graph entirely.
  * @param showHandCursor    Whether to switch to the hand cursor while hovered.
  * @param interactionSource Backs `isHovered`/`isPressed`/`isFocused`, collectible independently
  *   via `net.kernelpanicsoft.archie.gui.interaction.collectIsXAsState` too.
+ * @param onAuxClick        Invoked with the receiving [UINode] and the [MouseButton] for a press
+ *   of any button but [MouseButton.LEFT], or `null` to route every button to [onClick].
  * @param content           The visual content; receives `isHovered`/`isPressed`/`isFocused` for styling.
  */
 @Composable
@@ -63,6 +72,7 @@ fun Clickable(
 	enabled: Boolean = true,
 	showHandCursor: Boolean = true,
 	interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+	onAuxClick: ((UINode, Int) -> Unit)? = null,
 	content: @Composable (isHovered: Boolean, isPressed: Boolean, isFocused: Boolean) -> Unit,
 ) {
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -86,7 +96,9 @@ fun Clickable(
                 }
             }
             .hoverable(interactionSource, enabled = enabled)
-            .pressable(interactionSource, enabled = enabled, onPress = onClick)
+            .pressable(interactionSource, enabled = enabled) { node, button ->
+                if (onAuxClick != null && button != MouseButton.LEFT) onAuxClick(node, button) else onClick(node)
+            }
             .then(modifier),
         contentAlignment = Alignment.Center,
     ) {

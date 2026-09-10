@@ -22,6 +22,7 @@ import net.kernelpanicsoft.archie.gui.theme.ThemeManifestResourceListener
 import net.kernelpanicsoft.archie.gui.theme.ThemeResourceListener
 import net.kernelpanicsoft.archie.networking.ArchieNetworkChannel
 import net.kernelpanicsoft.archie.util.buildArray
+import net.kernelpanicsoft.archie.util.withMinecraftClient
 import net.kernelpanicsoft.archie.util.onClient
 import net.kernelpanicsoft.archie.util.rem
 import net.minecraft.core.registries.BuiltInRegistries
@@ -77,7 +78,16 @@ object Archie
 		ACommonTags.init()
 		Config.init()
 
-		onClient {
+		// [withMinecraftClient], not [onClient]: Architectury resolves the manager a CLIENT_RESOURCES
+		// listener registers into through Minecraft.getInstance(), which a data run does not have.
+		// This threw out of FMLConstructModEvent and killed every data run outright, Archie's own
+		// and those of the mods that depend on it.
+		//
+		// Registered here rather than from [initClient] because the client's first resource reload
+		// can precede FMLClientSetupEvent; a listener added that late would miss it and leave themes
+		// unloaded until a manual reload. Nothing is lost by skipping a data run - themes are read
+		// to draw with, and a data run draws nothing.
+		withMinecraftClient {
 			ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeManifestResourceListener(), Archie % "theme_manifest")
 			ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, ThemeResourceListener(), Archie % "theme")
 		}

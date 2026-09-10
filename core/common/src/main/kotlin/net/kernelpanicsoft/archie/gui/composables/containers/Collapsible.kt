@@ -21,7 +21,7 @@ import net.kernelpanicsoft.archie.gui.nodes.UINode
 import net.kernelpanicsoft.archie.gui.util.KColor
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
 import net.kernelpanicsoft.archie.gui.util.extension.pose
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.network.chat.Component
@@ -186,7 +186,7 @@ private fun CollapsibleArrow(isExpanded: Boolean) {
                     translate(x + node.width / 2f, y + node.height / 2f, 0f)
                     mulPose(Axis.ZP.rotationDegrees(rotation))
                     translate(-(x + node.width / 2f), -(y + node.height / 2f), 0f)
-                    drawString(minecraftClient.font, ">", x + 1, y, KColor.WHITE.argb)
+                    drawString(requireMinecraftClient.font, ">", x + 1, y, KColor.WHITE.argb)
                 }
             }
         },

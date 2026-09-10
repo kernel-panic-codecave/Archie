@@ -38,6 +38,13 @@ import kotlin.time.Duration.Companion.milliseconds
  * @param enabled  When `false`, the disabled state is drawn and pointer events are ignored.
  * @param texture  The themed texture key to look up via [LocalTheme].
  * @param variant  The theme variant of [texture] to use. See [ThemeVariants].
+ * @param ignoreMinSize Lets a [modifier] size this button below what its theme declares as a
+ *   minimum - see [intrinsicSizeModifier]. Without it the theme's floor and the caller's size become
+ *   a `min > max` constraint and the button does not lay out at all, which reads as it simply not
+ *   drawing. The theme's own content padding is dropped along with the minimum: a theme sizes that
+ *   padding for a button of its intended size, and four pixels either side of an eight-pixel one
+ *   leaves the content none at all. A button this small is expected to hold a scaled glyph rather
+ *   than a label, so it is the caller's business how tightly it sits.
  * @param content  The button's foreground content (e.g. a [net.kernelpanicsoft.archie.gui.composables.basic.Text]).
  */
 @Composable
@@ -47,6 +54,7 @@ fun Button(
 	enabled: Boolean = true,
 	texture: String = "button",
 	variant: String = ThemeVariants.DEFAULT,
+	ignoreMinSize: Boolean = false,
 	content: @Composable () -> Unit = {}
 ) {
     val theme = LocalTheme.current
@@ -90,8 +98,8 @@ fun Button(
                 }
             },
             modifier = modifier
-                .then(composableTheme.intrinsicSizeModifier())
-                .then(composableTheme.contentPaddingModifier())
+                .then(composableTheme.intrinsicSizeModifier(ignoreMinSize))
+                .then(if (ignoreMinSize) Modifier else composableTheme.contentPaddingModifier())
                 .offset(x = 0, y = pressOffset)
         )
     }

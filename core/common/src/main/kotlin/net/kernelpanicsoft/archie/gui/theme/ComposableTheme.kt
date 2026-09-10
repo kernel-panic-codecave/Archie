@@ -177,9 +177,16 @@ data class ComposableTheme(
  * state's own sprite dimensions for a non-nine-slice texture (which can't stretch without
  * distorting), otherwise no floor at all - a nine-slice texture with no explicit [ComposableTheme.minSize]
  * is free to shrink or stretch to fit its content.
+ *
+ * @param ignoreMinSize skips [ComposableTheme.minSize], for a caller that means to size the widget
+ *   itself and needs its own [Modifier.size] to be the last word. A declared minimum is what a theme
+ *   thinks the widget should never be smaller than, and it wins over a caller's own size otherwise -
+ *   the two become a `min > max` constraint and the node cannot lay out at all. The sprite-size floor
+ *   below is *not* skipped: that one is about a texture that would visibly distort if squashed, which
+ *   is a fact about the image rather than an opinion about the widget.
  */
-fun ComposableTheme.intrinsicSizeModifier(): Modifier {
-    minSize?.let { return Modifier.sizeIn(minWidth = it.width, minHeight = it.height) }
+fun ComposableTheme.intrinsicSizeModifier(ignoreMinSize: Boolean = false): Modifier {
+    if (!ignoreMinSize) minSize?.let { return Modifier.sizeIn(minWidth = it.width, minHeight = it.height) }
     if (isNineslice) return Modifier
     val default = states[TextureStates.DEFAULT] as SimpleThemeState
     return Modifier.sizeIn(minWidth = default.width, minHeight = default.height)

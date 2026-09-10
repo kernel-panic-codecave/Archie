@@ -50,8 +50,15 @@ interface NBTHolder
 	 */
 	fun <T> field(serializer: KSerializer<T>, default: () -> T): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 
-	/** Declares a mutable-list field backed by [serializer], keyed by the delegated property's name. */
-	fun <T> listField(serializer: KSerializer<T>, default: () -> List<T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>>
+	/**
+	 * Declares a mutable-list field backed by [serializer], keyed by the delegated property's name.
+	 *
+	 * Typed as [ObservableList] rather than plain [MutableList] so a caller can reach
+	 * [ObservableList.setAll] - every ordinary mutator persists the whole list on each call, which
+	 * a caller rewriting many entries in one pass has no reason to pay for. A property declared as
+	 * `MutableList<T>` still binds to this unchanged.
+	 */
+	fun <T> listField(serializer: KSerializer<T>, default: () -> List<T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ObservableList<T>>>
 	/** Declares a mutable-map (keyed by [String]) field backed by [serializer], keyed by the delegated property's name. */
 	fun <T> mapField(serializer: KSerializer<T>, default: () -> Map<String, T>): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
 

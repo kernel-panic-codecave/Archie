@@ -57,12 +57,17 @@ class NBTHolderImpl : NBTHolder
 	{
 
 		return PropertyDelegateProvider { thisRef, property ->
+			// Derived once, here, rather than on every read and write. The property is fixed for the
+			// life of the delegate, so its key is too - and these accessors are hot enough for the
+			// difference to matter: a field on a block entity can be read several times per
+			// neighbour during a network walk, and `toSnakeCase` builds a fresh string each time.
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), serializer)
+					thisRef.getStateContainer().setPropertySerializer(key, serializer)
 				}
 			}
 
@@ -70,7 +75,6 @@ class NBTHolderImpl : NBTHolder
 			{
 					override fun getValue(thisRef: Any?, property: KProperty<*>): T
 					{
-						val key = property.name.toSnakeCase()
 						val tag = data[key]
 						if (tag == null)
 						{
@@ -80,33 +84,42 @@ class NBTHolderImpl : NBTHolder
 							data[key] = encodedDef
 							return def
 						}
-						return runCatching {
+						// try/catch rather than runCatching: the success path is the whole of the
+						// hot path, and runCatching allocates a Result to carry a value that is
+						// immediately unwrapped again.
+						return try
+						{
 							SerializationManager.nbt.decodeFromNbtTagRootless(serializer, tag)
-						}.recover {
+						}
+						catch (failure: Exception)
+						{
+							// A tag that no longer matches its serializer - a field whose shape
+							// changed under an existing save. Falling back to the default, and
+							// rewriting it, keeps one stale field from failing the whole load.
 							val ret = default()
 							if (ret != null)
 								data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
 							ret
-						}.getOrThrow()
+						}
 					}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
 					if (value == null)
-						data.remove(property.name.toSnakeCase())
+						data.remove(key)
 					else
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
+						data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
 					if (thisRef is BlockEntity)
 					{
-						if (property.name.toSnakeCase() in sync) {
-							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+						if (key in sync) {
+							thisRef.getStateContainer().updateProperty(key, value)
 							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 						}
 						thisRef.setChanged()
 					}
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
+			if (key !in data)
 				delegate.setValue(thisRef, property, default())
 			delegate
 		}
@@ -115,48 +128,47 @@ class NBTHolderImpl : NBTHolder
 	override fun <T> listField(
 		serializer: KSerializer<T>,
 		default: () -> List<T>
-	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>>
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ObservableList<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ListSerializer(serializer))
+					thisRef.getStateContainer().setPropertySerializer(key, ListSerializer(serializer))
 				}
 			}
-			val delegate = object : ReadWriteProperty<Any?, MutableList<T>>
+			// The single write path: the initial default below and every [ObservableList] mutation
+			// both come through here, which is what lets the delegate hand out an [ObservableList]
+			// without a `setValue` that has to take one.
+			fun persist(value: List<T>)
 			{
-				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableList<T>
+				data[key] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
+				if (thisRef is BlockEntity)
 				{
-					return ObservableList(runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(property.name.toSnakeCase()) {
-							SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
-						})
-					}.recover {
-						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
-						ret
-					}.getOrThrow().toMutableList()) { list -> setValue(thisRef, property, list) }
-				}
-
-				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableList<T>)
-				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
-					if (thisRef is BlockEntity)
-					{
-						if (property.name.toSnakeCase() in sync) {
-							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
-							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
-						}
-						thisRef.setChanged()
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, value)
+						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
+					thisRef.setChanged()
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
-				delegate.setValue(thisRef, property, default().toMutableList())
-			delegate
+
+			if (key !in data) persist(default())
+
+			ReadOnlyProperty { _, _ ->
+				ObservableList(runCatching {
+					SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(key) {
+						SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
+					})
+				}.recover {
+					val ret = default()
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
+					ret
+				}.getOrThrow().toMutableList()) { list -> persist(list) }
+			}
 		}
 	}
 
@@ -166,12 +178,13 @@ class NBTHolderImpl : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), MapSerializer(String.serializer(), serializer))
+					thisRef.getStateContainer().setPropertySerializer(key, MapSerializer(String.serializer(), serializer))
 				}
 			}
 			val delegate = object : ReadWriteProperty<Any?, MutableMap<String, T>>
@@ -179,30 +192,30 @@ class NBTHolderImpl : NBTHolder
 				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableMap<String, T>
 				{
 					return ObservableMap(runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(property.name.toSnakeCase()) {
+						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(key) {
 							SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
+						data[key] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
 						ret
 					}.getOrThrow().toMutableMap()) { map -> setValue(thisRef, property, map) }
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableMap<String, T>)
 				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
 					if (thisRef is BlockEntity)
 					{
-						if (property.name.toSnakeCase() in sync) {
-							thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), value)
+						if (key in sync) {
+							thisRef.getStateContainer().updateProperty(key, value)
 							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 						}
 						thisRef.setChanged()
 					}
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
+			if (key !in data)
 				delegate.setValue(thisRef, property, default().toMutableMap())
 			delegate
 		}
@@ -218,13 +231,22 @@ class NBTHolderImpl : NBTHolder
 			}
 			lateinit var map: NestedNBTHolderMap<T>
 			map = NestedNBTHolderMap {
-				data[key] = map.toNbtCompound()
-				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-//						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
-						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+				val encoded = map.toNbtCompound()
+				// A nested entry's own field writes don't reach here, so callers announce them with
+				// `touch()` - which says "something under here *may* have changed", not that it did.
+				// Whether it actually did is answerable right here, and answering it matters: a
+				// caller ticking its entries has to touch every tick to be safe, and the block
+				// update below costs a pair of collision-shape rebuilds and a packet to every
+				// tracking client. Paying that on a tick where nothing moved is pure waste.
+				if (data[key] != encoded)
+				{
+					data[key] = encoded
+					if (thisRef is BlockEntity) {
+						if (key in sync) {
+							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+						}
+						thisRef.setChanged()
 					}
-					thisRef.setChanged()
 				}
 			}
 			(data[key] as? NbtCompound)?.let { map.loadFrom(it, factory) }
@@ -241,13 +263,17 @@ class NBTHolderImpl : NBTHolder
 			if (property.hasAnnotation<Sync>()) sync += key
 			lateinit var list: NestedNBTHolderList<T>
 			list = NestedNBTHolderList {
-				data[key] = list.toNbtCompound()
-				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-//						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
-						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+				val encoded = list.toNbtCompound()
+				// Skipped when nothing actually changed - see the equivalent in [nestedMapField].
+				if (data[key] != encoded)
+				{
+					data[key] = encoded
+					if (thisRef is BlockEntity) {
+						if (key in sync) {
+							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+						}
+						thisRef.setChanged()
 					}
-					thisRef.setChanged()
 				}
 			}
 			(data[key] as? NbtCompound)?.let { list.loadFrom(it, factory) }
@@ -264,14 +290,18 @@ class NBTHolderImpl : NBTHolder
 			if (property.hasAnnotation<Sync>()) sync += key
 			lateinit var holder: NestedNBTHolder<T>
 			holder = NestedNBTHolder {
-				// Removed rather than stored empty when the holder is unset - see toNbtCompoundOrNull.
-				holder.toNbtCompoundOrNull().let { if (it == null) data.remove(key) else data[key] = it }
-				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-//						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), holder)
-						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+				val encoded = holder.toNbtCompoundOrNull()
+				// Skipped when nothing actually changed - see the equivalent in [nestedMapField].
+				if (data[key] != encoded)
+				{
+					// Removed rather than stored empty when the holder is unset - see toNbtCompoundOrNull.
+					if (encoded == null) data.remove(key) else data[key] = encoded
+					if (thisRef is BlockEntity) {
+						if (key in sync) {
+							thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
+						}
+						thisRef.setChanged()
 					}
-					thisRef.setChanged()
 				}
 			}
 			(data[key] as? NbtCompound)?.let { holder.loadFrom(it, factory) }
@@ -288,27 +318,28 @@ class NBTHolderImpl : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieItemStorage.serializer())
+					thisRef.getStateContainer().setPropertySerializer(key, ArchieItemStorage.serializer())
 				}
 			}
 			val internalOnUpdate = when (thisRef)
 			{
 				is BlockEntity -> ({
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), itemStorage[property.name.toSnakeCase()])
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, itemStorage[key])
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
 				})
 				else -> ({})
 			}
-			itemStorage[property.name.toSnakeCase()] = ArchieItemStorage(size, filter) { internalOnUpdate(); onUpdate?.invoke() }
-			ReadOnlyProperty { _, _ -> itemStorage[property.name.toSnakeCase()]!! }
+			itemStorage[key] = ArchieItemStorage(size, filter) { internalOnUpdate(); onUpdate?.invoke() }
+			ReadOnlyProperty { _, _ -> itemStorage[key]!! }
 		}
 	}
 
@@ -324,8 +355,8 @@ class NBTHolderImpl : NBTHolder
 			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, map)
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
@@ -351,8 +382,8 @@ class NBTHolderImpl : NBTHolder
 			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, list)
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
@@ -374,27 +405,28 @@ class NBTHolderImpl : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieFluidStorage.serializer())
+					thisRef.getStateContainer().setPropertySerializer(key, ArchieFluidStorage.serializer())
 				}
 			}
 			val internalOnUpdate: () -> Unit = {
 				if (thisRef is BlockEntity)
 				{
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), fluidStorage[property.name.toSnakeCase()])
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, fluidStorage[key])
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
 				}
 				onUpdate?.invoke()
 			}
-			fluidStorage[property.name.toSnakeCase()] = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
-			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
+			fluidStorage[key] = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
+			ReadOnlyProperty { _, _ -> fluidStorage[key]!! }
 		}
 	}
 
@@ -411,8 +443,8 @@ class NBTHolderImpl : NBTHolder
 			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, map)
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
@@ -439,8 +471,8 @@ class NBTHolderImpl : NBTHolder
 			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, list)
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
@@ -457,28 +489,29 @@ class NBTHolderImpl : NBTHolder
 	override fun energyField(capacity: Long, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is BlockEntity)
 				{
-					thisRef.getStateContainer().setPropertySerializer(property.name.toSnakeCase(), ArchieEnergyStorage.serializer())
+					thisRef.getStateContainer().setPropertySerializer(key, ArchieEnergyStorage.serializer())
 				}
 			}
 			val internalOnUpdate: () -> Unit = {
 				if (thisRef is BlockEntity)
 				{
-					if (property.name.toSnakeCase() in sync)
+					if (key in sync)
 					{
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), energyStorage[property.name.toSnakeCase()])
+						thisRef.getStateContainer().updateProperty(key, energyStorage[key])
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
 				}
 				onUpdate?.invoke()
 			}
-			energyStorage[property.name.toSnakeCase()] = ArchieEnergyStorage(capacity, internalOnUpdate)
-			ReadOnlyProperty { _, _ -> energyStorage[property.name.toSnakeCase()]!! }
+			energyStorage[key] = ArchieEnergyStorage(capacity, internalOnUpdate)
+			ReadOnlyProperty { _, _ -> energyStorage[key]!! }
 		}
 	}
 
@@ -490,8 +523,8 @@ class NBTHolderImpl : NBTHolder
 			val internalOnChange: () -> Unit = {
 				data[key] = map.toNbtCompound()
 				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), map)
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, map)
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()
@@ -513,8 +546,8 @@ class NBTHolderImpl : NBTHolder
 			val internalOnChange: () -> Unit = {
 				data[key] = list.toNbtCompound()
 				if (thisRef is BlockEntity) {
-					if (property.name.toSnakeCase() in sync) {
-						thisRef.getStateContainer().updateProperty(property.name.toSnakeCase(), list)
+					if (key in sync) {
+						thisRef.getStateContainer().updateProperty(key, list)
 						thisRef.level?.sendBlockUpdated(thisRef.blockPos, thisRef.blockState, thisRef.blockState, Block.UPDATE_ALL)
 					}
 					thisRef.setChanged()

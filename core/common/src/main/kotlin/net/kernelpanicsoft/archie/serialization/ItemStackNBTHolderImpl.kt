@@ -66,11 +66,12 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is SyncedItemHolder)
-					thisRef.registerSyncedProperty(property.name.toSnakeCase(), serializer)
+					thisRef.registerSyncedProperty(key, serializer)
 			}
 
 			val delegate = object : ReadWriteProperty<Any?, T>
@@ -79,30 +80,30 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				{
 					loadFromStack()
 					return runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(serializer, data.getOrPut(property.name.toSnakeCase()) {
+						SerializationManager.nbt.decodeFromNbtTagRootless(serializer, data.getOrPut(key) {
 							SerializationManager.nbt.encodeToNbtTagRootless(serializer, default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
+						data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, ret)
 						ret
 					}.getOrThrow()
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: T)
 				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
-					if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-						thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), serializer, value)
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(serializer, value)
+					if (thisRef is SyncedItemHolder && key in sync)
+						thisRef.onSyncedPropertyChanged(key, serializer, value)
 					saveToStack()
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
+			if (key !in data)
 				delegate.setValue(thisRef, property, default())
-			else if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+			else if (thisRef is SyncedItemHolder && key in sync)
 				// Value pre-existed on the stack, so setValue() above never ran - announce it now
 				// so a menu opened against pre-existing data doesn't start out unsynced.
-				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), serializer, delegate.getValue(thisRef, property))
+				thisRef.onSyncedPropertyChanged(key, serializer, delegate.getValue(thisRef, property))
 
 			delegate
 		}
@@ -111,47 +112,50 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 	override fun <T> listField(
 		serializer: KSerializer<T>,
 		default: () -> List<T>
-	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableList<T>>>
+	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ObservableList<T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is SyncedItemHolder)
-					thisRef.registerSyncedProperty(property.name.toSnakeCase(), ListSerializer(serializer))
+					thisRef.registerSyncedProperty(key, ListSerializer(serializer))
 			}
 
-			val delegate = object : ReadWriteProperty<Any?, MutableList<T>>
+			fun decode(): MutableList<T> = runCatching {
+				SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(key) {
+					SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
+				})
+			}.recover {
+				val ret = default()
+				data[key] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
+				ret
+			}.getOrThrow().toMutableList()
+
+			// The single write path - see the equivalent in [NBTHolderImpl.listField].
+			fun persist(value: List<T>)
 			{
-				override fun getValue(thisRef: Any?, property: KProperty<*>): MutableList<T>
-				{
-					loadFromStack()
-					return ObservableList(runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(ListSerializer(serializer), data.getOrPut(property.name.toSnakeCase()) {
-							SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), default())
-						})
-					}.recover {
-						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), ret)
-						ret
-					}.getOrThrow().toMutableList()) { list -> setValue(thisRef, property, list) }
-				}
-
-				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableList<T>)
-				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
-					if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-						thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ListSerializer(serializer), value.toList())
-					saveToStack()
-				}
+				data[key] = SerializationManager.nbt.encodeToNbtTagRootless(ListSerializer(serializer), value)
+				if (thisRef is SyncedItemHolder && key in sync)
+					thisRef.onSyncedPropertyChanged(key, ListSerializer(serializer), value.toList())
+				saveToStack()
 			}
-			if (property.name.toSnakeCase() !in data)
-				delegate.setValue(thisRef, property, default().toMutableList())
-			else if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-				// See the equivalent branch in field() above - same pre-existing-data gap.
-				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ListSerializer(serializer), delegate.getValue(thisRef, property).toList())
 
-			delegate
+			if (key !in data)
+				persist(default())
+			else if (thisRef is SyncedItemHolder && key in sync)
+			{
+				// See the equivalent branch in field() above - same pre-existing-data gap. Loaded
+				// from the stack first, exactly as a read through the delegate itself would be.
+				loadFromStack()
+				thisRef.onSyncedPropertyChanged(key, ListSerializer(serializer), decode().toList())
+			}
+
+			ReadOnlyProperty { _, _ ->
+				loadFromStack()
+				ObservableList(decode()) { list -> persist(list) }
+			}
 		}
 	}
 
@@ -161,11 +165,12 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, MutableMap<String, T>>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is SyncedItemHolder)
-					thisRef.registerSyncedProperty(property.name.toSnakeCase(), MapSerializer(String.serializer(), serializer))
+					thisRef.registerSyncedProperty(key, MapSerializer(String.serializer(), serializer))
 			}
 
 			val delegate = object : ReadWriteProperty<Any?, MutableMap<String, T>>
@@ -174,29 +179,29 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 				{
 					loadFromStack()
 					return ObservableMap(runCatching {
-						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(property.name.toSnakeCase()) {
+						SerializationManager.nbt.decodeFromNbtTagRootless(MapSerializer(String.serializer(), serializer), data.getOrPut(key) {
 							SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), default())
 						})
 					}.recover {
 						val ret = default()
-						data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
+						data[key] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), ret)
 						ret
 					}.getOrThrow().toMutableMap()) { map -> setValue(thisRef, property, map) }
 				}
 
 				override fun setValue(thisRef: Any?, property: KProperty<*>, value: MutableMap<String, T>)
 				{
-					data[property.name.toSnakeCase()] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
-					if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-						thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), MapSerializer(String.serializer(), serializer), value.toMap())
+					data[key] = SerializationManager.nbt.encodeToNbtTagRootless(MapSerializer(String.serializer(), serializer), value)
+					if (thisRef is SyncedItemHolder && key in sync)
+						thisRef.onSyncedPropertyChanged(key, MapSerializer(String.serializer(), serializer), value.toMap())
 					saveToStack()
 				}
 			}
-			if (property.name.toSnakeCase() !in data)
+			if (key !in data)
 				delegate.setValue(thisRef, property, default().toMutableMap())
-			else if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
+			else if (thisRef is SyncedItemHolder && key in sync)
 				// See the equivalent branch in field() above - same pre-existing-data gap.
-				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), MapSerializer(String.serializer(), serializer), delegate.getValue(thisRef, property).toMap())
+				thisRef.onSyncedPropertyChanged(key, MapSerializer(String.serializer(), serializer), delegate.getValue(thisRef, property).toMap())
 
 			delegate
 		}
@@ -261,25 +266,26 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieItemStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is SyncedItemHolder)
-					thisRef.registerSyncedProperty(property.name.toSnakeCase(), ArchieItemStorage.serializer())
+					thisRef.registerSyncedProperty(key, ArchieItemStorage.serializer())
 			}
 			val internalOnUpdate: () -> Unit = {
-				if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-					thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieItemStorage.serializer(), itemStorage[property.name.toSnakeCase()]!!)
+				if (thisRef is SyncedItemHolder && key in sync)
+					thisRef.onSyncedPropertyChanged(key, ArchieItemStorage.serializer(), itemStorage[key]!!)
 				saveToStack()
 				onUpdate?.invoke()
 			}
 			val storage = ArchieItemStorage(size, filter, internalOnUpdate)
-			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
-			itemStorage[property.name.toSnakeCase()] = storage
+			data[key]?.let { storage.readSnapshot(it) }
+			itemStorage[key] = storage
 			// readSnapshot() above never calls onUpdate, so announce the starting contents now.
-			if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieItemStorage.serializer(), storage)
-			ReadOnlyProperty { _, _ -> itemStorage[property.name.toSnakeCase()]!! }
+			if (thisRef is SyncedItemHolder && key in sync)
+				thisRef.onSyncedPropertyChanged(key, ArchieItemStorage.serializer(), storage)
+			ReadOnlyProperty { _, _ -> itemStorage[key]!! }
 		}
 	}
 
@@ -333,25 +339,26 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 	): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieFluidStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is SyncedItemHolder)
-					thisRef.registerSyncedProperty(property.name.toSnakeCase(), ArchieFluidStorage.serializer())
+					thisRef.registerSyncedProperty(key, ArchieFluidStorage.serializer())
 			}
 			val internalOnUpdate: () -> Unit = {
-				if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-					thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieFluidStorage.serializer(), fluidStorage[property.name.toSnakeCase()]!!)
+				if (thisRef is SyncedItemHolder && key in sync)
+					thisRef.onSyncedPropertyChanged(key, ArchieFluidStorage.serializer(), fluidStorage[key]!!)
 				saveToStack()
 				onUpdate?.invoke()
 			}
 			val storage = ArchieFluidStorage(limit, size, filter, internalOnUpdate)
-			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
-			fluidStorage[property.name.toSnakeCase()] = storage
+			data[key]?.let { storage.readSnapshot(it) }
+			fluidStorage[key] = storage
 			// See itemField() above - same "storage's initial contents never announced" gap.
-			if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieFluidStorage.serializer(), storage)
-			ReadOnlyProperty { _, _ -> fluidStorage[property.name.toSnakeCase()]!! }
+			if (thisRef is SyncedItemHolder && key in sync)
+				thisRef.onSyncedPropertyChanged(key, ArchieFluidStorage.serializer(), storage)
+			ReadOnlyProperty { _, _ -> fluidStorage[key]!! }
 		}
 	}
 
@@ -402,25 +409,26 @@ class ItemStackNBTHolderImpl(private val stack: ItemStack) : NBTHolder
 	override fun energyField(capacity: Long, onUpdate: (() -> Unit)?): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, ArchieEnergyStorage>>
 	{
 		return PropertyDelegateProvider { thisRef, property ->
+			val key = property.name.toSnakeCase()
 			if (property.hasAnnotation<Sync>())
 			{
-				sync += property.name.toSnakeCase()
+				sync += key
 				if (thisRef is SyncedItemHolder)
-					thisRef.registerSyncedProperty(property.name.toSnakeCase(), ArchieEnergyStorage.serializer())
+					thisRef.registerSyncedProperty(key, ArchieEnergyStorage.serializer())
 			}
 			val internalOnUpdate: () -> Unit = {
-				if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-					thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieEnergyStorage.serializer(), energyStorage[property.name.toSnakeCase()]!!)
+				if (thisRef is SyncedItemHolder && key in sync)
+					thisRef.onSyncedPropertyChanged(key, ArchieEnergyStorage.serializer(), energyStorage[key]!!)
 				saveToStack()
 				onUpdate?.invoke()
 			}
 			val storage = ArchieEnergyStorage(capacity, internalOnUpdate)
-			data[property.name.toSnakeCase()]?.let { storage.readSnapshot(it) }
-			energyStorage[property.name.toSnakeCase()] = storage
+			data[key]?.let { storage.readSnapshot(it) }
+			energyStorage[key] = storage
 			// See itemField() above - same "storage's initial contents never announced" gap.
-			if (thisRef is SyncedItemHolder && property.name.toSnakeCase() in sync)
-				thisRef.onSyncedPropertyChanged(property.name.toSnakeCase(), ArchieEnergyStorage.serializer(), storage)
-			ReadOnlyProperty { _, _ -> energyStorage[property.name.toSnakeCase()]!! }
+			if (thisRef is SyncedItemHolder && key in sync)
+				thisRef.onSyncedPropertyChanged(key, ArchieEnergyStorage.serializer(), storage)
+			ReadOnlyProperty { _, _ -> energyStorage[key]!! }
 		}
 	}
 

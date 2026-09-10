@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie.config.entry
 
 import com.google.common.collect.Lists
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.components.Button
@@ -39,7 +39,7 @@ class ConfigRefEntry<T : Any>(
 			cycleButton.message = titleOf(value)
 		}.bounds(0, 0, 100, 20).build()
 		editButton = Button.builder(Component.literal("Edit")) {
-			configScreen?.let { minecraftClient.setScreen(openScreen(value, it)) }
+			configScreen?.let { requireMinecraftClient.setScreen(openScreen(value, it)) }
 		}.bounds(0, 0, 46, 20).build()
 		widgets = Lists.newArrayList(*arrayOf<AbstractWidget>(cycleButton, editButton))
 	}
@@ -61,7 +61,7 @@ class ConfigRefEntry<T : Any>(
 	)
 	{
 		super.render(graphics, index, y, x, entryWidth, entryHeight, mouseX, mouseY, isHovered, delta)
-		graphics.drawString(minecraftClient.font, displayedFieldName.visualOrderText, x, y + 6, preferredTextColor)
+		graphics.drawString(requireMinecraftClient.font, displayedFieldName.visualOrderText, x, y + 6, preferredTextColor)
 		editButton.x = x + entryWidth - editButton.width
 		cycleButton.x = editButton.x - cycleButton.width - 2
 		cycleButton.y = y

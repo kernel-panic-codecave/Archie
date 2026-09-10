@@ -9,7 +9,7 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.theme.SimpleThemeState
 import net.kernelpanicsoft.archie.gui.theme.ThemeState
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.RenderType
@@ -52,8 +52,8 @@ fun GuiGraphics.drawThemeState(state: ThemeState, x: Int, y: Int, width: Int, he
     val color = RenderSystem.getShaderColor()
     val tinted = color[0] != 1f || color[1] != 1f || color[2] != 1f || color[3] != 1f
     if (tinted && state.texture.isAtlasSprite()) {
-        val sprite = minecraftClient.guiSprites.getSprite(state.texture)
-        when (val scaling = minecraftClient.guiSprites.getSpriteScaling(sprite)) {
+        val sprite = requireMinecraftClient.guiSprites.getSprite(state.texture)
+        when (val scaling = requireMinecraftClient.guiSprites.getSpriteScaling(sprite)) {
             is GuiSpriteScaling.NineSlice -> blitNineSlicedSpriteTinted(sprite, scaling, x, y, width, height, color[0], color[1], color[2], color[3])
             is GuiSpriteScaling.Tile -> blitTiledSpriteTinted(sprite, x, y, width, height, 0, 0, scaling.width(), scaling.height(), scaling.width(), scaling.height(), color[0], color[1], color[2], color[3])
             else -> blitSpriteTinted(sprite, x, y, width, height, color[0], color[1], color[2], color[3])

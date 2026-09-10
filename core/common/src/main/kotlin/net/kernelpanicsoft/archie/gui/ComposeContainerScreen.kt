@@ -625,15 +625,15 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val topNode = getTopNode() ?: return super.mouseClicked(mouseX, mouseY, button)
-        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.GLOBAL_PRESS, true)
-        val event = processPointerEvent(topNode, mouseX, mouseY, PointerEventType.PRESS)
+        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.GLOBAL_PRESS, button, global = true)
+        val event = processPointerEvent(topNode, mouseX, mouseY, PointerEventType.PRESS, button)
         return event.bypassSuper || super.mouseClicked(mouseX, mouseY, button)
     }
 
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val topNode = getTopNode() ?: return super.mouseReleased(mouseX, mouseY, button)
-        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.GLOBAL_RELEASE, true)
-        val event = processPointerEvent(topNode, mouseX, mouseY, PointerEventType.RELEASE)
+        processPointerEvent(topNode, mouseX, mouseY, PointerEventType.GLOBAL_RELEASE, button, global = true)
+        val event = processPointerEvent(topNode, mouseX, mouseY, PointerEventType.RELEASE, button)
         return event.bypassSuper || super.mouseReleased(mouseX, mouseY, button)
     }
 

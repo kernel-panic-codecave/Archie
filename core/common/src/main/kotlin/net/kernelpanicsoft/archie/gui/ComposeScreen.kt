@@ -337,15 +337,15 @@ abstract class ComposeScreen(
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val top = topNode() ?: return super.mouseClicked(mouseX, mouseY, button)
-        processPointerEvent(top, mouseX, mouseY, PointerEventType.GLOBAL_PRESS, global = true)
-        val event = processPointerEvent(top, mouseX, mouseY, PointerEventType.PRESS)
+        processPointerEvent(top, mouseX, mouseY, PointerEventType.GLOBAL_PRESS, button, global = true)
+        val event = processPointerEvent(top, mouseX, mouseY, PointerEventType.PRESS, button)
         return event.bypassSuper || super.mouseClicked(mouseX, mouseY, button)
     }
 
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val top = topNode() ?: return super.mouseReleased(mouseX, mouseY, button)
-        processPointerEvent(top, mouseX, mouseY, PointerEventType.GLOBAL_RELEASE, global = true)
-        val event = processPointerEvent(top, mouseX, mouseY, PointerEventType.RELEASE)
+        processPointerEvent(top, mouseX, mouseY, PointerEventType.GLOBAL_RELEASE, button, global = true)
+        val event = processPointerEvent(top, mouseX, mouseY, PointerEventType.RELEASE, button)
         return event.bypassSuper || super.mouseReleased(mouseX, mouseY, button)
     }
 

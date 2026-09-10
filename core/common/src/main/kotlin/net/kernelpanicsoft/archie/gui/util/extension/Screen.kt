@@ -77,6 +77,8 @@ internal fun reconcilePointerHover(node: LayoutNode, mouseX: Double, mouseY: Dou
  * Only nodes that pass [condition] (default: bounded by the mouse position) receive
  * the event. Pass `global = true` to dispatch to all nodes regardless of bounds.
  *
+ * @param button The [MouseButton] a press or release came from; leave it at [MouseButton.NONE]
+ *   for an event no button produced.
  * @return The dispatched [PointerEvent] (check [PointerEvent.bypassSuper] to decide
  *   whether to call the vanilla screen's `super` method).
  */
@@ -86,10 +88,11 @@ internal inline fun Screen.processPointerEvent(
     mouseX: Double,
     mouseY: Double,
     eventType: PointerEventType,
+    button: Int = MouseButton.NONE,
     global: Boolean = false,
     noinline condition: (LayoutNode) -> Boolean = { it.isBounded(mouseX.toInt(), mouseY.toInt()) },
 ): PointerEvent {
-    val event = BasicPointerEvent(eventType, mouseX, mouseY)
+    val event = BasicPointerEvent(eventType, mouseX, mouseY, button)
     processInputEvent(node, event, if (global) { _ -> true } else condition) { currentNode, currentEvent ->
         currentNode.modifier.foldIn(Unit) { _, el ->
             if (el is OnPointerEventModifier<*> && el.eventType == eventType && (global || !currentEvent.isConsumed))

@@ -95,4 +95,20 @@ class ObservableList<T>(private val list: MutableList<T>, private val listener: 
 	{
 		return list.removeLast().also { listener(list) }
 	}
+
+	/**
+	 * Replaces the whole contents with [elements], notifying [listener] exactly **once**.
+	 *
+	 * The one bulk write. Every other mutator here notifies per operation, which for a persisted
+	 * field means a whole-list encode per element touched - so a caller rewriting `n` entries one
+	 * at a time pays `n` encodes of `n` entries, and the cost of holding a list grows with the
+	 * square of its length. A caller that already knows the entire next state says so through this
+	 * instead: copy the list out, work on the copy, hand it back in one call.
+	 */
+	fun setAll(elements: Collection<T>)
+	{
+		list.clear()
+		list.addAll(elements)
+		listener(list)
+	}
 }

@@ -2,7 +2,7 @@ package net.kernelpanicsoft.archie.config.entry
 
 import com.google.common.collect.Lists
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.AbstractWidget
@@ -37,7 +37,7 @@ class ConfigSpecEntry<T : Any>(
 		this.buttonWidget = Button.builder(
 			buttonText
 		) {
-			configScreen?.let { minecraftClient.setScreen(openScreen(it)) }
+			configScreen?.let { requireMinecraftClient.setScreen(openScreen(it)) }
 		}
 			.bounds(0, 0, 150, 20).build()
 		this.widgets =
@@ -75,10 +75,10 @@ class ConfigSpecEntry<T : Any>(
 		this.buttonWidget.y = y
 
 		val displayedFieldName = this.displayedFieldName
-		if (minecraftClient.font.isBidirectional)
+		if (requireMinecraftClient.font.isBidirectional)
 		{
 			graphics.drawString(
-				minecraftClient.font,
+				requireMinecraftClient.font,
 				displayedFieldName.visualOrderText,
 				window.guiScaledWidth - x - Minecraft.getInstance().font.width(displayedFieldName),
 				y + 6,
@@ -88,7 +88,7 @@ class ConfigSpecEntry<T : Any>(
 		} else
 		{
 			graphics.drawString(
-				minecraftClient.font,
+				requireMinecraftClient.font,
 				displayedFieldName.visualOrderText,
 				x,
 				y + 6,

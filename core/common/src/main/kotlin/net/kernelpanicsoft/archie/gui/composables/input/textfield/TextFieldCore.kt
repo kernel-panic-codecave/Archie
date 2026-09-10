@@ -13,7 +13,7 @@ import net.kernelpanicsoft.archie.gui.layout.Size
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.input.*
-import net.kernelpanicsoft.archie.util.minecraftClient
+import net.kernelpanicsoft.archie.util.requireMinecraftClient
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.screens.Screen
@@ -21,7 +21,7 @@ import net.minecraft.util.Mth
 import net.minecraft.util.StringUtil
 import kotlin.math.max
 
-private const val BORDER_PADDING = 4
+private const val BORDER_PADDING = TextFieldDefaults.BORDER_PADDING
 private const val CURSOR_BLINK_INTERVAL_MS = 300L
 
 /**
@@ -179,7 +179,7 @@ fun TextFieldCore(
                     else -> { val after = handleMovementKey(event, value, singleLine, readOnly); if (after == value) handled = false; after }
                 }
                 if (result != value) onValueChangeAndScroll(result)
-                if (handled || minecraftClient.options.keyInventory.matches(event.keyCode, 0)) event.consume(true)
+                if (handled || requireMinecraftClient.options.keyInventory.matches(event.keyCode, 0)) event.consume(true)
             }
             .onCharTyped { _, event ->
                 if (enabled && !readOnly && state.isFocused && StringUtil.isAllowedChatCharacter(event.codePoint)) {
