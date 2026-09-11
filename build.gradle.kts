@@ -328,6 +328,12 @@ tasks {
 	register<Exec>("generateChangelog") {
 		group = "publishing"
 		workingDir = rootDir
+		val latestChangelog = rootDir.resolve("build/latest-changelog.md")
+		doFirst { latestChangelog.parentFile.mkdirs() }
+		// The script writes nothing at all when the range comes out empty - a tag sitting on the
+		// commit it was cut from, most obviously - and the publisher then fails on a changelog file
+		// that does not exist. A release with nothing to report is still a release.
+		doLast { if (!latestChangelog.exists()) latestChangelog.writeText("No changes recorded for this release.\n") }
 		commandLine(
 			"python3", ".github/scripts/generate_release_notes.py",
 			"--repo", "mod_source".prop!!.removePrefix("https://github.com/"),
