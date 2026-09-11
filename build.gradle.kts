@@ -259,6 +259,14 @@ gradle.projectsEvaluated {
 		fusionerExtension.neoforgeConfiguration.inputFile =
 			remapJarFile(":core:neoforge:$mcVersion").relativeTo(coreDir).path
 	}
+
+	// The jars it reads are named through `inputFile` as bare paths, so nothing tells Gradle they
+	// are this task's inputs - on a fresh checkout `fusejars` therefore runs with neither side built
+	// and produces a merged jar with no loader metadata in it, which CurseForge rejects for having
+	// no neoforge.mods.toml. Locally it is masked by a previous build having left the jars behind.
+	tasks.named("fusejars") {
+		dependsOn(":core:fabric:$mcVersion:remapJar", ":core:neoforge:$mcVersion:remapJar")
+	}
 }
 
 // A `-SNAPSHOT` version publishes as an **alpha**: the suffix is dropped for `-alpha`, and the
