@@ -61,7 +61,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git diff --quiet -- CHANGELOG.md docs/news/posts; then
+          # --porcelain, not `git diff`: a brand-new CHANGELOG.md or news post is untracked,
+          # which git diff does not report, so the guard would skip the PR that first time.
+          if [ -z "$(git status --porcelain -- CHANGELOG.md docs/news/posts)" ]; then
             echo "Nothing new to record since the previous tag - skipping PR."
             exit 0
           fi
