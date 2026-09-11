@@ -3,7 +3,7 @@ name: docs
 on:
   push:
     branches:
-      - 1.21.x
+      - main
 permissions:
   contents: write
 jobs:
