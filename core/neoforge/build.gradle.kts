@@ -78,8 +78,7 @@ dependencies {
 	bundleRuntimeLibrary(libs.androidx.collection)
 	bundleRuntimeLibrary(libs.okio)
 	modLocalRuntime(libs.rei.neoforge)
-	modCompileOnlyApi(libs.catalogue.neoforge)
-	modRuntimeOnly(libs.catalogue.neoforge)
+	modLocalRuntime(libs.catalogue.neoforge)
 	modCompileOnlyApi(libs.clothConfig.neoforge)
 	modRuntimeOnly(libs.clothConfig.neoforge)
 	bundleMod(libs.storage.neoforge) {

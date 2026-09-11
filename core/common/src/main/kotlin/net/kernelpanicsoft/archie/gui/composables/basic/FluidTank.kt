@@ -6,10 +6,10 @@ import net.kernelpanicsoft.archie.gui.composables.theme.TextureStates
 import net.kernelpanicsoft.archie.gui.layout.Layout
 import net.kernelpanicsoft.archie.gui.layout.MeasureResult
 import net.kernelpanicsoft.archie.gui.layout.Renderer
+import dev.architectury.hooks.fluid.FluidStackHooks
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.sizeIn
 import net.kernelpanicsoft.archie.gui.nodes.UINode
-import net.kernelpanicsoft.archie.gui.render.AFluidRenderPlatform
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.theme.ThemeVariants
 import net.kernelpanicsoft.archie.gui.util.extension.drawThemeState
@@ -23,14 +23,15 @@ private const val FLUID_TANK_INSET = 1
 
 /**
  * A themed fluid-level indicator (looked up in the current theme as `"fluid_tank"`): a tank
- * frame sprite with the real fluid texture and tint (via [AFluidRenderPlatform]) filling it
- * bottom-up to `fluid.amount / capacity`.
+ * frame sprite with the real fluid texture and tint (via [FluidStackHooks]) filling it bottom-up to
+ * `fluid.amount / capacity`.
  *
  * The fluid sprite is **tiled** at its own size, anchored to the bottom of the tank, and clipped
  * with a scissor at the waterline. Stretching one 16px texture over a tank several times taller
  * smears it into vertical streaks that read as a gradient rather than as a fluid. See
- * [AFluidRenderPlatform] for why this needs a platform bridge at all: Fabric and NeoForge expose a
- * fluid's client appearance through unrelated APIs.
+ * The appearance comes from Architectury's [FluidStackHooks] rather than from either loader's own
+ * API: Fabric's `FluidRenderHandlerRegistry` and NeoForge's `IClientFluidTypeExtensions` expose the
+ * same two facts through unrelated types, and Architectury already bridges them.
  *
  * @param fluid    The fluid and amount to display; an empty stack renders just the tank frame.
  * @param capacity The tank's total capacity; a non-positive value renders as empty rather than
@@ -65,7 +66,7 @@ fun FluidTank(
 				if (fluid.isEmpty || capacity <= 0L) return@guiGraphics
 
 				val fraction = (fluid.amount.toDouble() / capacity.toDouble()).coerceIn(0.0, 1.0).toFloat()
-				val sprite = AFluidRenderPlatform.getStillSprite(fluid.fluid) ?: return@guiGraphics
+				val sprite = FluidStackHooks.getStillTexture(fluid.fluid) ?: return@guiGraphics
 
 				val innerX = x + FLUID_TANK_INSET
 				val innerY = y + FLUID_TANK_INSET
@@ -76,7 +77,7 @@ fun FluidTank(
 
 				if (innerW <= 0 || fillH <= 0) return@guiGraphics
 
-				val tint = AFluidRenderPlatform.getTintColor(fluid.fluid)
+				val tint = FluidStackHooks.getColor(fluid.fluid)
 				val a = ((tint ushr 24) and 0xFF) / 255f
 				val r = ((tint ushr 16) and 0xFF) / 255f
 				val g = ((tint ushr 8) and 0xFF) / 255f

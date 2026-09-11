@@ -69,7 +69,6 @@ dependencies {
 	bundleRuntimeLibrary(compose.runtime)
 	modLocalRuntime(libs.rei.fabric)
 	modCompileOnlyApi(libs.modmenu)
-	modCompileOnlyApi(libs.catalogue.fabric)
 	modLocalRuntime(libs.catalogue.fabric)
 	modLocalRuntime(libs.menulogue.fabric)
 	modCompileOnlyApi(libs.clothConfig.fabric)
