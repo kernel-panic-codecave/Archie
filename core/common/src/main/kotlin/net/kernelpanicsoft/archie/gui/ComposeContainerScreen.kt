@@ -29,6 +29,7 @@ import net.kernelpanicsoft.archie.gui.layout.IntRect
 import net.kernelpanicsoft.archie.gui.layout.LayoutNode
 import net.kernelpanicsoft.archie.gui.layout.pos
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
+import net.kernelpanicsoft.archie.gui.modifiers.appearance.tooltipAt
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.util.extension.invoke
@@ -387,6 +388,14 @@ abstract class ComposeContainerScreen<T : ComposeContainerMenuBase<T>>(
             pose {
                 translate(0f, 0f, layerBaseZ(layerManager.layers.size - 1))
                 renderTooltip(guiGraphics, mouseX, mouseY)
+                // A composable's own declared tooltip, drawn here for the same reason vanilla's is:
+                // above every layer, once they have all been drawn. Only the topmost layer is
+                // searched, since that is the only one the pointer can actually reach.
+                layerManager.top?.let { top ->
+                    tooltipAt(top.rootNode, mouseX, mouseY)?.let {
+                        guiGraphics.renderComponentTooltip(font, it, mouseX, mouseY)
+                    }
+                }
             }
             // See ComposeScreen.renderNodes for why this only runs when the top layer actually
             // changed (a modal opening or closing), not every frame.

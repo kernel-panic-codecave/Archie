@@ -14,6 +14,7 @@ import net.kernelpanicsoft.archie.gui.theme.LocalTheme
 import net.kernelpanicsoft.archie.gui.modifiers.Constraints
 import net.kernelpanicsoft.archie.gui.modifiers.Modifier
 import net.kernelpanicsoft.archie.gui.modifiers.fillMaxSize
+import net.kernelpanicsoft.archie.gui.modifiers.appearance.tooltipAt
 import net.kernelpanicsoft.archie.gui.modifiers.input.PointerEventType
 import net.kernelpanicsoft.archie.gui.util.extension.processCharEvent
 import net.kernelpanicsoft.archie.gui.util.extension.processDragEvent
@@ -280,6 +281,13 @@ abstract class ComposeScreen(
         reconcileHoverState(mouseX.toDouble(), mouseY.toDouble())
         super.render(guiGraphics, mouseX, mouseY, partialTick)
         renderNodes(guiGraphics, mouseX, mouseY, partialTick)
+        // A composable's own declared tooltip, drawn after every layer so it sits above all of
+        // them. Only the topmost layer is searched: it is the only one the pointer can reach.
+        topNode()?.let { top ->
+            tooltipAt(top, mouseX, mouseY)?.let {
+                guiGraphics.renderComponentTooltip(font, it, mouseX, mouseY)
+            }
+        }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
