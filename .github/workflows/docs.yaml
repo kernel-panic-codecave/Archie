@@ -3,7 +3,6 @@ name: docs
 on:
   push:
     branches:
-      - 1.20.x
       - 1.21.x
 permissions:
   contents: write
