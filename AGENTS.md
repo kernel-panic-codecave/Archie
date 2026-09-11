@@ -2,8 +2,9 @@
 
 ## Repository shape
 - The repo root is a single Gradle build (`settings.gradle.kts`) on Architectury Loom, with four
-  products, each nested `<product>/<platform>` and flattened to a single-level project name
-  (e.g. `core/fabric` -> `archie-core-fabric`): `core` (the library, published), `datagen`
+  products, each nested `<product>/<platform>` and versioned by Stonecutter, so a project path
+  carries the Minecraft version it is for (`core/fabric` -> `:core:fabric:1.21.1`) while the
+  *published artifact* keeps a flat name (`archie-core-fabric`): `core` (the library, published), `datagen`
   (Archie's datagen DSL, own separate mod `archie_datagen`, dev-time only), `gametest` (Archie's
   GameTest framework/harness, own separate mod `archie_gametest`, dev/test-time only), `test` (a
   playground mod `archie_test` that depends on the other three via plain project references, used
@@ -41,26 +42,28 @@ All commands below are run from the repo root.
   has run), which reliably breaks the very first build on a clean checkout with "Failed to setup
   Minecraft ... NoSuchFileException: .../build/libs/archie-x-*.jar". None of these cross-product
   dependencies need remapping at all - every product's fabric target is already namespace-symmetric
-  with every other product's fabric target (same for neoforge, same for common). Use plain
-  `api(project(":archie-x-y", "namedElements"))` instead (the explicit `"namedElements"` target
-  matters - it's what makes the Architectury Transformer's own classpath resolve the target
-  project's classes correctly; a bare `api(project(":archie-x-y"))` with no target reintroduces the
-  `transformProductionFabric`/`transformProductionNeoForge` "Type ... not present" failure this was
-  chosen to avoid). Do **not** add `{ isTransitive = false }` to these `api(...)` calls either - that
-  strips the target project's own `api`-declared dependencies (e.g. `archie-core-common`'s
-  `compose.runtime`/`kotlinx-serialization`) from flowing through to whichever module declared the
-  dependency, breaking compilation with "Unresolved reference" on types that module never
-  redeclares itself.
-- Loader-specific dev runs: `./gradlew archie-core-fabric:runClient`, `./gradlew archie-core-neoforge:runClient`.
-- Datagen runs are explicit tasks: `./gradlew archie-datagen-fabric:runDatagen` / `./gradlew archie-datagen-neoforge:runDatagen`.
-- GameTest runs: `./gradlew archie-gametest-fabric:runGametest` / `./gradlew archie-gametest-neoforge:runGametest` (server-side suite),
-  `./gradlew archie-gametest-fabric:runGametestClient` / `./gradlew archie-gametest-neoforge:runGametestClient` (client GUI harness suite).
+  with every other product's fabric target (same for neoforge, same for common). Resolve the target
+  by path and depend on its jar instead - `val coreFabric = rootProject.project(":core:fabric:${stonecutter.current.version}")`
+  then `api(files(coreFabric.tasks.named<Jar>("jar").flatMap { it.archiveFile }))`. The path is
+  spelled out rather than reached for with `node.sibling()`, which only searches within the current
+  Stonecutter tree and so never finds `core` from `datagen`/`gametest`/`test`. Do **not** add
+  `{ isTransitive = false }` to a project `api(...)` either - that strips the target's own
+  `api`-declared dependencies (e.g. `:core:common`'s `compose.runtime`/`kotlinx-serialization`) from
+  flowing through to whichever module declared the dependency, breaking compilation with
+  "Unresolved reference" on types that module never redeclares itself.
+- Loader-specific dev runs: `./gradlew :core:fabric:1.21.1:runClient`, `./gradlew :core:neoforge:1.21.1:runClient`.
+- Datagen runs are explicit tasks: `./gradlew :datagen:fabric:1.21.1:runDatagen` / `./gradlew :datagen:neoforge:1.21.1:runDatagen`.
+- GameTest runs: `./gradlew :gametest:fabric:1.21.1:runGametest` / `./gradlew :gametest:neoforge:1.21.1:runGametest` (server-side suite),
+  `./gradlew :gametest:fabric:1.21.1:runGametestClient` / `./gradlew :gametest:neoforge:1.21.1:runGametestClient` (client GUI harness suite).
 - Docs pipeline: `embedDokkaIntoMkDocs` then `publishDocs` (calls `mike deploy ...`); root `mkdocs.yml`
   contains `# !!! EMBEDDED DOKKA ... DO NOT COMMIT !!!` markers. CI (`.github/workflows/docs.yaml`) runs
   `./gradlew publishDocs` from the repo root.
-- `./gradlew build`/`assemble` are `finalizedBy(fusejars)`, which merges only `archie-core-fabric`'s
-  and `archie-core-neoforge`'s `remapJar` outputs (`fusioner { fabric { projectName =
-  "archie-core-fabric" }; neoforge { projectName = "archie-core-neoforge" } }` in root
+- `./gradlew build`/`assemble` are `finalizedBy(fusejars)`, which merges only `:core:fabric`'s and
+  `:core:neoforge`'s `remapJar` outputs. modfusioner finds a side by bare `Project.name` searched
+  across the whole build, and under Stonecutter every tree has a leaf named `fabric` and one named
+  `neoforge`, so both sides are anchored at `projectName = "core"` and `inputFile` (set in
+  `gradle.projectsEvaluated`) points at the real jar; `fusejars` also `dependsOn` both `remapJar`
+  tasks, since naming a jar by path tells Gradle nothing about what produces it (root
   `build.gradle.kts`) into one artifact under `build/artifacts/` - `datagen`/`gametest`/`test` each
   ship as their own separate mod and are never fused. `./gradlew publishCurseforge`/
   `publishModrinth`/`publishGitHub`/`publishMod` publish that merged jar (`publisher{}` block, same
@@ -219,8 +222,8 @@ different module) can still reach in and set it.
 4. Use assertion helpers from `GameTestAssertions.kt` (server/common) or `ClientGameTestContext`'s own
    assertion methods (client).
 5. Register the class in `ArchieGameTest.kt`'s `archieGameTests()` under the appropriate scope block.
-6. Run tests locally with `./gradlew archie-gametest-fabric:runGametest` / `archie-gametest-neoforge:runGametest` (server/common), or
-   `./gradlew archie-gametest-fabric:runGametestClient` / `archie-gametest-neoforge:runGametestClient` (client).
+6. Run tests locally with `./gradlew :gametest:fabric:1.21.1:runGametest` / `:gametest:neoforge:1.21.1:runGametest` (server/common), or
+   `./gradlew :gametest:fabric:1.21.1:runGametestClient` / `:gametest:neoforge:1.21.1:runGametestClient` (client).
 
 IMPORTANT: When applicable, prefer using intellij-index MCP tools for code navigation and refactoring.
 IMPORTANT: When debugging, prefer using intellij-debugger MCP tools to interact with the IDE debugger.
