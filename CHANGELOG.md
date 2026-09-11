@@ -45,6 +45,10 @@ All notable changes to Archie are documented here, generated automatically from 
 - **gametest:** address the JUnit harness's Gradle tasks by their real paths ([97db265](https://github.com/kernel-panic-codecave/Archie/commit/97db2659377c99da3b088668b8d7ef29137d2d87)) - KernelPanic
 - **serialization:** an unset nested holder must not save as an empty compound ([02d1ee0](https://github.com/kernel-panic-codecave/Archie/commit/02d1ee0504fb39ad768f4cdee014831848d11f15)) - KernelPanic
 - **config:** a synced spec must not round-trip through the network on its own host ([4cb7501](https://github.com/kernel-panic-codecave/Archie/commit/4cb7501e750aacf0cb51780115aea07454777666)) - KernelPanic
+- **publish:** a release with nothing to report still needs a changelog ([a19fd01](https://github.com/kernel-panic-codecave/Archie/commit/a19fd013459025d7735c87a4435683d1163c0039)) - KernelPanic
+- **release-notes:** don't let a tag be its own predecessor ([284145a](https://github.com/kernel-panic-codecave/Archie/commit/284145a6273fe3b9c2a0c57607c676b3bb5e6977)) - KernelPanic
+- **release:** assemble the jars before publishing them ([381500d](https://github.com/kernel-panic-codecave/Archie/commit/381500d9cf6e2a9eb3d7999584e53facae080766)) - KernelPanic
+- **fusejars:** declare the loader jars it merges as its own inputs ([fdb1111](https://github.com/kernel-panic-codecave/Archie/commit/fdb111101e90fe83ba9eb64caf58afa35dd014f1)) - KernelPanic
 
 ### Refactoring
 
@@ -60,6 +64,7 @@ All notable changes to Archie are documented here, generated automatically from 
 - overhaul KDoc coverage and markdown guides, refresh Archie-Test ([0d7cb61](https://github.com/kernel-panic-codecave/Archie/commit/0d7cb612c6925ddf47c978916440ff1ef551cdb1)) - KernelPanic
 - fix wrong Catalogue-is-broken claim in config.md ([#11](https://github.com/kernel-panic-codecave/Archie/pull/11)) - @KP2048
 - fix all unresolved KDoc links flagged by the docs build ([#17](https://github.com/kernel-panic-codecave/Archie/pull/17)) - @KP2048
+- release notes for v0.1.0-alpha ([#23](https://github.com/kernel-panic-codecave/Archie/pull/23)) - @app/github-actions
 
 ### Tests
 
@@ -70,13 +75,14 @@ All notable changes to Archie are documented here, generated automatically from 
 - moved all the precompiled script plugins to their own seperate project ([e7a43dc](https://github.com/kernel-panic-codecave/Archie/commit/e7a43dc7fa7a2594b6f3606997458609104c9897)) - KernelPanic
 - collapse Archie/Archie-Core/Archie-Test into one Loom build at repo root ([#15](https://github.com/kernel-panic-codecave/Archie/pull/15)) - @KP2048
 - wire issue-tracker metadata; scope REI to local runtime ([d7983ad](https://github.com/kernel-panic-codecave/Archie/commit/d7983adc5163d1f8d54455a73d0347c7e3be79fc)) - KernelPanic
-- **publish:** publish a -SNAPSHOT version as an alpha, at 0.1.0 ([df6efd7](https://github.com/kernel-panic-codecave/Archie/commit/df6efd78c0d4b209b1defe9ce58b5e211f727207)) - KernelPanic
+- **publish:** tag-triggered release, at 0.1.0 ([de7afee](https://github.com/kernel-panic-codecave/Archie/commit/de7afee4aaed1ba35d496b8e056fa3e16e8d1a25)) - KernelPanic
 
 ### CI/CD
 
 - fix 401 resolving MrCrayfish GitHub Packages deps ([#4](https://github.com/kernel-panic-codecave/Archie/pull/4)) - @KP2048
 - automated changelog + release-notes blog post on tag ([#6](https://github.com/kernel-panic-codecave/Archie/pull/6)) - @KP2048
 - fix changelog ordering for modpublisher's own tag/release publishing ([#7](https://github.com/kernel-panic-codecave/Archie/pull/7)) - @KP2048
+- let a re-tagged version regenerate its release notes ([c8ea070](https://github.com/kernel-panic-codecave/Archie/commit/c8ea07095016c7bd5688895e09125a70d1018950)) - KernelPanic
 
 ### Chores
 
