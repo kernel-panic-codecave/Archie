@@ -199,4 +199,4 @@ Published artifacts keep the flat names the project paths no longer have:
 - [Issues](https://github.com/kernel-panic-codecave/Archie/issues)
 - [Documentation](https://docs.kernelpanicsoft.net/Archie/)
 
-Licensed under [GPL-3.0-or-later](LICENSE).
+Licensed under [GPL-3.0-or-later](LICENSE.md).
